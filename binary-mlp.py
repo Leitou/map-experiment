@@ -6,13 +6,17 @@ from torch.utils.data import DataLoader
 from sklearn.preprocessing import StandardScaler
 from sys import exit
 
-# Q:
-# do we need to balance or shuffle data?
-# How is it done in valerian
+# TODO:
+# fix standardscaler
+# remove time, timestamp, seconds columns
+# filter samples with connectivity != 1, remove col,
+# check all features for their unique values (np.unique()), print some statistics for each
+# test up- vs downscaling - all classes equally represented
+# use more attack data
+# build federated binary mlp
 
-
-# what we have so far:
-# for each pi: normal, normal_v2, disorder, repeat -> 2 normal, 2 attacks
+# build autoencoder joining normal and normal_v2
+# build federated autoencoder
 
 # goal:
 # set up an mlp with binary classification: either good or bad (infected)
@@ -36,15 +40,12 @@ def read_data(path, malicious=False):
 scaler = StandardScaler()
 normal_path = "ras-3-192.168.0.205/samples_normal_2021-06-18-15-59_50s"
 normal_input, normal_targets = read_data(normal_path)
-normal_input = scaler.fit_transform(normal_input)
 print(normal_input.shape)
 disorder_path = "ras-3-192.168.0.205/samples_disorder_2021-06-28-17-47_50s"
 disorder_input, disorder_targets = read_data(disorder_path, True)
-disorder_input = scaler.fit_transform(disorder_input)
 print(disorder_input.shape)
 repeat_path = "ras-3-192.168.0.205/samples_repeat_2021-06-29-09-12_50s"
 repeat_input, repeat_targets = read_data(repeat_path, True)
-repeat_input = scaler.fit_transform(repeat_input)
 print(repeat_input.shape, "\n")
 #
 # print(normal_targets[:5])
@@ -63,17 +64,16 @@ print(repeat_input.shape, "\n")
 
 # concat
 # all files have 79 features
-upsample_param = 5 # to adapt
+upsample_param = 10 # to adapt
 tot_input_data = np.vstack((normal_input, np.tile(disorder_input, (upsample_param, 1)), np.tile(repeat_input, (upsample_param, 1))))
 print(tot_input_data.shape) # 8212 = 7609 + 304 + 299
 tot_targets = np.concatenate((normal_targets, np.tile(disorder_targets, upsample_param), np.tile(repeat_targets, upsample_param)))
 print(tot_targets.shape) # 8212
 # shuffle data
-np.random.shuffle(tot_input_data)
-np.random.shuffle(tot_targets)
-# standardize
-tot_input_data = scaler.fit_transform(tot_input_data)
-
+indices = np.arange(len(tot_targets))
+np.random.shuffle(indices)
+tot_input_data = tot_input_data[indices]
+tot_targets = tot_targets[indices]
 
 # binary classification
 # Get cpu or gpu device for training.
@@ -84,13 +84,20 @@ print("###### Using {} device ######".format(device))
 split = 0.8
 input_train, targets_train = tot_input_data[:int(len(tot_input_data)*split)], tot_targets[:int(len(tot_input_data)*split)]
 input_test, targets_test = tot_input_data[int(len(tot_input_data)*split):], tot_targets[int(len(tot_input_data)*split):]
+# standardize
+scaler.fit(input_train)
+print("Standardscaler means: ", scaler.mean_.shape)
+print("Standardscaler standard deviations: ", scaler.scale_.shape)
+input_train = scaler.transform(input_train)
+input_test = scaler.transform(input_test)
+
 
 X_train, y_train = torch.from_numpy(input_train).float(), torch.from_numpy(targets_train).float()
 X_test, y_test = torch.from_numpy(input_test).float(), torch.from_numpy(targets_test).float()
 X_train, y_train = X_train.to(device), y_train.to(device)
 X_test, y_test = X_test.to(device), y_test.to(device)
 
-batch_size = 64
+batch_size = 128
 train_dataset = torch.utils.data.TensorDataset(X_train, y_train.type(torch.FloatTensor))
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 test_dataset = torch.utils.data.TensorDataset(X_test, y_test.type(torch.FloatTensor))
@@ -119,7 +126,7 @@ class NeuralNetwork(nn.Module):
         return output
 
 # select some hyperparameters and initialize network
-learning_rate = 1e-4
+learning_rate = 1e-5
 epochs = 100
 m = 0.9
 
