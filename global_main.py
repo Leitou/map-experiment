@@ -65,8 +65,8 @@ if __name__ == '__main__':
     print(global_model)
 
 
-    epochs = 30
-    loc_epochs = 15
+    epochs = 10
+    loc_epochs = 10
     participation_rate = 1
     num_clients = 2
     loc_sample_size = 3000
@@ -77,7 +77,7 @@ if __name__ == '__main__':
     global_weights = global_model.state_dict()
 
     # define participants and what data they contribute to the model
-    samplers = [ParticipantSampler(3, ["normal"]), ParticipantSampler(4, ["delay"])]
+    samplers = [ParticipantSampler(3, ["normal", "delay", "disorder"]), ParticipantSampler(4, ["normal", "delay", "disorder"])]
     # initialize list of participants and their own unique test splits
     # can be done either at this position or within the loop over participants
     # choice to shuffle once, or at every global epoch
@@ -105,41 +105,38 @@ if __name__ == '__main__':
             local_weights.append(copy.deepcopy(w))
             local_losses.append(copy.deepcopy(loss))
 
-        print(f"local losses: {local_losses}")
+        # aggregate local weights and update global weights
         global_weights = average_weights(local_weights)
-
-        # update global weights
         global_model.load_state_dict(global_weights)
 
         loss_avg = sum(local_losses) / len(local_losses)
         train_loss.append(loss_avg)
 
-    print(train_loss)
+    #print(train_loss)
 
-    #     # Calculate avg training accuracy over all users at every epoch
-    #     list_acc, list_loss = [], []
-    #     global_model.eval()
-    #     for c in range(args.num_users):
-    #         local_model = LocalUpdate(args=args, dataset=train_dataset,
-    #                                   idxs=user_groups[idx], logger=logger)
-    #         acc, loss = local_model.inference(model=global_model)
-    #         list_acc.append(acc)
-    #         list_loss.append(loss)
-    #     train_accuracy.append(sum(list_acc)/len(list_acc))
-    #
-    #     # print global training loss after every 'i' rounds
-    #     if (epoch+1) % print_every == 0:
-    #         print(f' \nAvg Training Stats after {epoch+1} global rounds:')
-    #         print(f'Training Loss : {np.mean(np.array(train_loss))}')
-    #         print('Train Accuracy: {:.2f}% \n'.format(100*train_accuracy[-1]))
-    #
+        # Calculate avg training accuracy over all users at every epoch
+        list_acc, list_loss = [], []
+        global_model.eval()
+        for p in participants:
+            acc, loss = p.inference(model=global_model)
+            list_acc.append(acc)
+            list_loss.append(loss)
+        train_accuracy.append(sum(list_acc)/len(list_acc))
+
+        # print global training loss after every 'i' rounds
+        if (epoch+1) % print_every == 0:
+            print(f' \nAvg Training Statistics after {epoch+1} global rounds:')
+            print(f'Training Loss : {np.mean(np.array(train_loss))}')
+            print('Train Accuracy: {:.2f}% \n'.format(100*train_accuracy[-1]))
+
+    print(train_accuracy)
     # # Test inference after completion of training
     # test_acc, test_loss = test_inference(args, global_model, test_dataset)
     #
     # print(f' \n Results after {args.epochs} global rounds of training:')
     # print("|---- Avg Train Accuracy: {:.2f}%".format(100*train_accuracy[-1]))
     # print("|---- Test Accuracy: {:.2f}%".format(100*test_acc))
-    #
+
     # # Saving the objects train_loss and train_accuracy:
     # file_name = '../save/objects/{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}].pkl'.\
     #     format(args.dataset, args.model, args.epochs, args.frac, args.iid,

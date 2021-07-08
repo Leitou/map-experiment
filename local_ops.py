@@ -6,7 +6,7 @@ import numpy as np
 
 
 
-
+# TODO: evaluate whether this is easiest as an abstract class + implementations for binary/multiclass & unsupervised
 
 class LocalUpdate(object):
     def __init__(self, p : ParticipantSampler, sample_size, batch_size, loc_epochs, lr):
@@ -16,7 +16,7 @@ class LocalUpdate(object):
         data, targets = p.sample(sample_size)
         self.trainloader, self.testloader = self.train_test_split(data, targets)
         self.device = "cuda"
-        # Default criterion set to NLL loss function
+        # Default criterion set to BCEWithlogits loss function (combines BCEloss and softmax layer numerically stable)
         self.criterion = nn.BCEWithLogitsLoss() # nn.NLLLoss().to(self.device)
 
     def train_test_split(self, x, y):
@@ -56,11 +56,11 @@ class LocalUpdate(object):
                 loss.backward()
                 optimizer.step()
 
-                if batch_idx % 10 == 0:
-                    print('| Global Round : {} | Local Epoch : {} | [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                        global_round+1, le+1, batch_idx * len(x),
-                        len(self.trainloader.dataset),
-                        100. * batch_idx / len(self.trainloader), loss.item()))
+                # if batch_idx % 10 == 0:
+                #     print('| Global Round : {} | Local Epoch : {} | [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                #         global_round+1, le+1, batch_idx * len(x),
+                #         len(self.trainloader.dataset),
+                #         100. * batch_idx / len(self.trainloader), loss.item()))
 
                 batch_loss.append(loss.item())
             epoch_loss.append(sum(batch_loss)/len(batch_loss))
@@ -70,23 +70,28 @@ class LocalUpdate(object):
     def inference(self, model):
         """ Returns the inference accuracy and loss.
         """
-
         model.eval()
         loss, total, correct = 0.0, 0.0, 0.0
 
-        for batch_idx, (images, labels) in enumerate(self.testloader):
-            images, labels = images.to(self.device), labels.to(self.device)
+        for batch_idx, (x, y) in enumerate(self.testloader):
+            x, y = x.to(self.device), y.to(self.device)
 
             # Inference
-            outputs = model(images)
-            batch_loss = self.criterion(outputs, labels)
+            pred = model(x)
+            batch_loss = self.criterion(pred, y)
             loss += batch_loss.item()
 
-            # Prediction
-            _, pred_labels = torch.max(outputs, 1)
-            pred_labels = pred_labels.view(-1)
-            correct += torch.sum(torch.eq(pred_labels, labels)).item()
-            total += len(labels)
+            # Prediction Binary
+            pred[pred < 0.5] = 0
+            pred[pred > 0.5] = 1
+            correct += (pred == y).type(torch.float).sum().item()
+
+            # # Prediction Multiclass
+            # _, pred_labels = torch.max(pred, 1)
+            # pred_labels = pred_labels.view(-1)
+            # correct += torch.sum(torch.eq(pred_labels, y)).item()
+
+            total += len(y)
 
         accuracy = correct/total
         return accuracy, loss
