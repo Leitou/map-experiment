@@ -6,48 +6,38 @@ from torch.utils.data import DataLoader
 from sklearn.preprocessing import StandardScaler
 from sys import exit
 
-# TODO:
-# fix standardscaler
-# remove time, timestamp, seconds columns
-# filter samples with connectivity != 1, remove col,
-# check all features for their unique values (np.unique()), print some statistics for each
-# test up- vs downscaling - all classes equally represented
-# use more attack data
-# build federated binary mlp
-
-# build autoencoder joining normal and normal_v2
-# build federated autoencoder
-
-# goal:
-# set up an mlp with binary classification: either good or bad (infected)
-# do this in both a local and a federated setting:
-
 
 # read in and label data
 def read_data(path, malicious=False):
     input = []
     with open(path, newline='') as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
-        print(f"header: {next(reader)}")
+        print(f"header: {next(reader)[3:]}")
+        num_filtered = 0
         for row in reader:
             r = []
-            for el in row:
-                r.append(float(el))
-            input.append(r)
-    targets = np.ones(len(input), dtype=np.float32) if malicious else np.zeros(len(input), dtype=np.float32)
+            if float(row[3]) == 1.: # connectivity == 1
+                for el in row[4:]:
+                    r.append(float(el))
+                input.append(r)
+            else:
+                num_filtered += 1
+    print(f"Number of rows filtered: {num_filtered}")
+    targets = np.ones(len(input)-num_filtered, dtype=np.float32) if malicious else np.zeros(len(input)-num_filtered, dtype=np.float32)
     return np.array(input), targets
 
-scaler = StandardScaler()
-normal_path = "ras-3-192.168.0.205/samples_normal_2021-06-18-15-59_50s"
+normal_path = "data/ras-3-data/samples_normal_2021-06-18-15-59_50s"
 normal_input, normal_targets = read_data(normal_path)
 print(normal_input.shape)
-disorder_path = "ras-3-192.168.0.205/samples_disorder_2021-06-28-17-47_50s"
+disorder_path = "data/ras-3-data/samples_disorder_2021-06-30-23-54_50s"
 disorder_input, disorder_targets = read_data(disorder_path, True)
 print(disorder_input.shape)
-repeat_path = "ras-3-192.168.0.205/samples_repeat_2021-06-29-09-12_50s"
+repeat_path = "data/ras-3-data/samples_repeat_2021-07-01-20-00_50s"
 repeat_input, repeat_targets = read_data(repeat_path, True)
 print(repeat_input.shape, "\n")
-#
+
+#exit()
+
 # print(normal_targets[:5])
 # print(normal_targets.shape)
 # print(disorder_targets[:5])
@@ -85,6 +75,7 @@ split = 0.8
 input_train, targets_train = tot_input_data[:int(len(tot_input_data)*split)], tot_targets[:int(len(tot_input_data)*split)]
 input_test, targets_test = tot_input_data[int(len(tot_input_data)*split):], tot_targets[int(len(tot_input_data)*split):]
 # standardize
+scaler = StandardScaler()
 scaler.fit(input_train)
 print("Standardscaler means: ", scaler.mean_.shape)
 print("Standardscaler standard deviations: ", scaler.scale_.shape)
@@ -103,13 +94,12 @@ train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size,
 test_dataset = torch.utils.data.TensorDataset(X_test, y_test.type(torch.FloatTensor))
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
-
 # define mlp
 class NeuralNetwork(nn.Module):
-    def __init__(self):
+    def __init__(self,K):
         super(NeuralNetwork, self).__init__()
         self.linstack = nn.Sequential(
-            nn.Linear(79, 512), # bias=True is default
+            nn.Linear(K, 512), # bias=True is default
             nn.Sigmoid(),
             nn.BatchNorm1d(512),
             nn.Dropout(0.6),
@@ -130,7 +120,7 @@ learning_rate = 1e-5
 epochs = 100
 m = 0.9
 
-net = NeuralNetwork().to(device)
+net = NeuralNetwork(X_train.shape[1]).to(device)
 #print(net)
 optimizer = torch.optim.SGD(net.parameters(), lr=learning_rate, momentum=m)
 loss_fn = nn.BCEWithLogitsLoss()
