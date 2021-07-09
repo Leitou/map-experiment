@@ -54,75 +54,105 @@ class ParticipantSampler():
         self.data = None
         self.targets = None
 
+    def get_num_malicious(self):
+        num_norm, num_mal = 0.0, 0.0
+        mal_progs = []
+        for p in self.monitoring_programs:
+            if "normal" in p:
+                num_norm += 1
+                mal_progs.append(0)
+            else:
+                num_mal += 1
+                mal_progs.append(1)
 
-    # TODO: How to include the StandardScaler? Not possible to standardize on the whole global data
-    # assumes that there is at least one monitoring program
-    def sample(self):
-        '''read all data and place in a list, perform up or downsampling for each monitoring program,
-        such that the participant contributes with num_samples to the federation'''
+        if num_mal >= 1 and num_norm >= 1:
+            num_mal_samples = int(self.num_samples / 2)
+            num_norm_samples = num_mal_samples
+        elif num_mal == 0 and num_norm >= 1:
+            num_mal_samples = 0
+            num_norm_samples = self.num_samples
+        else:
+            num_mal_samples = self.num_samples
+            num_norm_samples = 0
 
-        # TODO: make balanced for num_normal/num_malicious (Rule: 10 * num_infeatures ~ 800 samples at min.)
-        # check whether monitoring programs contain "normal" or not
-        # cases:
-        # only malicious
-        # only healthy
-        # both normal and malicious once
-        # both normal and malicious at least once
-        # to be balanced:
-        # -> num normal & normal_v2 samples == num malicious samples
+        print(f"Sampling: {num_norm_samples} normal samples, {num_mal_samples} malicious samples")
+        return mal_progs, num_mal_samples, num_norm_samples
 
-        # case mixed: most important
-        # num_normal, num_malicious
-        # condition: num_samples / 2 == num_normal and num_samples / 2 = num_malicious
-        # -> sample as usual in the loop by stacking/concatenating but calculating
-        # num_samples_per_program dependent on num_normal or num_malicious respectively
-
+    def get_all_data(self):
         all_data, all_targets = [], []
         for i, pr in enumerate(self.monitoring_programs):
             d, t = read_data(self.monitoring_paths[i], malicious[pr])
             all_data.append(d)
             all_targets.append(t)
+        return all_data, all_targets
 
-        num_samples_per_program = int(self.num_samples / len(self.monitoring_programs))
+    def get_num_samples_per_program(self, mal_progs, num_mal_samples, num_norm_samples):
+        num_samples_per_prog = []
+        for p in mal_progs:
+            if p == 1:
+                num_prog_samples = int(num_mal_samples / sum(mal_progs))
+                num_samples_per_prog.append(num_prog_samples)
+            else:
+                num_prog_samples = int(num_norm_samples / (len(mal_progs) - sum(mal_progs)))
+                num_samples_per_prog.append(num_prog_samples)
+        print(f"samples per prog: {num_samples_per_prog}")
+        return num_samples_per_prog
 
-        prlen = len(all_targets[0])
-        self.data, self.targets = all_data[0], all_targets[0]
+    def sample_first_prog(self, first_data, first_targets, num_first_samples):
+        prlen = len(first_data)
+        self.data, self.targets = first_data, first_targets
         # down sampling for the first program
-        if prlen > num_samples_per_program:
-            remaining_idx = np.random.choice(prlen, num_samples_per_program)
+        if prlen > num_first_samples:
+            remaining_idx = np.random.choice(prlen, num_first_samples)
             self.data = self.data[remaining_idx]
             self.targets = self.targets[remaining_idx]
 
         # up sampling for the first program
-        if prlen < num_samples_per_program:
-            num_missing = num_samples_per_program - prlen
+        if prlen < num_first_samples:
+            num_missing = num_first_samples - prlen
             missing_idxs = np.random.choice(prlen, num_missing)
             self.data = np.vstack((self.data, self.data[missing_idxs]))
             self.targets = np.concatenate((self.targets, self.targets[missing_idxs]))
+        print(f"sample {self.monitoring_programs[0]}: data len: {len(self.data)}, targets len: {len(self.targets)}")
 
-        print(f"data len: {len(self.data)}, targets len: {len(self.targets)}")
-        # add the remaining programs to self.data/targets
-        i = 1
-        for prdata in all_data[1:]:
-            prlen = len(all_targets[i])
+    def sample_remaining_progs(self, num_samples_per_program, data_per_prog, targets_per_prog):
+        for pr, num_prsamples, prdata, prtargets in zip(self.monitoring_programs[1:],num_samples_per_program[1:],
+                                                    data_per_prog[1:], targets_per_prog[1:]):
+            prlen = len(prdata)
             # down sampling
-            if prlen > num_samples_per_program:
-                remaining_idx = np.random.choice(prlen, num_samples_per_program)
+            if prlen > num_prsamples:
+                remaining_idx = np.random.choice(prlen, num_prsamples)
                 self.data = np.vstack((self.data, prdata[remaining_idx]))
-                self.targets = np.concatenate((self.targets, all_targets[i][remaining_idx]))
+                self.targets = np.concatenate((self.targets, prtargets[remaining_idx]))
 
             # up sampling
-            if prlen < num_samples_per_program:
-                multi_idxs = np.random.choice(prlen, num_samples_per_program)
+            if prlen < num_prsamples:
+                multi_idxs = np.random.choice(prlen, num_prsamples)
                 self.data = np.vstack((self.data, prdata[multi_idxs]))
-                self.targets = np.concatenate((self.targets, all_targets[i][multi_idxs]))
+                self.targets = np.concatenate((self.targets, prtargets[multi_idxs]))
 
-            print(f"{i}data len: {len(self.data)}, targets len: {len(self.targets)}")
-            i += 1
+            print(f"adding {pr} samples: data len: {len(self.data)}, targets len: {len(self.targets)}")
 
+    # TODO: make balanced for num_normal/num_malicious (Rule: 10 * num_infeatures ~ 800 samples at min.)
+    # assumes that there is at least one monitoring program
+    def sample(self):
+        '''read all data and place in a list, perform up or downsampling for each monitoring program,
+        such that the participant contributes with num_samples to the federation in a fashion where the number of normal
+        samples and number of malicious samples is balanced'''
 
-        assert len(self.data) == num_samples_per_program*len(self.monitoring_programs) and \
-               len(self.targets) == num_samples_per_program*len(self.monitoring_programs), \
+        # find how many samples need to be drawn per program
+        mal_progs, num_mal_samples, num_norm_samples = self.get_num_malicious()
+        num_samples_per_program = self.get_num_samples_per_program(mal_progs, num_mal_samples, num_norm_samples)
+
+        # populate self.data/targets with corresponding nr of samples of first program
+        data_per_prog, targets_per_prog = self.get_all_data()
+        self.sample_first_prog(data_per_prog[0], targets_per_prog[0], num_samples_per_program[0])
+
+        # stack the data of the remaining programs to self.data/targets
+        self.sample_remaining_progs(num_samples_per_program, data_per_prog, targets_per_prog)
+
+        assert len(self.data) == sum(num_samples_per_program) and \
+               len(self.targets) == sum(num_samples_per_program), \
             "Up/Downsampling Failure"
 
         return self.data, self.targets

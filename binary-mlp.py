@@ -23,7 +23,7 @@ def read_data(path, malicious=False):
             else:
                 num_filtered += 1
     print(f"Number of rows filtered: {num_filtered}")
-    targets = np.ones(len(input)-num_filtered, dtype=np.float32) if malicious else np.zeros(len(input)-num_filtered, dtype=np.float32)
+    targets = np.ones(len(input), dtype=np.float32) if malicious else np.zeros(len(input), dtype=np.float32)
     return np.array(input), targets
 
 normal_path = "data/ras-3-data/samples_normal_2021-06-18-15-59_50s"

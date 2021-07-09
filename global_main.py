@@ -77,12 +77,8 @@ if __name__ == '__main__':
     samplers = [ParticipantSampler(3, loc_sample_size, ["normal", "delay", "disorder"]),
                 ParticipantSampler(4, loc_sample_size, ["normal", "delay", "disorder"])]
     # initialize list of participants and their own unique test splits
-    # can be done either at this position or within the loop over participants
-    # choice to shuffle once, or at every global epoch
     participants = [LocalOps(s, batch_size, loc_epochs=loc_epochs, lr=lr) for s in samplers]
 
-    # TODO: insert scaler here, using all participant data.
-    #  Goal: get a scaler for
 
     # Training
     train_loss, train_accuracy = [], []
@@ -90,7 +86,6 @@ if __name__ == '__main__':
     cv_loss, cv_acc = [], []
     print_every = 2
     val_loss_pre, counter = 0, 0
-
 
     for epoch in tqdm(range(epochs)):
         local_weights, local_losses = [], []

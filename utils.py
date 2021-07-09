@@ -24,8 +24,8 @@ def read_data(path, malicious=False):
                 input.append(r)
             else:
                 num_filtered += 1
-    #print(f"Number of rows filtered: {num_filtered}")
-    targets = np.ones(len(input)-num_filtered, dtype=np.float32) if malicious else np.zeros(len(input)-num_filtered, dtype=np.float32)
+    print(f"Number of rows filtered: {num_filtered}")
+    targets = np.ones(len(input), dtype=np.float32) if malicious else np.zeros(len(input), dtype=np.float32)
     return np.array(input), targets
 
 

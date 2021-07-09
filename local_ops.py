@@ -17,7 +17,7 @@ class LocalOps(object):
         data, targets = p.sample()
         self.trainloader, self.loc_testloader, self.glob_testloader = self.train_test_split(data, targets)
         self.device = "cuda"
-        # Default criterion set to BCEWithlogits loss function (combines BCEloss and softmax layer numerically stable)
+        # Default criterion set to BCEWithlogits loss function (combines BCEloss and softmax layer, numerically stable)
         self.criterion = nn.BCEWithLogitsLoss() # nn.NLLLoss().to(self.device)
 
     def train_test_split(self, x, y):
@@ -36,6 +36,7 @@ class LocalOps(object):
         x_loc_test, y_loc_test = x[idxs_loc_test], y[idxs_loc_test]
         x_test, y_test = x[idxs_test], y[idxs_test]
 
+        # TODO: Check if standardization ok
         # scale with training split mean/std
         scaler = StandardScaler()
         scaler.fit(x_train)
