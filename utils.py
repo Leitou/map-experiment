@@ -40,6 +40,15 @@ def average_weights(w):
         w_avg[key] = torch.div(w_avg[key], len(w))
     return w_avg
 
+def get_total_sample_accuracy(corrects, totals):
+    return sum(corrects) / sum(totals)
+
+def get_averaged_accuracy_for_participants(corrects, totals):
+    acc = 0.0
+    for c, t in zip(corrects, totals):
+        acc += c/t
+    return acc / len(corrects)
+
 
 def exp_details(args):
     print('\nExperimental details:')

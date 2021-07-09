@@ -42,10 +42,11 @@ ras4_paths = {
 }
 
 class ParticipantSampler():
-    def __init__(self, device_type, monitoring_programs):
+    def __init__(self, device_type, sample_size, monitoring_programs):
         assert device_type == 4 or device_type == 3, "Device type must be either 3 or 4"
         assert len(monitoring_programs) >= 1, "At least one monitoring program must be chosen"
         self.monitoring_programs = monitoring_programs
+        self.num_samples = sample_size
         if device_type == 3:
             self.monitoring_paths = [ras3_paths[p] for p in monitoring_programs]
         else:
@@ -56,7 +57,7 @@ class ParticipantSampler():
 
     # TODO: How to include the StandardScaler? Not possible to standardize on the whole global data
     # assumes that there is at least one monitoring program
-    def sample(self, num_samples):
+    def sample(self):
         '''read all data and place in a list, perform up or downsampling for each monitoring program,
         such that the participant contributes with num_samples to the federation'''
 
@@ -82,7 +83,7 @@ class ParticipantSampler():
             all_data.append(d)
             all_targets.append(t)
 
-        num_samples_per_program = int(num_samples / len(self.monitoring_programs))
+        num_samples_per_program = int(self.num_samples / len(self.monitoring_programs))
 
         prlen = len(all_targets[0])
         self.data, self.targets = all_data[0], all_targets[0]
@@ -121,7 +122,8 @@ class ParticipantSampler():
 
 
         assert len(self.data) == num_samples_per_program*len(self.monitoring_programs) and \
-               len(self.targets) == num_samples_per_program*len(self.monitoring_programs), "Up/Downsampling Failure"
+               len(self.targets) == num_samples_per_program*len(self.monitoring_programs), \
+            "Up/Downsampling Failure"
 
         return self.data, self.targets
 

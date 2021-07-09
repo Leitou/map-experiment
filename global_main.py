@@ -6,16 +6,13 @@ import numpy as np
 from tqdm import tqdm
 from time import sleep
 from participant_data import ParticipantSampler
-from local_ops import LocalUpdate
+from local_ops import LocalOps, test_inference
 
-import torch
 #from tensorboardX import SummaryWriter
-
 #from options import args_parser
-#from update import LocalUpdate, test_inference
 from sys import exit
 from models import MLP
-from utils import average_weights, read_data, exp_details
+from utils import average_weights, get_averaged_accuracy_for_participants, get_total_sample_accuracy
 
 
 # TODO: preprocessing
@@ -69,7 +66,7 @@ if __name__ == '__main__':
     loc_epochs = 10
     participation_rate = 1
     num_clients = 2
-    loc_sample_size = 3000
+    loc_sample_size = 3000 # makes each participant contribute the same amount of data samples -> customize if unequal data
     batch_size = 64
     lr = 1e-4
 
@@ -77,11 +74,15 @@ if __name__ == '__main__':
     global_weights = global_model.state_dict()
 
     # define participants and what data they contribute to the model
-    samplers = [ParticipantSampler(3, ["normal", "delay", "disorder"]), ParticipantSampler(4, ["normal", "delay", "disorder"])]
+    samplers = [ParticipantSampler(3, loc_sample_size, ["normal", "delay", "disorder"]),
+                ParticipantSampler(4, loc_sample_size, ["normal", "delay", "disorder"])]
     # initialize list of participants and their own unique test splits
     # can be done either at this position or within the loop over participants
     # choice to shuffle once, or at every global epoch
-    participants = [LocalUpdate(s, loc_sample_size, batch_size, loc_epochs=loc_epochs, lr=lr) for s in samplers]
+    participants = [LocalOps(s, batch_size, loc_epochs=loc_epochs, lr=lr) for s in samplers]
+
+    # TODO: insert scaler here, using all participant data.
+    #  Goal: get a scaler for
 
     # Training
     train_loss, train_accuracy = [], []
@@ -93,14 +94,14 @@ if __name__ == '__main__':
 
     for epoch in tqdm(range(epochs)):
         local_weights, local_losses = [], []
-        print(f'\n | Global Training Epoch : {epoch+1} |\n')
+        print(f'| Global Training Epoch : {epoch+1} |')
 
         global_model.train()
         #m = max(int(participation_rate * num_clients), 1)
 
         # calculate new weights locally for each participant and its data
         for p in participants:
-            # local_model = LocalUpdate(p, batch_size=batch_size, loc_epochs=local_epochs, lr=lr) # uncomment for epoch wise resampling/shuffling
+            # local_model = LocalOps(p, batch_size=batch_size, loc_epochs=local_epochs, lr=lr) # uncomment for epoch wise resampling/shuffling
             w, loss = p.update_weights(model=copy.deepcopy(global_model), global_round=epoch)
             local_weights.append(copy.deepcopy(w))
             local_losses.append(copy.deepcopy(loss))
@@ -111,8 +112,6 @@ if __name__ == '__main__':
 
         loss_avg = sum(local_losses) / len(local_losses)
         train_loss.append(loss_avg)
-
-    #print(train_loss)
 
         # Calculate avg training accuracy over all users at every epoch
         list_acc, list_loss = [], []
@@ -125,17 +124,21 @@ if __name__ == '__main__':
 
         # print global training loss after every 'i' rounds
         if (epoch+1) % print_every == 0:
-            print(f' \nAvg Training Statistics after {epoch+1} global rounds:')
+            print(f'\nAvg Training Statistics after {epoch+1} global rounds:')
             print(f'Training Loss : {np.mean(np.array(train_loss))}')
             print('Train Accuracy: {:.2f}% \n'.format(100*train_accuracy[-1]))
 
-    print(train_accuracy)
-    # # Test inference after completion of training
-    # test_acc, test_loss = test_inference(args, global_model, test_dataset)
-    #
-    # print(f' \n Results after {args.epochs} global rounds of training:')
-    # print("|---- Avg Train Accuracy: {:.2f}%".format(100*train_accuracy[-1]))
-    # print("|---- Test Accuracy: {:.2f}%".format(100*test_acc))
+    # Test inference after completion of training on unseen data
+    test_losses, test_corrects, test_totals = test_inference(participants, global_model)
+    avg_test_loss = sum(test_losses) / len(test_losses)
+    test_accuracy_avg = get_averaged_accuracy_for_participants(test_corrects, test_totals)
+    test_accuracy_tot = get_total_sample_accuracy(test_corrects, test_totals)
+
+    print(f'\nResults after {epochs} global rounds of training:')
+    print("|---- Avg Train Accuracy: {:.2f}%".format(100*train_accuracy[-1]))
+    print("|---- Avg Test Accuracy: {:.2f}%".format(100*test_accuracy_avg))
+    print("|---- Tot Test Accuracy: {:.2f}%".format(100*test_accuracy_tot))
+
 
     # # Saving the objects train_loss and train_accuracy:
     # file_name = '../save/objects/{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}].pkl'.\
