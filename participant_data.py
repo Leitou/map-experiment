@@ -132,6 +132,7 @@ class ParticipantSampler():
                 self.targets = np.concatenate((self.targets, prtargets[multi_idxs]))
 
             print(f"adding {pr} samples: data len: {len(self.data)}, targets len: {len(self.targets)}")
+        print()
 
     # TODO: make balanced for num_normal/num_malicious (Rule: 10 * num_infeatures ~ 800 samples at min.)
     # assumes that there is at least one monitoring program
@@ -139,6 +140,7 @@ class ParticipantSampler():
         '''read all data and place in a list, perform up or downsampling for each monitoring program,
         such that the participant contributes with num_samples to the federation in a fashion where the number of normal
         samples and number of malicious samples is balanced'''
+        print("participant sampling start")
 
         # find how many samples need to be drawn per program
         mal_progs, num_mal_samples, num_norm_samples = self.get_num_malicious()

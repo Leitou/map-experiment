@@ -74,7 +74,7 @@ if __name__ == '__main__':
     global_weights = global_model.state_dict()
 
     # define participants and what data they contribute to the model
-    samplers = [ParticipantSampler(3, loc_sample_size, ["normal", "delay", "disorder"]),
+    samplers = [ParticipantSampler(3, loc_sample_size, ["normal"]),
                 ParticipantSampler(4, loc_sample_size, ["normal", "delay", "disorder"])]
     # initialize list of participants and their own unique test splits
     participants = [LocalOps(s, batch_size, loc_epochs=loc_epochs, lr=lr) for s in samplers]
