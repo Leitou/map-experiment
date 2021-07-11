@@ -24,6 +24,7 @@ class MLP(nn.Module):
 # TODO: decide on preprocessing of data to have input features in ranges [0,1] for efficiency (divide cols by max value)
 class AutoEncoder(nn.Module):
     def __init__(self, K):
+        super(AutoEncoder, self).__init__()
         self.encode = nn.Sequential(
             nn.Linear(K, 32),
             nn.ReLU(),

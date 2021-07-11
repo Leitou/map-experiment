@@ -1,13 +1,12 @@
-import os
 import copy
 import time
 import pickle
 import numpy as np
 from tqdm import tqdm
-from time import sleep
 from datasampling import DataSampler
-from localops import LocalOps
-from inferencing import test_inference_pdata, test_inference_randata
+from localops import LocalOps, BinaryUpdate, AutoencoderUpdate
+from federated import train_model, test_inference_xdata
+from torch import nn
 
 #from tensorboardX import SummaryWriter
 #from options import args_parser
@@ -17,54 +16,28 @@ from utils import average_weights, get_averaged_accuracy_for_participants, get_t
 
 
 # TODO: preprocessing
-# check all features for their unique values (np.unique()), print some statistics for each
-
-# TODO: experiment options
-# test up- vs downscaling - all classes equally represented
-# use more attack data
+# if needed check all features for their unique values (np.unique()), print some statistics for each
 
 # TODO: model building
-# build federated binary mlp
+# build and train, both aggregating and federated models, separate and compare
 
-# build autoencoder joining normal and normal_v2
-# build federated autoencoder
-
-
-# TODO: training loop federated
-# determine means of assigning data for each participant
-# is given by data collected? should it be artificially assigned?
-# class for participant? manually defining data for each user and possibly after that evaluate how to do customizable
-# adapt local update to each participant
-# split datasets into training and test set, what belongs in each?
-#
 
 if __name__ == '__main__':
-    #start_time = time.time()
 
-    # define paths
-    # path_project = os.path.abspath('..')
-    # logger = SummaryWriter('../logs')
-
-    #args = args_parser()
-    #exp_details(args)
-
+    # define model
     device = 'cuda'
     method = "binary"
-
     if method == "binary":
         global_model = MLP(K=75)
     elif method == "autoencoder":
         global_model = AutoEncoder(K=75)
-
     else:
         exit('Error: unrecognized model')
-
-    # Set the model to train and send it to device.
     global_model.to(device)
     global_model.train()
     print(global_model)
 
-
+    # set hyperparameters
     epochs = 10
     loc_epochs = 10
     participation_rate = 1
@@ -77,81 +50,45 @@ if __name__ == '__main__':
     # copy weights
     global_weights = global_model.state_dict()
 
-    # TODO: use to compare, refactor training in separate function
-    # base
-    # baseline_sampler = DataSampler(glob_sample_size,[["ras4-8gb", ["normal"]],
-    #                                                  ["ras3", ["normal", "delay", "disorder"]]])
-    # aggregator = LocalOps(baseline_sampler, batch_size, loc_epochs, lr=lr)
+    # TODO: define data, train the aggregated baseline, then the federated model, (evtl make util function to not type monitoring programs multiple times)
+    # Baseline model training (uses )
+    baseline_sampler = DataSampler(glob_sample_size, [["ras4-8gb", ["normal"]],
+                                                      ["ras3", ["normal", "delay", "disorder"]]])
+    aggregator = BinaryUpdate(baseline_sampler, batch_size, loc_epochs, lr=lr)
+    train_base_accuracy, train_base_loss = train_model(copy.deepcopy(global_model), [aggregator], epochs)
 
-
+    # Federated Training
     # define participants and what data they contribute to the model
     samplers = [DataSampler(loc_sample_size, [["ras4-8gb", ["normal"]]]),
                 DataSampler(loc_sample_size, [["ras3", ["normal", "delay", "disorder"]]])]
     # initialize list of participants and their own unique test splits
-    participants = [LocalOps(s, batch_size, loc_epochs=loc_epochs, lr=lr) for s in samplers]
+    participants = [BinaryUpdate(s, batch_size, loc_epochs, lr) for s in samplers]
+    train_fed_accuracy, train_fed_loss = train_model(global_model, participants, epochs)
 
+    # comparing acc & loss progression
+    print(train_base_accuracy)
+    print(train_fed_accuracy, "\n")
+    print(train_base_loss)
+    print(train_fed_loss)
 
-
-    # Training
-    train_loss, train_accuracy = [], []
-    val_acc_list, net_list = [], []
-    cv_loss, cv_acc = [], []
-    print_every = 2
-    val_loss_pre, counter = 0, 0
-
-    for epoch in tqdm(range(epochs)):
-        local_weights, local_losses = [], []
-        print(f'| Global Training Epoch : {epoch+1} |')
-
-        global_model.train()
-        #m = max(int(participation_rate * num_clients), 1)
-
-        # calculate new weights locally for each participant and its data
-        for p in participants:
-            # local_model = LocalOps(p, batch_size=batch_size, loc_epochs=local_epochs, lr=lr) # uncomment for epoch wise resampling/shuffling
-            w, loss = p.update_weights(model=copy.deepcopy(global_model))
-            local_weights.append(copy.deepcopy(w))
-            local_losses.append(copy.deepcopy(loss))
-
-        # aggregate local weights and update global weights
-        global_weights = average_weights(local_weights)
-        global_model.load_state_dict(global_weights)
-
-        loss_avg = sum(local_losses) / len(local_losses)
-        train_loss.append(loss_avg)
-
-        # Calculate avg training accuracy over all users at every epoch
-        list_acc, list_loss = [], []
-        global_model.eval()
-        for p in participants:
-            acc, loss = p.inference(model=global_model)
-            list_acc.append(acc)
-            list_loss.append(loss)
-        train_accuracy.append(sum(list_acc)/len(list_acc))
-
-        # print global training loss after every 'i' rounds
-        if (epoch+1) % print_every == 0:
-            print(f'\nAvg Training Statistics after {epoch+1} global rounds:')
-            print(f'Training Loss : {np.mean(np.array(train_loss))}')
-            print('Train Accuracy: {:.2f}% \n'.format(100*train_accuracy[-1]))
-
-
+    exit()
     # Test inference after completion of training on unseen data
-    test_losses, test_corrects, test_totals = test_inference_pdata(participants, global_model)
+
+    test_losses, test_corrects, test_totals = test_inference_xdata(participants, global_model)
     avg_test_loss = sum(test_losses) / len(test_losses)
     test_accuracy_avg = get_averaged_accuracy_for_participants(test_corrects, test_totals)
     test_accuracy_tot = get_total_sample_accuracy(test_corrects, test_totals)
     print(f'\nResults after {epochs} global rounds of training:')
-    print("|---- Avg Train Accuracy: {:.2f}%".format(100*train_accuracy[-1]))
+    print("|---- Avg Train Accuracy: {:.2f}%".format(100*train_fed_accuracy[-1]))
     print("|---- Avg Test Accuracy: {:.2f}%".format(100*test_accuracy_avg))
     print("|---- Tot Test Accuracy: {:.2f}%".format(100*test_accuracy_tot))
 
-    # TODO: use data completely independent of sampling
+    # TODO: use data completely independent of sampling for testing
     #tdata, ttargets =
     #tl, tc, tt = test_inference_randata(global_model, data)
 
 
-
+    # TODO: make plots/save params/ensure reproducibility
     # # Saving the objects train_loss and train_accuracy:
     # file_name = '../save/objects/{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}].pkl'.\
     #     format(args.dataset, args.model, args.epochs, args.frac, args.iid,

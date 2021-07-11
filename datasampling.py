@@ -4,13 +4,12 @@ import numpy as np
 from sys import exit
 
 # TODO:
-#  remove noisy paths
+#  remove noisy paths (ras48gb_path dict)
 #  adapt for samples from missing two devices
-#  -> set device_type in constructor for "ras4-4gb", "ras3", ...
-#  -> adapt path dicts
-#  adapt sampler class to multiclass classification/autoencoder etc
-# -> autoencoder is the same as binary classification, just ignoring self.targets returned from sample() for training
-# -> targets only used for test inference
+#  -> evtl make global variables defining device types
+#  -> build dicts for paths and adapt sampler constructor
+#  adapt sampler class to multiclass classification if needed
+#  -> use a different read_data function, building different targets
 
 
 # assuming everything not normal is malicious
@@ -31,7 +30,6 @@ ras3_paths = {
     "spoof": "data/ras-3-data/samples_spoof_2021-06-30-14-49_50s"
 }
 
-# TODO: use clean samples for both normal versions
 ras48gb_paths = {
     "normal": "data/ras-4-noisy/samples_normal_2021-06-18-16-09_50s",
     "normal_v2": "data/ras-4-noisy/samples_normal_v2_2021-06-23-16-56_50s",
@@ -45,11 +43,6 @@ ras48gb_paths = {
     "spoof": "data/ras-4-data/samples_spoof_2021-06-30-14-54_50s"
 }
 
-
-# TODO: adapt to accept [("device_type", ["normal",...]), (...)] as input and then
-#  add in the same order to lists for monitoring programs and monitoring paths.
-#  Rename Class as to datasampler -> adapt global_main
-
 class DataSampler():
     def __init__(self, sample_size, monitoring_programs):
         assert len(monitoring_programs) >= 1, "At least one monitoring program must be chosen"
@@ -58,12 +51,12 @@ class DataSampler():
         self.monitoring_programs = []
         # extract of form [(dt,[progs]),()..]
         for device_type, progs in monitoring_programs:
-            assert device_type == "ras4-8gb" or device_type == "ras3", "Device type must be either 3 or 4" # TODO: check
+            assert device_type == "ras4-8gb" or device_type == "ras3", "Device type must be either 3 or 4"
             self.monitoring_programs.extend(progs)
             if device_type == "ras3":
                 self.monitoring_paths.extend([ras3_paths[p] for p in progs])
 
-            elif device_type == "ras4-8gb":  # TODO: check correct names
+            elif device_type == "ras4-8gb":
                 self.monitoring_paths.extend([ras48gb_paths[p] for p in progs])
             else:
                 pass
