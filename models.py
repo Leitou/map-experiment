@@ -20,3 +20,25 @@ class MLP(nn.Module):
         output = self.linstack(x)
         output = output.view(-1)
         return output
+
+# TODO: decide on preprocessing of data to have input features in ranges [0,1] for efficiency (divide cols by max value)
+class AutoEncoder(nn.Module):
+    def __init__(self, K):
+        self.encode = nn.Sequential(
+            nn.Linear(K, 32),
+            nn.ReLU(),
+            nn.Linear(32, 8),
+            nn.ReLU()
+        )
+        self.decode = nn.Sequential(
+            nn.Linear(8, 32),
+            nn.ReLU(),
+            nn.Linear(32, K),
+            nn.ReLU()
+        )
+
+    def forward(self, x):
+        z = self.encode(x)
+        z = self.decode(z)
+        return z
+

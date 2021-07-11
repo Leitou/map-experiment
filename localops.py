@@ -2,17 +2,20 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from sklearn.preprocessing import StandardScaler
-from participant_data import ParticipantSampler
+from datasampling import DataSampler
 import numpy as np
 
 
 
-# TODO: evaluate whether this is easiest as an abstract class + implementations for binary/multiclass & unsupervised
+# TODO:
+#  adaptions needed for multiclass (if desired)
+#  adaptions for autoencoder? not
+
 
 class LocalOps(object):
-    def __init__(self, p : ParticipantSampler, batch_size, loc_epochs, lr):
+    def __init__(self, p : DataSampler, batch_size, epochs, lr):
         self.lr = lr
-        self.loc_epochs = loc_epochs
+        self.epochs = epochs
         self.batch_size = batch_size
         data, targets = p.sample()
         self.trainloader, self.loc_testloader, self.glob_testloader = self.train_test_split(data, targets)
@@ -57,13 +60,13 @@ class LocalOps(object):
 
         return trainloader, loctestloader, testloader
 
-    def update_weights(self, model, global_round):
+    def update_weights(self, model):
         # Set mode to train model
         model.train()
         epoch_loss = []
         optimizer = torch.optim.SGD(model.parameters(), lr=self.lr, momentum=0.9)
 
-        for le in range(self.loc_epochs):
+        for le in range(self.epochs):
             batch_loss = []
             for batch_idx, (x, y) in enumerate(self.trainloader):
                 x, y = x.to(self.device), y.to(self.device)
@@ -111,33 +114,3 @@ class LocalOps(object):
 
         accuracy = correct/total
         return accuracy, loss
-
-
-def test_inference(participants: LocalOps, model):
-    """ Returns the test accuracy and loss for the global test split of all participants
-    """
-    model.eval()
-    losses, totals, corrects = [], [], []
-    device = 'cuda'
-
-    criterion = nn.BCEWithLogitsLoss().to(device)
-    for p in participants:
-        plosses, ptotal, pcorrect = 0.0, 0.0, 0.0
-        for batch_idx, (x, y) in enumerate(p.glob_testloader):
-            x, y = x.to(device), y.to(device)
-
-            # Inference
-            pred = model(x)
-            batch_loss = criterion(pred, y)
-            plosses += batch_loss.item()
-
-            # Prediction Binary
-            pred[pred < 0.5] = 0
-            pred[pred > 0.5] = 1
-            pcorrect += (pred == y).type(torch.float).sum().item()
-            ptotal += len(y)
-        losses.append(plosses / len(p.glob_testloader)) # to ensure to return average losses per participant
-        totals.append(ptotal)
-        corrects.append(pcorrect)
-
-    return losses, corrects, totals

@@ -5,13 +5,14 @@ import pickle
 import numpy as np
 from tqdm import tqdm
 from time import sleep
-from participant_data import ParticipantSampler
-from local_ops import LocalOps, test_inference
+from datasampling import DataSampler
+from localops import LocalOps
+from inferencing import test_inference_pdata, test_inference_randata
 
 #from tensorboardX import SummaryWriter
 #from options import args_parser
 from sys import exit
-from models import MLP
+from models import MLP, AutoEncoder
 from utils import average_weights, get_averaged_accuracy_for_participants, get_total_sample_accuracy
 
 
@@ -52,6 +53,8 @@ if __name__ == '__main__':
 
     if method == "binary":
         global_model = MLP(K=75)
+    elif method == "autoencoder":
+        global_model = AutoEncoder(K=75)
 
     else:
         exit('Error: unrecognized model')
@@ -69,15 +72,24 @@ if __name__ == '__main__':
     loc_sample_size = 3000 # makes each participant contribute the same amount of data samples -> customize if unequal data
     batch_size = 64
     lr = 1e-4
+    glob_sample_size = 6000
 
     # copy weights
     global_weights = global_model.state_dict()
 
+    # TODO: use to compare, refactor training in separate function
+    # base
+    # baseline_sampler = DataSampler(glob_sample_size,[["ras4-8gb", ["normal"]],
+    #                                                  ["ras3", ["normal", "delay", "disorder"]]])
+    # aggregator = LocalOps(baseline_sampler, batch_size, loc_epochs, lr=lr)
+
+
     # define participants and what data they contribute to the model
-    samplers = [ParticipantSampler(3, loc_sample_size, ["normal"]),
-                ParticipantSampler(4, loc_sample_size, ["normal", "delay", "disorder"])]
+    samplers = [DataSampler(loc_sample_size, [["ras4-8gb", ["normal"]]]),
+                DataSampler(loc_sample_size, [["ras3", ["normal", "delay", "disorder"]]])]
     # initialize list of participants and their own unique test splits
     participants = [LocalOps(s, batch_size, loc_epochs=loc_epochs, lr=lr) for s in samplers]
+
 
 
     # Training
@@ -97,7 +109,7 @@ if __name__ == '__main__':
         # calculate new weights locally for each participant and its data
         for p in participants:
             # local_model = LocalOps(p, batch_size=batch_size, loc_epochs=local_epochs, lr=lr) # uncomment for epoch wise resampling/shuffling
-            w, loss = p.update_weights(model=copy.deepcopy(global_model), global_round=epoch)
+            w, loss = p.update_weights(model=copy.deepcopy(global_model))
             local_weights.append(copy.deepcopy(w))
             local_losses.append(copy.deepcopy(loss))
 
@@ -123,16 +135,21 @@ if __name__ == '__main__':
             print(f'Training Loss : {np.mean(np.array(train_loss))}')
             print('Train Accuracy: {:.2f}% \n'.format(100*train_accuracy[-1]))
 
+
     # Test inference after completion of training on unseen data
-    test_losses, test_corrects, test_totals = test_inference(participants, global_model)
+    test_losses, test_corrects, test_totals = test_inference_pdata(participants, global_model)
     avg_test_loss = sum(test_losses) / len(test_losses)
     test_accuracy_avg = get_averaged_accuracy_for_participants(test_corrects, test_totals)
     test_accuracy_tot = get_total_sample_accuracy(test_corrects, test_totals)
-
     print(f'\nResults after {epochs} global rounds of training:')
     print("|---- Avg Train Accuracy: {:.2f}%".format(100*train_accuracy[-1]))
     print("|---- Avg Test Accuracy: {:.2f}%".format(100*test_accuracy_avg))
     print("|---- Tot Test Accuracy: {:.2f}%".format(100*test_accuracy_tot))
+
+    # TODO: use data completely independent of sampling
+    #tdata, ttargets =
+    #tl, tc, tt = test_inference_randata(global_model, data)
+
 
 
     # # Saving the objects train_loss and train_accuracy:

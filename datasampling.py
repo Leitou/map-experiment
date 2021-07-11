@@ -4,9 +4,13 @@ import numpy as np
 from sys import exit
 
 # TODO:
-#  remove noisy paths,  standardize filenames to "normal", "delay",
+#  remove noisy paths
 #  adapt for samples from missing two devices
+#  -> set device_type in constructor for "ras4-4gb", "ras3", ...
+#  -> adapt path dicts
 #  adapt sampler class to multiclass classification/autoencoder etc
+# -> autoencoder is the same as binary classification, just ignoring self.targets returned from sample() for training
+# -> targets only used for test inference
 
 
 # assuming everything not normal is malicious
@@ -28,7 +32,7 @@ ras3_paths = {
 }
 
 # TODO: use clean samples for both normal versions
-ras4_paths = {
+ras48gb_paths = {
     "normal": "data/ras-4-noisy/samples_normal_2021-06-18-16-09_50s",
     "normal_v2": "data/ras-4-noisy/samples_normal_v2_2021-06-23-16-56_50s",
     "delay": "data/ras-4-data/samples_delay_2021-07-01-08-36_50s",
@@ -41,16 +45,29 @@ ras4_paths = {
     "spoof": "data/ras-4-data/samples_spoof_2021-06-30-14-54_50s"
 }
 
-class ParticipantSampler():
-    def __init__(self, device_type, sample_size, monitoring_programs):
-        assert device_type == 4 or device_type == 3, "Device type must be either 3 or 4"
+
+# TODO: adapt to accept [("device_type", ["normal",...]), (...)] as input and then
+#  add in the same order to lists for monitoring programs and monitoring paths.
+#  Rename Class as to datasampler -> adapt global_main
+
+class DataSampler():
+    def __init__(self, sample_size, monitoring_programs):
         assert len(monitoring_programs) >= 1, "At least one monitoring program must be chosen"
-        self.monitoring_programs = monitoring_programs
         self.num_samples = sample_size
-        if device_type == 3:
-            self.monitoring_paths = [ras3_paths[p] for p in monitoring_programs]
-        else:
-            self.monitoring_paths = [ras4_paths[p] for p in monitoring_programs]
+        self.monitoring_paths = []
+        self.monitoring_programs = []
+        # extract of form [(dt,[progs]),()..]
+        for device_type, progs in monitoring_programs:
+            assert device_type == "ras4-8gb" or device_type == "ras3", "Device type must be either 3 or 4" # TODO: check
+            self.monitoring_programs.extend(progs)
+            if device_type == "ras3":
+                self.monitoring_paths.extend([ras3_paths[p] for p in progs])
+
+            elif device_type == "ras4-8gb":  # TODO: check correct names
+                self.monitoring_paths.extend([ras48gb_paths[p] for p in progs])
+            else:
+                pass
+
         self.data = None
         self.targets = None
 
@@ -116,8 +133,8 @@ class ParticipantSampler():
         print(f"sample {self.monitoring_programs[0]}: data len: {len(self.data)}, targets len: {len(self.targets)}")
 
     def sample_remaining_progs(self, num_samples_per_program, data_per_prog, targets_per_prog):
-        for pr, num_prsamples, prdata, prtargets in zip(self.monitoring_programs[1:],num_samples_per_program[1:],
-                                                    data_per_prog[1:], targets_per_prog[1:]):
+        for pr, num_prsamples, prdata, prtargets in zip(self.monitoring_programs[1:], num_samples_per_program[1:],
+                                                        data_per_prog[1:], targets_per_prog[1:]):
             prlen = len(prdata)
             # down sampling
             if prlen > num_prsamples:
@@ -134,7 +151,6 @@ class ParticipantSampler():
             print(f"adding {pr} samples: data len: {len(self.data)}, targets len: {len(self.targets)}")
         print()
 
-    # TODO: make balanced for num_normal/num_malicious (Rule: 10 * num_infeatures ~ 800 samples at min.)
     # assumes that there is at least one monitoring program
     def sample(self):
         '''read all data and place in a list, perform up or downsampling for each monitoring program,
@@ -158,7 +174,6 @@ class ParticipantSampler():
             "Up/Downsampling Failure"
 
         return self.data, self.targets
-
 
 # p = ParticipantSampler(3, ["normal"], 100)
 # print(p.sample()[0])
