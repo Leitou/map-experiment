@@ -2,11 +2,8 @@ import copy
 import torch
 from torch import nn
 import numpy as np
-from localops import LocalOps
-from utils import average_weights
+from utils import average_weights, get_total_sample_accuracy, get_averaged_accuracy_for_participants
 
-# TODO: Check needed? Move to another file as not exclusively localops, Subject to change for Other models,
-#  Add a test_inference function for random samples that are also fed into a global model like in binary-mlp
 
 def train_model(global_model, participants, epochs):
     # Training
@@ -18,7 +15,7 @@ def train_model(global_model, participants, epochs):
 
     for epoch in range(epochs):
         local_weights, local_losses = [], []
-        print(f'| Global Training Epoch : {epoch + 1} |')
+        print(f'\r| Global Training Epoch : {epoch + 1} |',end='', flush=True)
 
         global_model.train()
         # m = max(int(participation_rate * num_clients), 1)
@@ -52,6 +49,15 @@ def train_model(global_model, participants, epochs):
             print('Train Accuracy: {:.2f}% \n'.format(100 * train_accuracy[-1]))
 
     return train_accuracy, train_loss
+
+def print_test_results(participants, global_model, epochs):
+    test_losses, test_corrects, test_totals = test_inference_xdata(participants, global_model)
+    avg_test_loss = sum(test_losses) / len(test_losses)
+    test_accuracy_avg = get_averaged_accuracy_for_participants(test_corrects, test_totals)
+    test_accuracy_tot = get_total_sample_accuracy(test_corrects, test_totals)
+    print(f'\nResults after {epochs} global rounds of training:')
+    print("|---- Avg Test Accuracy: {:.2f}%".format(100 * test_accuracy_avg))
+    print("|---- Tot Test Accuracy: {:.2f}%\n".format(100 * test_accuracy_tot))
 
 
 def test_inference_xdata(participants, model):

@@ -4,7 +4,7 @@ import numpy as np
 from sys import exit
 
 # TODO:
-#  remove noisy paths (ras48gb_path dict)
+#  remove noisy paths (ras44gb_path dict)
 #  adapt for samples from missing two devices
 #  -> evtl make global variables defining device types
 #  -> build dicts for paths and adapt sampler constructor
@@ -30,7 +30,7 @@ ras3_paths = {
     "spoof": "data/ras-3-data/samples_spoof_2021-06-30-14-49_50s"
 }
 
-ras48gb_paths = {
+ras44gb_paths = {
     "normal": "data/ras-4-noisy/samples_normal_2021-06-18-16-09_50s",
     "normal_v2": "data/ras-4-noisy/samples_normal_v2_2021-06-23-16-56_50s",
     "delay": "data/ras-4-data/samples_delay_2021-07-01-08-36_50s",
@@ -43,6 +43,10 @@ ras48gb_paths = {
     "spoof": "data/ras-4-data/samples_spoof_2021-06-30-14-54_50s"
 }
 
+ras42gb_paths = {
+    # to be filled in
+}
+
 class DataSampler():
     def __init__(self, sample_size, monitoring_programs):
         assert len(monitoring_programs) >= 1, "At least one monitoring program must be chosen"
@@ -51,13 +55,13 @@ class DataSampler():
         self.monitoring_programs = []
         # extract of form [(dt,[progs]),()..]
         for device_type, progs in monitoring_programs:
-            assert device_type == "ras4-8gb" or device_type == "ras3", "Device type must be either 3 or 4"
+            assert device_type == "ras4-4gb" or device_type == "ras3", "Device type must be either 3 or 4"
             self.monitoring_programs.extend(progs)
             if device_type == "ras3":
                 self.monitoring_paths.extend([ras3_paths[p] for p in progs])
 
-            elif device_type == "ras4-8gb":
-                self.monitoring_paths.extend([ras48gb_paths[p] for p in progs])
+            elif device_type == "ras4-4gb":
+                self.monitoring_paths.extend([ras44gb_paths[p] for p in progs])
             else:
                 pass
 
@@ -167,7 +171,3 @@ class DataSampler():
             "Up/Downsampling Failure"
 
         return self.data, self.targets
-
-# p = ParticipantSampler(3, ["normal"], 100)
-# print(p.sample()[0])
-# print(p.sample()[1])

@@ -11,16 +11,13 @@ learning_rate = 1e-5
 batch_size = 64
 epochs = 20
 num_tot_samples = 6000
-m = 0.9
 device = "cuda"
 
 net = MLP(K=75).to(device)
 #print(net)
-optimizer = torch.optim.SGD(net.parameters(), lr=learning_rate, momentum=m)
-loss_fn = nn.BCEWithLogitsLoss()
 
-baseline_sampler = DataSampler(num_tot_samples, [["ras4-8gb", ["normal"]], ["ras3", ["normal", "delay", "disorder"]]])
-aggregator = BinaryUpdate(baseline_sampler, batch_size, epochs, learning_rate, loss_fn)
+baseline_sampler = DataSampler(num_tot_samples, [("ras4-4gb", ["normal"]), ("ras3", ["normal", "delay", "disorder"])])
+aggregator = BinaryUpdate(baseline_sampler, batch_size, epochs, learning_rate)
 
 train = True
 if train:

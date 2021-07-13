@@ -2,13 +2,12 @@ import csv
 import copy
 import torch
 import numpy as np
-from torchvision import datasets, transforms
-#from sampling import mnist_iid, mnist_noniid, mnist_noniid_unequal
-#from sampling import cifar_iid, cifar_noniid
+import matplotlib
+import matplotlib.pyplot as plt
 
-# TODO: decide on how to include further preprocessing
+# TODO: further preprocessing needed? here or in localops classes
 #  (removing columns with equal values, how to handle in federated setting? needed?)
-# read in and label data
+# read in and attach binary labels to data
 def read_data(path, malicious=False):
     input = []
     with open(path, newline='') as csvfile:
@@ -28,10 +27,10 @@ def read_data(path, malicious=False):
     targets = np.ones(len(input), dtype=np.float32) if malicious else np.zeros(len(input), dtype=np.float32)
     return np.array(input), targets
 
-
 def average_weights(w):
     """
-    Returns the average of the weights.
+    Returns the average of the weights, w is a list of dicts of local model weights.
+    Keys are the same for all w_i as the model architecture is the same for every participant
     """
     w_avg = copy.deepcopy(w[0])
     for key in w_avg.keys():
@@ -40,14 +39,42 @@ def average_weights(w):
         w_avg[key] = torch.div(w_avg[key], len(w))
     return w_avg
 
+
 def get_total_sample_accuracy(corrects, totals):
     return sum(corrects) / sum(totals)
+
 
 def get_averaged_accuracy_for_participants(corrects, totals):
     acc = 0.0
     for c, t in zip(corrects, totals):
         acc += c/t
     return acc / len(corrects)
+
+
+def plot_results(bl_losses, bl_accs, fed_losses, fed_accs, filenames):
+    # Plotting - loss curve
+    plt.figure()
+    plt.title('Training Loss vs Global Epochs')
+    plt.plot(range(len(bl_losses)), bl_losses, label="Baseline", color='r')
+    plt.plot(range(len(fed_losses)), fed_losses, label="Federated", color='b')
+    plt.ylabel('Training loss')
+    plt.xlabel('Global Epochs')
+    plt.legend()
+    plt.savefig(f'results/plots/{filenames[0]}.png')
+
+    # Plotting - average accuracy
+    plt.figure()
+    plt.title('Average Accuracy vs Global Epochs')
+    plt.plot(range(len(bl_accs)), bl_accs, label="Baseline", color='r')
+    plt.plot(range(len(fed_accs)), fed_accs, label="Federated", color='b')
+    plt.ylabel('Average Accuracy')
+    plt.xlabel('Global Epochs')
+    plt.legend()
+    plt.savefig(f'results/plots/{filenames[1]}.png')
+
+# TODO: store trained model and dict of hyperparams at a given path
+def save_model(model, hyperparams, path):
+    return
 
 
 def exp_details(args):

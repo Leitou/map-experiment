@@ -21,7 +21,23 @@ net = AutoEncoder(K=75).to(device)
 print(net)
 
 # TODO: AE training, complete threshold selection etc
-#
+
+train = True
+if train:
+    acc = 0
+    # training
+    mdict, loss = aggregator.update_weights(net)
+    # inference
+    acc, test_loss = aggregator.inference(net)
+    torch.save(net.state_dict(), "global-mlp.model")
+    print(f"Final accuracy after {epochs} epochs: {acc}")
+else:
+    net.load_state_dict(torch.load("global-mlp.model"))
+    #tacc = test_loop(test_loader, net, loss_fn)
+    #print(f"Done! highest accuracy ever achieved is: {tacc}")
+
+
+
 # train = True
 #
 # if train:
@@ -29,4 +45,4 @@ print(net)
 #     print(f"Final accuracy after {epochs} epochs: {acc}")
 #
 # else:
-#     net.load_state_dict(torch.load("upsampling-mlp.model"))
+#     net.load_state_dict(torch.load("global-autoencoder.model"))

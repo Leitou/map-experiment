@@ -1,25 +1,13 @@
 import copy
-import time
 import pickle
-import numpy as np
-from tqdm import tqdm
-from datasampling import DataSampler
-from localops import LocalOps, BinaryUpdate, AutoencoderUpdate
-from federated import train_model, test_inference_xdata
-from torch import nn
-
-#from tensorboardX import SummaryWriter
-#from options import args_parser
 from sys import exit
+
+from datasampling import DataSampler
 from models import MLP, AutoEncoder
-from utils import average_weights, get_averaged_accuracy_for_participants, get_total_sample_accuracy
+from localops import BinaryUpdate, AutoencoderUpdate
+from federated import train_model, print_test_results
+from utils import plot_results
 
-
-# TODO: preprocessing
-# if needed check all features for their unique values (np.unique()), print some statistics for each
-
-# TODO: model building
-# build and train, both aggregating and federated models, separate and compare
 
 
 if __name__ == '__main__':
@@ -50,47 +38,35 @@ if __name__ == '__main__':
     # copy weights
     global_weights = global_model.state_dict()
 
-    # TODO: define data, train the aggregated baseline, then the federated model, (evtl make util function to not type monitoring programs multiple times)
-    # Baseline model training (uses )
-    baseline_sampler = DataSampler(glob_sample_size, [["ras4-8gb", ["normal"]],
-                                                      ["ras3", ["normal", "delay", "disorder"]]])
-    aggregator = BinaryUpdate(baseline_sampler, batch_size, loc_epochs, lr=lr)
-    train_base_accuracy, train_base_loss = train_model(copy.deepcopy(global_model), [aggregator], epochs)
+    # TODO: evtl make util function to not type monitoring programs multiple times)
+    # Baseline model training
+    print("Baseline Training Start")
+    baseline_sampler = DataSampler(glob_sample_size, [("ras4-4gb", ["normal"]),
+                                                      ("ras3", ["normal", "delay", "disorder"])])
+    aggregator = [BinaryUpdate(baseline_sampler, batch_size, loc_epochs, lr=lr)]
+    base_model = copy.deepcopy(global_model)
+    train_base_accuracy, train_base_loss = train_model(base_model, aggregator, epochs)
+    print_test_results(aggregator, base_model, epochs)
 
     # Federated Training
-    # define participants and what data they contribute to the model
-    samplers = [DataSampler(loc_sample_size, [["ras4-8gb", ["normal"]]]),
-                DataSampler(loc_sample_size, [["ras3", ["normal", "delay", "disorder"]]])]
+    print("Federated Training Start")
+    samplers = [DataSampler(loc_sample_size, [("ras4-4gb", ["normal"])]),
+                DataSampler(loc_sample_size, [("ras3", ["normal", "delay", "disorder"])])]
     # initialize list of participants and their own unique test splits
     participants = [BinaryUpdate(s, batch_size, loc_epochs, lr) for s in samplers]
     train_fed_accuracy, train_fed_loss = train_model(global_model, participants, epochs)
-
-    # comparing acc & loss progression
-    print(train_base_accuracy)
-    print(train_fed_accuracy, "\n")
-    print(train_base_loss)
-    print(train_fed_loss)
-
-    exit()
-    # Test inference after completion of training on unseen data
-
-    test_losses, test_corrects, test_totals = test_inference_xdata(participants, global_model)
-    avg_test_loss = sum(test_losses) / len(test_losses)
-    test_accuracy_avg = get_averaged_accuracy_for_participants(test_corrects, test_totals)
-    test_accuracy_tot = get_total_sample_accuracy(test_corrects, test_totals)
-    print(f'\nResults after {epochs} global rounds of training:')
-    print("|---- Avg Train Accuracy: {:.2f}%".format(100*train_fed_accuracy[-1]))
-    print("|---- Avg Test Accuracy: {:.2f}%".format(100*test_accuracy_avg))
-    print("|---- Tot Test Accuracy: {:.2f}%".format(100*test_accuracy_tot))
-
-    # TODO: use data completely independent of sampling for testing
-    #tdata, ttargets =
-    #tl, tc, tt = test_inference_randata(global_model, data)
+    print_test_results(participants, global_model, epochs)
 
 
-    # TODO: make plots/save params/ensure reproducibility
+    # TODO:
+    #  make plots/results params/ensure reproducibility of experiments
+    #  -> store models for baseline/federated, hyperparams, clients and data used
+    plot_results(train_base_loss, train_base_accuracy, train_fed_loss, train_fed_accuracy, ["exp1-loss", "exp1-acc"])
+
+
+    # pickle example:
     # # Saving the objects train_loss and train_accuracy:
-    # file_name = '../save/objects/{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}].pkl'.\
+    # file_name = '../results/objects/{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}].pkl'.\
     #     format(args.dataset, args.model, args.epochs, args.frac, args.iid,
     #            args.local_ep, args.local_bs)
     #
@@ -99,27 +75,3 @@ if __name__ == '__main__':
     #
     # print('\n Total Run Time: {0:0.4f}'.format(time.time()-start_time))
 
-    # PLOTTING (optional)
-    # import matplotlib
-    # import matplotlib.pyplot as plt
-    # matplotlib.use('Agg')
-
-    # Plot Loss curve
-    # plt.figure()
-    # plt.title('Training Loss vs Communication rounds')
-    # plt.plot(range(len(train_loss)), train_loss, color='r')
-    # plt.ylabel('Training loss')
-    # plt.xlabel('Communication Rounds')
-    # plt.savefig('../save/fed_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_loss.png'.
-    #             format(args.dataset, args.model, args.epochs, args.frac,
-    #                    args.iid, args.local_ep, args.local_bs))
-    #
-    # # Plot Average Accuracy vs Communication rounds
-    # plt.figure()
-    # plt.title('Average Accuracy vs Communication rounds')
-    # plt.plot(range(len(train_accuracy)), train_accuracy, color='k')
-    # plt.ylabel('Average Accuracy')
-    # plt.xlabel('Communication Rounds')
-    # plt.savefig('../save/fed_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_acc.png'.
-    #             format(args.dataset, args.model, args.epochs, args.frac,
-    #                    args.iid, args.local_ep, args.local_bs))

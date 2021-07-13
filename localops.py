@@ -9,7 +9,7 @@ import numpy as np
 
 # TODO:
 #  adaptions needed for multiclass (if desired)
-#  adaptions for autoencoder? not
+#  adaptions for autoencoder -> threshold selection, different standardization?
 
 class LocalOps(object):
     def __init__(self, p : DataSampler, batch_size, epochs, lr):
@@ -37,7 +37,6 @@ class LocalOps(object):
         x_loc_test, y_loc_test = x[idxs_loc_test], y[idxs_loc_test]
         x_test, y_test = x[idxs_test], y[idxs_test]
 
-        # TODO: Check if standardization ok
         # scale with training split mean/std
         scaler = StandardScaler()
         scaler.fit(x_train)
@@ -115,6 +114,14 @@ class BinaryUpdate(LocalOps):
 
 # TODO: use validation set to find threshold
 #  data preprocessing for values in range [0,1]
+#  different train and testloader needed for update_weights/inference
+#  options:
+#  1
+#  -> push down definition of self.train/loc_test/glob_testloaders into subclasses, keep the common aspects in superclass
+#  -> only use normal samples in autoencoder trainloader, but both normal and malicious in loc_test/glob_testloaders
+#  2
+#  -> disregard inference in fed training loop and just use a new datasampler object for the inference that contains also malicious samples
+
 class AutoencoderUpdate(LocalOps):
     def __init__(self, p : DataSampler, batch_size, epochs, lr):
         super(AutoencoderUpdate, self).__init__(p, batch_size, epochs, lr)
@@ -147,12 +154,14 @@ class AutoencoderUpdate(LocalOps):
 
         return model.state_dict(), sum(epoch_loss) / len(epoch_loss)
 
+
     def inference(self, model):
         """ Returns the inference accuracy and loss.
         """
         model.eval()
         loss, total, correct = 0.0, 0.0, 0.0
 
+        # TODO: testloader must contain mixed samples
         for batch_idx, (x, y) in enumerate(self.loc_testloader):
             x, y = x.to(self.device), y.to(self.device)
 
@@ -162,7 +171,7 @@ class AutoencoderUpdate(LocalOps):
             loss += batch_loss.item()
 
             # Prediction Autoencoder: if further than a certain threshold -> use validation to fin
-            #correct += ((distance(pred,x) <= treshold) == y).type(torch.float).sum().item()
+            #correct += ((distance(pred,x) >= treshold) == y).type(torch.float).sum().item()
             total += len(y)
 
         accuracy = correct/total
