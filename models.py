@@ -6,9 +6,9 @@ class MLP(nn.Module):
         super(MLP, self).__init__()
         self.linstack = nn.Sequential(
             nn.Linear(K, 512), # bias=True is default
-            nn.Sigmoid(),
+            nn.ReLU(),
             nn.BatchNorm1d(512),
-            nn.Dropout(0.6),
+            nn.Dropout(0.6), # TODO: simplify, experiment -> check with runtime
             nn.Linear(512, 1),
             # nn.Sigmoid(),
             # nn.BatchNorm1d(128),

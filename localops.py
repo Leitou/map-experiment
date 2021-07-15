@@ -37,6 +37,7 @@ class LocalOps(object):
         x_loc_test, y_loc_test = x[idxs_loc_test], y[idxs_loc_test]
         x_test, y_test = x[idxs_test], y[idxs_test]
 
+        # TODO: share scale params in federation
         # scale with training split mean/std
         scaler = StandardScaler()
         scaler.fit(x_train)

@@ -2,8 +2,9 @@ import csv
 import copy
 import torch
 import numpy as np
-import matplotlib
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
+
 
 # TODO: further preprocessing needed? here or in localops classes
 #  (removing columns with equal values, how to handle in federated setting? needed?)
@@ -26,6 +27,57 @@ def read_data(path, malicious=False):
     print(f"Number of rows filtered: {num_filtered}")
     targets = np.ones(len(input), dtype=np.float32) if malicious else np.zeros(len(input), dtype=np.float32)
     return np.array(input), targets
+
+
+# receives a number of samplers, splits their data in training and testing parts
+# and returns the data and targets per participant
+def get_sampler_data(samplers, split):
+    alldata = [s.sample() for s in samplers]
+    alldata_splits = []
+    for d, t in alldata:
+        dlen = len(d)
+        x_train, y_train = d[:int(split * dlen)], t[:int(split * dlen)]
+        x_test, y_test = d[int(split * dlen):], t[int(split * dlen):]
+        alldata_splits.append((x_train,y_train, x_test,y_test))
+
+    return alldata_splits
+
+# returns the baseline splits for data and targets resulting from
+# the corresponding aggregated participant data and target splits
+def get_baseline_data(data_per_participant):
+
+    bx_train, by_train = data_per_participant[0][0], data_per_participant[0][1]
+    bx_test, by_test = data_per_participant[0][2], data_per_participant[0][3]
+
+    for x_train, y_train, x_test, y_test in data_per_participant[1:]:
+        print(f"len bx_train {len(bx_train)}, len by_train {len(by_train)}")
+        print(f"len bx_test {len(bx_test)}, len by_test {len(by_test)}")
+        # just append all splits for the global model data
+        bx_train = np.vstack((bx_train, x_train))
+        by_train = np.concatenate((by_train, y_train))
+        bx_test = np.vstack((bx_test, x_test))
+        by_test = np.concatenate((by_test, y_test))
+
+    return (bx_train,by_train, bx_test,by_test)
+
+
+# scales the baseline_data and returns the scaler
+def minmax_scale_baseline(alldata):
+    scaler = MinMaxScaler()
+    scaler.fit(alldata)
+    return scaler.transform(alldata), scaler
+
+# requires that scaler is fitted with all data from the baseline
+def minmax_scale_federation(data_per_participant, scaler):
+    federation_data = []
+    for d, t in data_per_participant:
+        federation_data.append((scaler.transform(d), t))
+    return federation_data
+
+
+
+
+
 
 def average_weights(w):
     """
