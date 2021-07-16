@@ -1,6 +1,6 @@
 from torch import nn
 
-
+# TODO: improve models
 class MLP(nn.Module):
     def __init__(self, K):
         super(MLP, self).__init__()

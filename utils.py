@@ -3,7 +3,7 @@ import copy
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import MinMaxScaler
+
 
 
 # TODO: further preprocessing needed? here or in localops classes
@@ -36,11 +36,18 @@ def get_sampler_data(samplers, split):
     alldata_splits = []
     for d, t in alldata:
         dlen = len(d)
+        # shuffle
+        idxs = np.arange(dlen)
+        np.random.shuffle(idxs)
+        d = d[idxs]
+        t = t[idxs]
+        # split in training and testing parts
         x_train, y_train = d[:int(split * dlen)], t[:int(split * dlen)]
         x_test, y_test = d[int(split * dlen):], t[int(split * dlen):]
         alldata_splits.append((x_train,y_train, x_test,y_test))
 
     return alldata_splits
+
 
 # returns the baseline splits for data and targets resulting from
 # the corresponding aggregated participant data and target splits
@@ -58,25 +65,28 @@ def get_baseline_data(data_per_participant):
         bx_test = np.vstack((bx_test, x_test))
         by_test = np.concatenate((by_test, y_test))
 
-    return (bx_train,by_train, bx_test,by_test)
+    return copy.deepcopy((bx_train,by_train, bx_test,by_test))
 
 
 # scales the baseline_data and returns the scaler
-def minmax_scale_baseline(alldata):
-    scaler = MinMaxScaler()
-    scaler.fit(alldata)
-    return scaler.transform(alldata), scaler
+def scale_baseline(alldata, scaler):
+    print(f"scaling baseline")
+    bx_train, by_train, bx_test, by_test = alldata
+    scaler.fit(bx_train)
+    bx_train = scaler.transform(bx_train)
+    bx_test = scaler.transform(bx_test)
 
-# requires that scaler is fitted with all data from the baseline
-def minmax_scale_federation(data_per_participant, scaler):
+    baseline_data = (bx_train,copy.deepcopy(by_train), bx_test,copy.deepcopy(by_test))
+    return baseline_data, scaler
+
+
+# requires that scaler is already fitted with all data from the baseline
+def scale_federation(data_per_participant, scaler):
+    print(f"scaling federation")
     federation_data = []
-    for d, t in data_per_participant:
-        federation_data.append((scaler.transform(d), t))
+    for x_train,y_train, x_test,y_test in data_per_participant:
+        federation_data.append((scaler.transform(x_train),copy.deepcopy(y_train), scaler.transform(x_test),copy.deepcopy(y_test)))
     return federation_data
-
-
-
-
 
 
 def average_weights(w):
@@ -91,16 +101,6 @@ def average_weights(w):
         w_avg[key] = torch.div(w_avg[key], len(w))
     return w_avg
 
-
-def get_total_sample_accuracy(corrects, totals):
-    return sum(corrects) / sum(totals)
-
-
-def get_averaged_accuracy_for_participants(corrects, totals):
-    acc = 0.0
-    for c, t in zip(corrects, totals):
-        acc += c/t
-    return acc / len(corrects)
 
 
 def plot_results(bl_losses, bl_accs, fed_losses, fed_accs, filenames):

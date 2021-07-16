@@ -12,55 +12,34 @@ import numpy as np
 #  adaptions for autoencoder -> threshold selection, different standardization?
 
 class LocalOps(object):
-    def __init__(self, p : DataSampler, batch_size, epochs, lr):
+    def __init__(self, pdata, batch_size, epochs, lr):
         self.lr = lr
         self.epochs = epochs
         self.batch_size = batch_size
-        data, targets = p.sample()
-        self.trainloader, self.loc_testloader, self.glob_testloader = self.train_test_split(data, targets)
+        self.trainloader, self.testloader = self.train_test_split(pdata)
         self.device = "cuda"
         # Default criterion set to BCEWithlogits loss function (combines BCEloss and softmax layer, numerically stable)
 
-    def train_test_split(self, x, y):
+    def train_test_split(self, pdata):
         """
-        Returns train and test dataloaders for a given dataset, x & y
+        Returns train and test dataloaders for a given data and targets
         """
-        # split data
-        idxs = np.arange(len(y))
-        np.random.shuffle(idxs)
-        train_split = 0.8
-        loc_test_split = 0.1
-        idxs_train = idxs[:int(train_split*len(idxs))]
-        idxs_loc_test = idxs[int(train_split*len(idxs)):int((train_split+loc_test_split)*len(idxs))]
-        idxs_test = idxs[int((train_split+loc_test_split)*len(idxs)):]
-        x_train, y_train = x[idxs_train], y[idxs_train]
-        x_loc_test, y_loc_test = x[idxs_loc_test], y[idxs_loc_test]
-        x_test, y_test = x[idxs_test], y[idxs_test]
+        x_train, y_train, x_test, y_test = pdata
+        x_train, y_train = torch.from_numpy(x_train).float(), torch.from_numpy(y_train).float()
+        x_test, y_test = torch.from_numpy(x_test).float(), torch.from_numpy(y_test).float()
 
-        # TODO: share scale params in federation
-        # scale with training split mean/std
-        scaler = StandardScaler()
-        scaler.fit(x_train)
-        x_train = torch.from_numpy(scaler.transform(x_train)).float()
-        x_loc_test = torch.from_numpy(scaler.transform(x_loc_test)).float()
-        x_test = torch.from_numpy(scaler.transform(x_test)).float()
-        y_train = torch.from_numpy(y_train).float()
-        y_loc_test = torch.from_numpy(y_loc_test).float()
-        y_test = torch.from_numpy(y_test).float()
-
+        # TODO: if needed split off validation set here
         # create loaders
         train_dataset = torch.utils.data.TensorDataset(x_train, y_train.type(torch.FloatTensor))
         trainloader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
-        loc_test_dataset = torch.utils.data.TensorDataset(x_loc_test, y_loc_test.type(torch.FloatTensor))
-        loctestloader = DataLoader(loc_test_dataset, batch_size=self.batch_size, shuffle=False)
         test_dataset = torch.utils.data.TensorDataset(x_test, y_test.type(torch.FloatTensor))
         testloader = DataLoader(test_dataset, batch_size=self.batch_size, shuffle=False)
 
-        return trainloader, loctestloader, testloader
+        return trainloader, testloader
 
-class BinaryUpdate(LocalOps):
-    def __init__(self, p : DataSampler, batch_size, epochs, lr):
-        super(BinaryUpdate, self).__init__(p, batch_size, epochs, lr)
+class BinaryOps(LocalOps):
+    def __init__(self, pdata, batch_size, epochs, lr):
+        super(BinaryOps, self).__init__(pdata, batch_size, epochs, lr)
         self.criterion = nn.BCEWithLogitsLoss()
 
     def update_weights(self, model):
@@ -79,14 +58,14 @@ class BinaryUpdate(LocalOps):
                 loss.backward()
                 optimizer.step()
 
-                # if batch_idx % 10 == 0:
-                #     print('| Global Round : {} | Local Epoch : {} | [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                #         global_round+1, le+1, batch_idx * len(x),
-                #         len(self.trainloader.dataset),
-                #         100. * batch_idx / len(self.trainloader), loss.item()))
+                if batch_idx % 10 == 0:
+                    print('\r| Local Epoch : {} | [{}/{} ({:.0f}%)]\tbLoss: {:.6f}'.format(
+                        le+1, batch_idx * len(x),
+                        len(self.trainloader.dataset),
+                        100. * batch_idx / len(self.trainloader), loss.item()), end="", flush=True)
                 batch_loss.append(loss.item())
             epoch_loss.append(sum(batch_loss)/len(batch_loss))
-
+        print()
         return model.state_dict(), sum(epoch_loss) / len(epoch_loss)
 
     def inference(self, model):
@@ -95,7 +74,7 @@ class BinaryUpdate(LocalOps):
         model.eval()
         loss, total, correct = 0.0, 0.0, 0.0
 
-        for batch_idx, (x, y) in enumerate(self.loc_testloader):
+        for batch_idx, (x, y) in enumerate(self.testloader):
             x, y = x.to(self.device), y.to(self.device)
 
             # Inference
@@ -104,29 +83,29 @@ class BinaryUpdate(LocalOps):
             loss += batch_loss.item()
 
             # Prediction Binary
+            s = nn.Sigmoid()
+            pred = s(pred)
             pred[pred < 0.5] = 0
             pred[pred > 0.5] = 1
             correct += (pred == y).type(torch.float).sum().item()
             total += len(y)
 
-        accuracy = correct/total
-        return accuracy, loss
+
+        return correct, total, loss
 
 
 # TODO: use validation set to find threshold
-#  data preprocessing for values in range [0,1]
+#  data preprocessing specialties? values only in certain range?
 #  different train and testloader needed for update_weights/inference
-#  options:
-#  1
-#  -> push down definition of self.train/loc_test/glob_testloaders into subclasses, keep the common aspects in superclass
-#  -> only use normal samples in autoencoder trainloader, but both normal and malicious in loc_test/glob_testloaders
-#  2
-#  -> disregard inference in fed training loop and just use a new datasampler object for the inference that contains also malicious samples
+#  -> update_weights and inference should be done on two different instances of AutoencoderOps
+#  1. update_weights on exclusively normal samples + untrained model
+#  2. inference on new testdata with malicious samples + the trained model from 1.
 
-class AutoencoderUpdate(LocalOps):
+class AutoencoderOps(LocalOps):
     def __init__(self, p : DataSampler, batch_size, epochs, lr):
-        super(AutoencoderUpdate, self).__init__(p, batch_size, epochs, lr)
+        super(AutoencoderOps, self).__init__(p, batch_size, epochs, lr)
         self.criterion = nn.MSELoss()
+        # TODO: adapt for validation/threshold selection split
 
     def update_weights(self, model):
         # Set mode to train model
@@ -162,7 +141,6 @@ class AutoencoderUpdate(LocalOps):
         model.eval()
         loss, total, correct = 0.0, 0.0, 0.0
 
-        # TODO: testloader must contain mixed samples
         for batch_idx, (x, y) in enumerate(self.loc_testloader):
             x, y = x.to(self.device), y.to(self.device)
 
@@ -175,5 +153,4 @@ class AutoencoderUpdate(LocalOps):
             #correct += ((distance(pred,x) >= treshold) == y).type(torch.float).sum().item()
             total += len(y)
 
-        accuracy = correct/total
-        return accuracy, loss
+        return correct, total, loss

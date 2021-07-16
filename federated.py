@@ -2,7 +2,7 @@ import copy
 import torch
 from torch import nn
 import numpy as np
-from utils import average_weights, get_total_sample_accuracy, get_averaged_accuracy_for_participants
+from utils import average_weights
 
 
 def train_model(global_model, participants, epochs):
@@ -33,14 +33,16 @@ def train_model(global_model, participants, epochs):
         loss_avg = sum(local_losses) / len(local_losses)
         train_loss.append(loss_avg)
 
-        # Calculate avg training accuracy over all users at every epoch
+        # Calculate avg test accuracy over all users at every epoch
         list_acc, list_loss = [], []
         global_model.eval()
         for p in participants:
-            acc, loss = p.inference(model=global_model)
-            list_acc.append(acc)
+            corrects, totals, loss = p.inference(model=global_model)
+            list_acc.append(corrects / totals)
             list_loss.append(loss)
         train_accuracy.append(sum(list_acc) / len(list_acc))
+
+        print(f"loss {list_loss}")
 
         # print global training loss after every 'i' rounds
         if (epoch + 1) % print_every == 0:
@@ -51,54 +53,53 @@ def train_model(global_model, participants, epochs):
     return train_accuracy, train_loss
 
 def print_test_results(participants, global_model, epochs):
-    test_losses, test_corrects, test_totals = test_inference_xdata(participants, global_model)
-    avg_test_loss = sum(test_losses) / len(test_losses)
-    test_accuracy_avg = get_averaged_accuracy_for_participants(test_corrects, test_totals)
-    test_accuracy_tot = get_total_sample_accuracy(test_corrects, test_totals)
-    print(f'\nResults after {epochs} global rounds of training:')
-    print("|---- Avg Test Accuracy: {:.2f}%".format(100 * test_accuracy_avg))
-    print("|---- Tot Test Accuracy: {:.2f}%\n".format(100 * test_accuracy_tot))
+    if len(participants) == 1:
+        print(f'\nBaseline model results after {epochs} global rounds of training:')
+    else:
+        print(f'\nFederated model results after {epochs} global rounds of training:')
+    test_acc, test_loss = test_inference_xdata(participants, global_model)
+    print("|---- Avg Test Loss: {:.4f}".format(test_loss))
+    print("|---- Test Accuracy: {:.2f}%".format(100 * test_acc))
 
 
-def test_inference_xdata(participants, model):
-    """ Returns the test accuracy and loss for the global test split of all participants (list of LocalOps objects)
-    It is possible to create an arbitrary dataset (e.g. not the one used for training) for testing
-    In order to do this you must create samplers and localOps
-    like this for a global aggregator test:
-    baseline_sampler = DataSampler(6000, [["ras4-8gb", ["normal"]], ["ras3", ["normal", "delay", "disorder"]]])
-    aggregator = [BinaryUpdate(baseline_sampler, 64, 20, lr=learning_rate)]
-    call: test_inference_xdata(aggregator, model)
-
-    like this for a federated test:
-    # define participants and what data they contribute to the model
-    samplers = [DataSampler(loc_sample_size, [["ras4-8gb", ["normal"]]]),
-                DataSampler(loc_sample_size, [["ras3", ["normal", "delay", "disorder"]]])]
-    # initialize list of participants and their own unique test splits
-    participants = [BinaryUpdate(s, batch_size, loc_epochs=loc_epochs, lr=lr) for s in samplers]
-    call: test_inference_xdata(participants, model)
+def test_inference_xdata(participants, model, glob_avg=True):
     """
+    participants is a list of LocalOps objects, upon which inference() can be called,
+    model is a just a trained model
+
+    Returns the test accuracy and loss for the global test split of all participants (list of LocalOps objects)
+    It is possible to create an arbitrary dataset (e.g. not the one used for training) for testing.
+    This is just a helper function.
+    """
+
+    # TODO: adapt this function & inference() functions to get TPR/FPR etc
+    tot_acc, tot_loss = 0.0, 0.0
+    list_corrects, list_totals, list_loss = [], [], []
     model.eval()
-    losses, totals, corrects = [], [], []
-    device = 'cuda'
-
-    criterion = nn.BCEWithLogitsLoss().to(device)
     for p in participants:
-        plosses, ptotal, pcorrect = 0.0, 0.0, 0.0
-        for batch_idx, (x, y) in enumerate(p.glob_testloader):
-            x, y = x.to(device), y.to(device)
+        corrects, totals, loss = p.inference(model=model)
+        list_corrects.append(corrects)
+        list_totals.append(totals)
+        list_loss.append(loss)
 
-            # Inference
-            pred = model(x)
-            batch_loss = criterion(pred, y)
-            plosses += batch_loss.item()
+    if glob_avg == True:
+        tot_acc = get_total_sample_accuracy(list_corrects, list_totals)
+    else:
+        tot_acc = get_averaged_accuracy_for_participants(list_corrects, list_totals)
+    # loss already batch averaged by torch
+    tot_loss = sum(list_loss)
 
-            # Prediction Binary
-            pred[pred < 0.5] = 0
-            pred[pred > 0.5] = 1
-            pcorrect += (pred == y).type(torch.float).sum().item()
-            ptotal += len(y)
-        losses.append(plosses / len(p.glob_testloader))  # to ensure to return average losses per participant
-        totals.append(ptotal)
-        corrects.append(pcorrect)
+    return tot_acc, tot_loss
 
-    return losses, corrects, totals
+
+
+# choice 1 for federated accuracy calculation: distinction matters in case of unequal number of participant samples
+def get_total_sample_accuracy(corrects, totals):
+    return sum(corrects) / sum(totals)
+
+# choice 2 for federated accuracy calculation
+def get_averaged_accuracy_for_participants(corrects, totals):
+    acc = 0.0
+    for c, t in zip(corrects, totals):
+        acc += c/t
+    return acc / len(corrects)
