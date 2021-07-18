@@ -1,0 +1,5 @@
+--find-links https://download.pytorch.org/whl/torch_stable.html
+
+torch==1.9.0+cu102
+scikit-learn==0.24.2
+matplotlib==3.4.2
