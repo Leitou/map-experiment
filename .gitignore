@@ -3,3 +3,4 @@
 *.iml
 *.model
 venv/
+results

@@ -74,21 +74,22 @@ class BinaryOps(LocalOps):
         model.eval()
         loss, total, correct = 0.0, 0.0, 0.0
 
-        for batch_idx, (x, y) in enumerate(self.testloader):
-            x, y = x.to(self.device), y.to(self.device)
+        with torch.no_grad():
+            for batch_idx, (x, y) in enumerate(self.testloader):
+                x, y = x.to(self.device), y.to(self.device)
 
-            # Inference
-            pred = model(x)
-            batch_loss = self.criterion(pred, y)
-            loss += batch_loss.item()
+                # Inference
+                pred = model(x)
+                batch_loss = self.criterion(pred, y)
+                loss += batch_loss.item()
 
-            # Prediction Binary
-            s = nn.Sigmoid()
-            pred = s(pred)
-            pred[pred < 0.5] = 0
-            pred[pred > 0.5] = 1
-            correct += (pred == y).type(torch.float).sum().item()
-            total += len(y)
+                # Prediction Binary
+                s = nn.Sigmoid()
+                pred = s(pred)
+                pred[pred < 0.5] = 0
+                pred[pred > 0.5] = 1
+                correct += (pred == y).type(torch.float).sum().item()
+                total += len(y)
 
 
         return correct, total, loss

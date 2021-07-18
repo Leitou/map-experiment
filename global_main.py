@@ -17,7 +17,7 @@ if __name__ == '__main__':
     device = 'cuda'
     method = "binary"
     if method == "binary":
-        global_model = MLP(K=75)
+        global_model = MLP(in_features=75)
     elif method == "autoencoder":
         global_model = AutoEncoder(K=75)
     else:
@@ -71,7 +71,7 @@ if __name__ == '__main__':
     # Directly compare results: (possibly use arbitrary data here for inference)
     print_test_results([aggregator], base_model, epochs)
     print_test_results(participants, global_model, epochs)
-    print(f"\nElapsed time for baseline and federation training: {end - start} s")
+    print(f"\nElapsed time for baseline and federation training: {(end - start):.2f} s")
 
     # TODO:
     #  make plots/results params/ensure reproducibility of experiments
