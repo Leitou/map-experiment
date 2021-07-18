@@ -6,7 +6,6 @@ from datasampling import DataSampler
 import numpy as np
 
 
-
 # TODO:
 #  adaptions needed for multiclass (if desired)
 #  adaptions for autoencoder -> threshold selection, different standardization?
@@ -18,15 +17,15 @@ class LocalOps(object):
         self.batch_size = batch_size
         self.trainloader, self.testloader = self.train_test_split(pdata)
         self.device = "cuda"
-        # Default criterion set to BCEWithlogits loss function (combines BCEloss and softmax layer, numerically stable)
+        # Default criterion set to BCEWithlogits loss function (combines BCEloss and sigmoid layer, numerically stable)
 
     def train_test_split(self, pdata):
         """
         Returns train and test dataloaders for a given data and targets
         """
         x_train, y_train, x_test, y_test = pdata
-        x_train, y_train = torch.from_numpy(x_train).float(), torch.from_numpy(y_train).float()
-        x_test, y_test = torch.from_numpy(x_test).float(), torch.from_numpy(y_test).float()
+        x_train, y_train = torch.from_numpy(x_train).float(), torch.from_numpy(y_train).unsqueeze(1).float()
+        x_test, y_test = torch.from_numpy(x_test).float(), torch.from_numpy(y_test).unsqueeze(1).float()
 
         # TODO: if needed split off validation set here
         # create loaders
@@ -36,6 +35,7 @@ class LocalOps(object):
         testloader = DataLoader(test_dataset, batch_size=self.batch_size, shuffle=False)
 
         return trainloader, testloader
+
 
 class BinaryOps(LocalOps):
     def __init__(self, pdata, batch_size, epochs, lr):
@@ -59,12 +59,12 @@ class BinaryOps(LocalOps):
                 optimizer.step()
 
                 if batch_idx % 10 == 0:
-                    print('\r| Local Epoch : {} | [{}/{} ({:.0f}%)]\tbLoss: {:.6f}'.format(
-                        le+1, batch_idx * len(x),
+                    print('\r| Local Epoch : {} | [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                        le + 1, batch_idx * len(x),
                         len(self.trainloader.dataset),
                         100. * batch_idx / len(self.trainloader), loss.item()), end="", flush=True)
                 batch_loss.append(loss.item())
-            epoch_loss.append(sum(batch_loss)/len(batch_loss))
+            epoch_loss.append(sum(batch_loss) / len(batch_loss))
         print()
         return model.state_dict(), sum(epoch_loss) / len(epoch_loss)
 
@@ -91,7 +91,6 @@ class BinaryOps(LocalOps):
                 correct += (pred == y).type(torch.float).sum().item()
                 total += len(y)
 
-
         return correct, total, loss
 
 
@@ -103,7 +102,7 @@ class BinaryOps(LocalOps):
 #  2. inference on new testdata with malicious samples + the trained model from 1.
 
 class AutoencoderOps(LocalOps):
-    def __init__(self, p : DataSampler, batch_size, epochs, lr):
+    def __init__(self, p: DataSampler, batch_size, epochs, lr):
         super(AutoencoderOps, self).__init__(p, batch_size, epochs, lr)
         self.criterion = nn.MSELoss()
         # TODO: adapt for validation/threshold selection split
@@ -131,10 +130,9 @@ class AutoencoderOps(LocalOps):
                 #         len(self.trainloader.dataset),
                 #         100. * batch_idx / len(self.trainloader), loss.item()))
                 batch_loss.append(loss.item())
-            epoch_loss.append(sum(batch_loss)/len(batch_loss))
+            epoch_loss.append(sum(batch_loss) / len(batch_loss))
 
         return model.state_dict(), sum(epoch_loss) / len(epoch_loss)
-
 
     def inference(self, model):
         """ Returns the inference accuracy and loss.
@@ -151,7 +149,7 @@ class AutoencoderOps(LocalOps):
             loss += batch_loss.item()
 
             # Prediction Autoencoder: if further than a certain threshold -> use validation to fin
-            #correct += ((distance(pred,x) >= treshold) == y).type(torch.float).sum().item()
+            # correct += ((distance(pred,x) >= treshold) == y).type(torch.float).sum().item()
             total += len(y)
 
         return correct, total, loss

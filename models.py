@@ -1,19 +1,13 @@
 from torch import nn
 
-class MLP(nn.Module):
-    def __init__(self, in_features: int, hidden_size: int = 256):
-        super(MLP, self).__init__()
-        self.linstack = nn.Sequential(
-            nn.Linear(in_features, hidden_size),  # bias=True is default
-            nn.ReLU(),
-            nn.BatchNorm1d(hidden_size),
-            nn.Linear(hidden_size, 1),
-        )
 
-    def forward(self, x):
-        output = self.linstack(x)
-        output = output.view(-1)
-        return output
+def MLP(in_features: int, hidden_size: int = 256):
+    return nn.Sequential(
+        nn.Linear(in_features, hidden_size),  # bias=True is default
+        nn.ReLU(),
+        nn.BatchNorm1d(hidden_size),
+        nn.Linear(hidden_size, 1),
+    )
 
 
 # TODO: decide on preprocessing of data to have input features in ranges [0,1] for efficiency (divide cols by max value)
