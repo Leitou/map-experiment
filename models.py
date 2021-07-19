@@ -10,6 +10,15 @@ def MLP(in_features: int, hidden_size: int = 256):
     )
 
 
+def AE(in_features: int, hidden_size: int = 32):
+    return nn.Sequential(
+        nn.Linear(in_features, hidden_size),
+        nn.ReLU(),
+        nn.Linear(hidden_size, in_features),
+        nn.ReLU()
+    )
+
+
 # TODO: decide on preprocessing of data to have input features in ranges [0,1] for efficiency (divide cols by max value)
 class AutoEncoder(nn.Module):
     def __init__(self, K):

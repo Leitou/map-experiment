@@ -15,7 +15,7 @@ def train_model(global_model, participants, epochs):
 
     for epoch in range(epochs):
         local_weights, local_losses = [], []
-        print(f'\r| Global Training Epoch : {epoch + 1} |',end='', flush=True)
+        print(f'\r| Global Training Epoch : {epoch + 1} |', end='', flush=True)
 
         global_model.train()
         # m = max(int(participation_rate * num_clients), 1)
@@ -51,6 +51,7 @@ def train_model(global_model, participants, epochs):
             print('Train Accuracy: {:.2f}% \n'.format(100 * train_accuracy[-1]))
 
     return train_accuracy, train_loss
+
 
 def print_test_results(participants, global_model, epochs):
     if len(participants) == 1:
@@ -92,14 +93,14 @@ def test_inference_xdata(participants, model, glob_avg=True):
     return tot_acc, tot_loss
 
 
-
 # choice 1 for federated accuracy calculation: distinction matters in case of unequal number of participant samples
 def get_total_sample_accuracy(corrects, totals):
     return sum(corrects) / sum(totals)
+
 
 # choice 2 for federated accuracy calculation
 def get_averaged_accuracy_for_participants(corrects, totals):
     acc = 0.0
     for c, t in zip(corrects, totals):
-        acc += c/t
+        acc += c / t
     return acc / len(corrects)

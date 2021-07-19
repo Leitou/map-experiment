@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from models import MLP
-from datasampling import DataSampler
+from sampling import DataSampler
 from localops import BinaryOps
 from utils import get_sampler_data, get_baseline_data, scale_baseline, scale_federation
 from federated import train_model
@@ -19,7 +19,7 @@ num_tot_samples = 6000
 device = "cuda"
 split = 0.8
 
-net = MLP(K=75).to(device)
+net = MLP(in_features=75).to(device)
 print(net)
 
 baseline_sampler = DataSampler(num_tot_samples, [("ras4-4gb", ["normal"]),

@@ -1,7 +1,11 @@
-from utils import read_data
 from collections import defaultdict
+from typing import List, Tuple, Dict
+
 import numpy as np
-from sys import exit
+from sklearn.preprocessing import MinMaxScaler
+
+from custom_types import RaspberryPi, Attack
+from utils import read_data
 
 # TODO:
 #  remove noisy paths (ras44gb_path dict)
@@ -16,6 +20,49 @@ from sys import exit
 malicious = defaultdict(lambda: 1)
 malicious["normal"] = 0
 malicious["normal_v2"] = 0
+
+class_map_binary: Dict[Attack, int] = defaultdict(lambda: 1)
+class_map_binary[Attack.NORMAL] = 0
+class_map_binary[Attack.NORMAL_V2] = 0
+
+class_map_multi: Dict[Attack, int] = defaultdict(lambda: 0)
+class_map_binary[Attack.DELAY] = 1
+class_map_binary[Attack.DISORDER] = 2
+class_map_binary[Attack.FREEZE] = 3
+class_map_binary[Attack.HOP] = 4
+class_map_binary[Attack.HOP] = 4
+class_map_binary[Attack.MIMIC] = 5
+class_map_binary[Attack.NOISE] = 6
+class_map_binary[Attack.REPEAT] = 7
+class_map_binary[Attack.SPOOF] = 8
+
+data_file_paths: Dict[RaspberryPi, Dict[Attack, str]] = {
+    RaspberryPi.PI3_2GB: {
+        Attack.NORMAL: "data/ras-3-data/samples_normal_2021-06-18-15-59_50s",
+        Attack.NORMAL_V2: "data/ras-3-data/samples_normal_v2_2021-06-23-16-54_50s",
+        Attack.DELAY: "data/ras-3-data/samples_delay_2021-07-01-08-30_50s",
+        Attack.DISORDER: "data/ras-3-data/samples_disorder_2021-06-30-23-54_50s",
+        Attack.FREEZE: "data/ras-3-data/samples_freeze_2021-07-01-14-11_50s",
+        Attack.HOP: "data/ras-3-data/samples_hop_2021-06-29-23-23_50s",
+        Attack.MIMIC: "data/ras-3-data/samples_mimic_2021-06-30-10-33_50s",
+        Attack.NOISE: "data/ras-3-data/samples_noise_2021-06-30-19-44_50s",
+        Attack.REPEAT: "data/ras-3-data/samples_repeat_2021-07-01-20-00_50s",
+        Attack.SPOOF: "data/ras-3-data/samples_spoof_2021-06-30-14-49_50s"
+    },
+    RaspberryPi.PI4_2GB: {},
+    RaspberryPi.PI4_4GB: {
+        Attack.NORMAL: "data/ras-4-noisy/samples_normal_2021-06-18-16-09_50s",
+        Attack.NORMAL_V2: "data/ras-4-noisy/samples_normal_v2_2021-06-23-16-56_50s",
+        Attack.DELAY: "data/ras-4-data/samples_delay_2021-07-01-08-36_50s",
+        Attack.DISORDER: "data/ras-4-data/samples_disorder_2021-06-30-23-57_50s",
+        Attack.FREEZE: "data/ras-4-data/samples_freeze_2021-07-01-14-13_50s",
+        Attack.HOP: "data/ras-4-data/samples_hop_2021-06-29-23-25_50s",
+        Attack.MIMIC: "data/ras-4-data/samples_mimic_2021-06-30-10-00_50s",
+        Attack.NOISE: "data/ras-4-data/samples_noise_2021-06-30-19-48_50s",
+        Attack.REPEAT: "data/ras-4-data/samples_repeat_2021-07-01-20-06_50s",
+        Attack.SPOOF: "data/ras-4-data/samples_spoof_2021-06-30-14-54_50s"
+    },
+}
 
 ras3_paths = {
     "normal": "data/ras-3-data/samples_normal_2021-06-18-15-59_50s",
@@ -47,7 +94,8 @@ ras42gb_paths = {
     # to be filled in
 }
 
-class DataSampler():
+
+class DataSampler:
     def __init__(self, sample_size, monitoring_programs):
         assert len(monitoring_programs) >= 1, "At least one monitoring program must be chosen"
         self.num_samples = sample_size
@@ -171,3 +219,11 @@ class DataSampler():
             "Up/Downsampling Failure"
 
         return self.data, self.targets
+
+    @staticmethod
+    def get_all_clients_train_data_and_scaler(train_devices: List[Tuple[RaspberryPi, Dict[Attack, int]]],
+                                              test_devices: List[Tuple[RaspberryPi, Dict[Attack, int]]]) -> \
+            List[Tuple[np.ndarray, np.ndarray]]:
+        # TODO: can calculate how many peers want to get data from PI3_HOP and
+        #  therefore split it amongst participants to avoid data overlap
+        pass

@@ -1,8 +1,8 @@
 import torch
 from torch import nn
 from models import AutoEncoder
-from datasampling import DataSampler
-from localops import AutoencoderUpdate
+from sampling import DataSampler
+from localops import AutoencoderOps
 
 ## Test Experiment for centralized anomaly detection
 
@@ -17,7 +17,7 @@ criterion = nn.MSELoss()
 
 
 baseline_sampler = DataSampler(num_tot_samples, [["ras4-8gb", ["normal"]], ["ras3", ["normal", "delay", "disorder"]]])
-aggregator = AutoencoderUpdate(baseline_sampler, batch_size, epochs, learning_rate, criterion)
+aggregator = AutoencoderOps(baseline_sampler, batch_size, epochs, learning_rate)
 net = AutoEncoder(K=75).to(device)
 print(net)
 

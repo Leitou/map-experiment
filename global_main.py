@@ -1,14 +1,14 @@
 import copy
-import pickle
 from sys import exit
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
-
-from datasampling import DataSampler
-from models import MLP, AutoEncoder
-from localops import BinaryOps, AutoencoderOps
-from federated import train_model, print_test_results
-from utils import plot_results, get_sampler_data, get_baseline_data, scale_baseline, scale_federation
 from time import time
+
+from sklearn.preprocessing import StandardScaler
+
+from federated import train_model, print_test_results
+from localops import BinaryOps
+from models import MLP, AutoEncoder
+from sampling import DataSampler
+from utils import plot_results, get_sampler_data, get_baseline_data, scale_baseline, scale_federation
 
 # TODO: early stopping - https://machinelearningmastery.com/how-to-stop-training-deep-neural-networks-at-the-right-time-using-early-stopping/
 if __name__ == '__main__':
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     epochs = 50
     loc_epochs = 6
     participation_rate = 1
-    loc_sample_size = 6000 # makes each participant contribute the same amount of data samples -> customize if unequal data
+    loc_sample_size = 6000  # makes each participant contribute the same amount of data samples -> customize if unequal data
     batch_size = 64
     lr = 1e-5
     split = 0.8
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     baseline_data = get_baseline_data(data_per_participant)
 
     # standardize data
-    scaler = StandardScaler()#MinMaxScaler() # TRY OUT with StandardScaler()
+    scaler = StandardScaler()  # MinMaxScaler() # TRY OUT with StandardScaler()
     baseline_data, scaler = scale_baseline(baseline_data, scaler)
     data_per_participant = scale_federation(data_per_participant, scaler)
 
@@ -78,7 +78,6 @@ if __name__ == '__main__':
     #  -> store models for baseline/federated, hyperparams, clients and data used
     plot_results(train_base_loss, train_base_accuracy, train_fed_loss, train_fed_accuracy, ["exp1-loss", "exp1-acc"])
 
-
     # pickle example:
     # # Saving the objects train_loss and train_accuracy:
     # file_name = '../results/objects/{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}].pkl'.\
@@ -87,5 +86,3 @@ if __name__ == '__main__':
     #
     # with open(file_name, 'wb') as f:
     #     pickle.dump([train_loss, train_accuracy], f)
-
-

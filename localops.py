@@ -1,9 +1,8 @@
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-from sklearn.preprocessing import StandardScaler
-from datasampling import DataSampler
-import numpy as np
+
+from sampling import DataSampler
 
 
 # TODO:
