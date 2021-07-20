@@ -23,20 +23,21 @@ malicious = defaultdict(lambda: 1)
 malicious["normal"] = 0
 malicious["normal_v2"] = 0
 
-class_map_binary: Dict[Attack, int] = defaultdict(lambda: 1)
-class_map_binary[Attack.NORMAL] = 0
-class_map_binary[Attack.NORMAL_V2] = 0
+class_map_binary: Dict[Attack, int] = defaultdict(lambda: 1, {
+    Attack.NORMAL: 0,
+    Attack.NORMAL_V2: 0
+})
 
-class_map_multi: Dict[Attack, int] = defaultdict(lambda: 0)
-class_map_multi[Attack.DELAY] = 1
-class_map_multi[Attack.DISORDER] = 2
-class_map_multi[Attack.FREEZE] = 3
-class_map_multi[Attack.HOP] = 4
-class_map_multi[Attack.HOP] = 4
-class_map_multi[Attack.MIMIC] = 5
-class_map_multi[Attack.NOISE] = 6
-class_map_multi[Attack.REPEAT] = 7
-class_map_multi[Attack.SPOOF] = 8
+class_map_multi: Dict[Attack, int] = defaultdict(lambda: 0, {
+    Attack.DELAY: 1,
+    Attack.DISORDER: 2,
+    Attack.FREEZE: 3,
+    Attack.HOP: 4,
+    Attack.MIMIC: 5,
+    Attack.NOISE: 6,
+    Attack.REPEAT: 7,
+    Attack.SPOOF: 8
+})
 
 data_file_paths: Dict[RaspberryPi, Dict[Attack, str]] = {
     RaspberryPi.PI3_2GB: {
@@ -344,7 +345,7 @@ class DataSampler:
 
         # TODO: we need to stabilize the minmaxscaler: either remove extreme outliers
         # or aggregate the standard scalers (e. g. by taking mean average, stddev)
-        scaler = StandardScaler() # MinMaxScaler(clip=True)
+        scaler = StandardScaler()  # MinMaxScaler(clip=True)
         all_train_x = np.concatenate(tuple([x[0] for x in train_sets]))
         scaler.fit(all_train_x)
         return [(scaler.transform(x), y) for x, y in train_sets], [(scaler.transform(x), y) for x, y in test_sets]

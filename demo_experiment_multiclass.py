@@ -15,10 +15,10 @@ if __name__ == "__main__":
     print("Starting demo multiclass experiment: Checking if new device can recognize known attacks")
 
     train_sets, test_sets = DataSampler.get_all_clients_train_data_and_scaler(
-        [(RaspberryPi.PI4_4GB, {Attack.NORMAL: 2500, Attack.SPOOF: 1500, Attack.NOISE: 1500}),
-         (RaspberryPi.PI3_2GB, {Attack.NORMAL: 2500}),
-         (RaspberryPi.PI3_2GB, {Attack.NORMAL_V2: 2500})],
-        [(RaspberryPi.PI3_2GB, {Attack.NORMAL: 750, Attack.SPOOF: 250, Attack.NOISE: 250})], multi_class=True)
+        [(RaspberryPi.PI4_4GB, {Attack.NORMAL: 2000, Attack.SPOOF: 1000, Attack.NOISE: 1000}),
+         (RaspberryPi.PI3_2GB, {Attack.NORMAL: 2000}),
+         (RaspberryPi.PI3_2GB, {Attack.NORMAL_V2: 2000})],
+        [(RaspberryPi.PI3_2GB, {Attack.NORMAL: 700, Attack.SPOOF: 150, Attack.NOISE: 150})], multi_class=True)
 
     participants = [Participant(x, y.flatten(), y_type=torch.long) for x, y in train_sets]
     server = Server(participants, ModelArchitecture.MLP_MULTI_CLASS)
