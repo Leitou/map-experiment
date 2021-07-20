@@ -1,14 +1,123 @@
+from typing import List
+
+import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
+from custom_types import ModelArchitecture
+from models import MLP
 from sampling import DataSampler
+from copy import deepcopy
+
+
+class Participant:
+    def __init__(self, data_x: np.ndarray, data_y: np.ndarray,
+                 batch_size: int = 64):
+        data = torch.utils.data.TensorDataset(
+            torch.from_numpy(data_x).type(torch.float),
+            torch.from_numpy(data_y).type(torch.float)
+        )
+        self.data_loader = torch.utils.data.DataLoader(data, batch_size=batch_size, shuffle=True)
+        self.model = None
+
+    # TODO: check if it does make sense to type them?
+    # TODO: early stop per client would be here
+    def train(self, optimizer, loss_function, num_local_epochs: int = 25):
+        if self.model is None:
+            raise ValueError("No model set on participant!")
+
+        epoch_losses = []
+        for le in range(num_local_epochs):
+            current_losses = []
+            for batch_idx, (x, y) in enumerate(self.data_loader):
+                x, y = x, y#x.cuda(), y.cuda()
+                optimizer.zero_grad()
+                model_predictions = self.model(x)
+                loss = loss_function(model_predictions, y)
+                loss.backward()
+                optimizer.step()
+                current_losses.append(loss.item())
+            epoch_losses.append(sum(current_losses) / len(current_losses))
+            print(f'Loss in epoch {le}: {epoch_losses[le]}')
+
+    def get_model(self):
+        return self.model
+
+    def set_model(self, model: torch.nn.Module):
+        self.model = model
+
+
+class Server:
+    def __init__(self, participants: List[Participant],
+                 model_architecture: ModelArchitecture = ModelArchitecture.MLP_MONO_CLASS):
+        assert len(participants) > 0, "At least one participant is required!"
+        assert model_architecture is not None, "Model architecture has to be supplied!"
+        self.model_architecture = model_architecture
+        self.participants = participants
+        if model_architecture == ModelArchitecture.MLP_MONO_CLASS:
+            self.global_model = MLP(in_features=75, out_classes=1)#.cuda()
+        elif model_architecture == ModelArchitecture.MLP_MULTI_CLASS:
+            self.global_model = MLP(in_features=75, out_classes=9)#.cuda()
+        else:
+            raise ValueError("Not yet implemented!")
+
+    def train_global_model(self, aggregation_rounds: int = 15, local_epochs: int = 5):
+        # initialize model
+        for p in self.participants:
+            if self.model_architecture == ModelArchitecture.MLP_MONO_CLASS:
+                p.set_model(MLP(in_features=75, out_classes=1))  # .cuda()
+            elif self.model_architecture == ModelArchitecture.MLP_MULTI_CLASS:
+                p.set_model(MLP(in_features=75, out_classes=9))  # .cuda()
+            else:
+                raise ValueError("Not yet implemented!")
+        for round_idx in range(aggregation_rounds):
+            for p in self.participants:
+                p.get_model().train()
+                p.train(optimizer=torch.optim.SGD(p.get_model().parameters(), lr=0.001, momentum=0.9),
+                        loss_function=torch.nn.BCEWithLogitsLoss(), num_local_epochs=local_epochs)
+            w_avg = deepcopy(self.global_model.state_dict())
+            for key in w_avg.keys():
+                for p in self.participants:
+                    w_avg[key] += p.get_model().state_dict()[key]
+                w_avg[key] = torch.div(w_avg[key], len(self.participants))
+            self.global_model.load_state_dict(w_avg)
+
+            for p in self.participants:
+                p.get_model().load_state_dict(deepcopy(w_avg))
+
+    def predict_using_global_model(self, x):
+        test_data = torch.utils.data.TensorDataset(
+            torch.from_numpy(x).type(torch.float)
+        )
+        data_loader = torch.utils.data.DataLoader(test_data, batch_size=16, shuffle=False)
+
+        sigmoid = torch.nn.Sigmoid()
+        all_predictions = torch.tensor([])#.cuda()
+
+        self.global_model.eval()
+        for idx, (batch_x,) in enumerate(data_loader):
+            batch_x = batch_x#.cuda()
+            with torch.no_grad():
+                model_predictions = self.global_model(batch_x)
+                all_predictions = torch.cat((all_predictions, model_predictions))
+
+        if self.model_architecture == ModelArchitecture.MLP_MONO_CLASS:
+            all_predictions = sigmoid(all_predictions).round().type(torch.long)
+        elif self.model_architecture == ModelArchitecture.MLP_MULTI_CLASS:
+            all_predictions = torch.argmax(all_predictions, dim=1).type(torch.long)
+        else:
+            raise ValueError("Not yet implemented!")
+
+        return all_predictions.flatten()
+
 
 
 # TODO:
 #  adaptions needed for multiclass (if desired)
 #  adaptions for autoencoder -> threshold selection, different standardization?
 
+# TODO: rename file, I did not get the LocalOps Meaning :D maybe call it Participant and Coordinator/Server?
 class LocalOps(object):
     def __init__(self, pdata, batch_size, epochs, lr):
         self.lr = lr

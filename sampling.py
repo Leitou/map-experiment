@@ -1,8 +1,10 @@
 from collections import defaultdict
+from math import floor
 from typing import List, Tuple, Dict
 
 import numpy as np
-from sklearn.preprocessing import MinMaxScaler
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from custom_types import RaspberryPi, Attack
 from utils import read_data
@@ -26,15 +28,15 @@ class_map_binary[Attack.NORMAL] = 0
 class_map_binary[Attack.NORMAL_V2] = 0
 
 class_map_multi: Dict[Attack, int] = defaultdict(lambda: 0)
-class_map_binary[Attack.DELAY] = 1
-class_map_binary[Attack.DISORDER] = 2
-class_map_binary[Attack.FREEZE] = 3
-class_map_binary[Attack.HOP] = 4
-class_map_binary[Attack.HOP] = 4
-class_map_binary[Attack.MIMIC] = 5
-class_map_binary[Attack.NOISE] = 6
-class_map_binary[Attack.REPEAT] = 7
-class_map_binary[Attack.SPOOF] = 8
+class_map_multi[Attack.DELAY] = 1
+class_map_multi[Attack.DISORDER] = 2
+class_map_multi[Attack.FREEZE] = 3
+class_map_multi[Attack.HOP] = 4
+class_map_multi[Attack.HOP] = 4
+class_map_multi[Attack.MIMIC] = 5
+class_map_multi[Attack.NOISE] = 6
+class_map_multi[Attack.REPEAT] = 7
+class_map_multi[Attack.SPOOF] = 8
 
 data_file_paths: Dict[RaspberryPi, Dict[Attack, str]] = {
     RaspberryPi.PI3_2GB: {
@@ -49,7 +51,12 @@ data_file_paths: Dict[RaspberryPi, Dict[Attack, str]] = {
         Attack.REPEAT: "data/ras-3-data/samples_repeat_2021-07-01-20-00_50s",
         Attack.SPOOF: "data/ras-3-data/samples_spoof_2021-06-30-14-49_50s"
     },
-    RaspberryPi.PI4_2GB: {},
+    RaspberryPi.PI4_2GB: {
+        Attack.NORMAL: "data/ras-4-black/samples_normal_2021-07-11-22-19_50s",
+        Attack.DELAY: "data/ras-4-black/samples_delay_2021-06-30-14-03_50s",
+        Attack.DISORDER: "data/ras-4-black/samples_disorder_2021-06-30-09-44_50s",
+        Attack.HOP: "data/ras-4-black/samples_hop_2021-06-30-18-24_50s"
+    },
     RaspberryPi.PI4_4GB: {
         Attack.NORMAL: "data/ras-4-noisy/samples_normal_2021-06-18-16-09_50s",
         Attack.NORMAL_V2: "data/ras-4-noisy/samples_normal_v2_2021-06-23-16-56_50s",
@@ -222,8 +229,121 @@ class DataSampler:
 
     @staticmethod
     def get_all_clients_train_data_and_scaler(train_devices: List[Tuple[RaspberryPi, Dict[Attack, int]]],
-                                              test_devices: List[Tuple[RaspberryPi, Dict[Attack, int]]]) -> \
-            List[Tuple[np.ndarray, np.ndarray]]:
-        # TODO: can calculate how many peers want to get data from PI3_HOP and
-        #  therefore split it amongst participants to avoid data overlap
-        pass
+                                              test_devices: List[Tuple[RaspberryPi, Dict[Attack, int]]],
+                                              multi_class=False) -> \
+            Tuple[List[Tuple[np.ndarray, np.ndarray]], List[Tuple[np.ndarray, np.ndarray]]]:
+
+        assert len(train_devices) > 0 and len(
+            test_devices) > 0, "Need to provide at least one train and one test device!"
+        # Dictionaries that hold total request: e. g. we want 500 train data for a pi3 and delay
+        # but may only have 100 -> oversample and prevent overlaps
+        total_data_request_count_train: Dict[str, int] = defaultdict(lambda: 0)
+        total_data_request_count_test: Dict[str, int] = defaultdict(lambda: 0)
+        total_data_available_count: Dict[str, int] = defaultdict(lambda: 0)
+
+        # determine how to label data
+        label_dict = class_map_multi if multi_class else class_map_binary
+
+        # pandas data frames for devices and attacks that are requested
+        data_frames: Dict[RaspberryPi, Dict[Attack, pd.DataFrame]] = {}
+
+        for device, attacks in train_devices:
+            if device not in data_frames:
+                data_frames[device] = {}
+            for attack in attacks:
+                total_data_request_count_train[device.value + "-" + attack.value] += attacks[attack]
+                if attack not in data_frames[device]:
+                    data_frames[device][attack] = pd.read_csv(data_file_paths[device][attack])
+
+        for device, attacks in test_devices:
+            if device not in data_frames:
+                data_frames[device] = {}
+            for attack in attacks:
+                total_data_request_count_test[device.value + "-" + attack.value] += attacks[attack]
+                if attack not in data_frames[device]:
+                    data_frames[device][attack] = pd.read_csv(data_file_paths[device][attack])
+
+        for device in data_frames:
+            for attack in data_frames[device]:
+                df = data_frames[device][attack]
+                # filter for connectivity
+                df = df[df['connectivity'] == 1]
+                # remove model-irrelevant columns
+                df = df.drop(["time", "timestamp", "seconds", "connectivity"], axis=1)
+                data_frames[device][attack] = df
+                total_data_available_count[device.value + "-" + attack.value] = len(df)
+
+        print("Data availability:", dict(total_data_available_count))
+
+        for key in total_data_request_count_test:
+            if total_data_request_count_test[key] > total_data_available_count[key]:
+                raise ValueError(
+                    f'Too much data requested for {key}. Please lower sample number! '
+                    f'Available: {total_data_available_count[key]}, '
+                    f'but requested {total_data_request_count_test[key]}')
+
+        train_sets = []
+        test_sets = []
+
+        # pick test sets
+        for device, attacks in test_devices:
+            data_x, data_y = None, None
+            for attack in attacks:
+                df = data_frames[device][attack]
+                sampled = df.sample(n=attacks[attack])
+                if data_x is None:
+                    data_x = sampled.to_numpy()
+                else:
+                    data_x = np.concatenate((data_x, sampled.to_numpy()))
+
+                if data_y is None:
+                    data_y = np.array([label_dict[attack]] * attacks[attack])
+                else:
+                    data_y = np.concatenate((data_y, np.array([label_dict[attack]] * attacks[attack])))
+                df = pd.concat([df, sampled]).drop_duplicates(keep=False)
+                data_frames[device][attack] = df
+            data_y = data_y.reshape((len(data_y), 1))
+            test_sets.append((data_x, data_y))
+
+        # pick and sample train sets
+        for device, attacks in train_devices:
+            data_x, data_y = None, None
+            for attack in attacks:
+                df = data_frames[device][attack]
+                train_requested = total_data_request_count_train[device.value + "-" + attack.value]
+                test_requested = total_data_request_count_test[device.value + "-" + attack.value]
+                total_requested = train_requested + test_requested
+                total_available = total_data_available_count[device.value + "-" + attack.value] - test_requested
+                if total_requested > total_available:
+                    n_to_pick = floor(attacks[attack] * float(total_available) / total_requested)
+                    picked = df.sample(n=n_to_pick)
+                    df = pd.concat([df, picked]).drop_duplicates(keep=False)
+                    picked = picked.sample(n=attacks[attack], replace=True)
+
+                    if data_x is None:
+                        data_x = picked.to_numpy()
+                    else:
+                        data_x = np.concatenate((data_x, picked.to_numpy()))
+                else:
+                    sampled = df.sample(n=attacks[attack])
+                    if data_x is None:
+                        data_x = sampled.to_numpy()
+                    else:
+                        data_x = np.concatenate((data_x, sampled.to_numpy()))
+
+                    df = pd.concat([df, sampled]).drop_duplicates(keep=False)
+
+                if data_y is None:
+                    data_y = np.array([label_dict[attack]] * attacks[attack])
+                else:
+                    data_y = np.concatenate((data_y, np.array([label_dict[attack]] * attacks[attack])))
+
+                data_frames[device][attack] = df
+            data_y = data_y.reshape((len(data_y), 1))
+            train_sets.append((data_x, data_y))
+
+        scaler = MinMaxScaler(clip=True) # StandardScaler()
+        all_train_x = np.concatenate(tuple([x[0] for x in train_sets]))
+        print(all_train_x.shape)
+        scaler.fit(all_train_x)
+        return [(scaler.transform(x), y) for x, y in train_sets], [(scaler.transform(x), y) for x, y in test_sets]
