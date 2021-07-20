@@ -13,10 +13,10 @@ from copy import deepcopy
 
 class Participant:
     def __init__(self, data_x: np.ndarray, data_y: np.ndarray,
-                 batch_size: int = 64):
+                 batch_size: int = 64, y_type: torch.dtype = torch.float):
         data = torch.utils.data.TensorDataset(
             torch.from_numpy(data_x).type(torch.float),
-            torch.from_numpy(data_y).type(torch.float)
+            torch.from_numpy(data_y).type(y_type)
         )
         self.data_loader = torch.utils.data.DataLoader(data, batch_size=batch_size, shuffle=True)
         self.model = None
