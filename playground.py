@@ -3,10 +3,13 @@ import torch
 from custom_types import Attack, RaspberryPi, ModelArchitecture
 from localops import Participant, Server
 from sampling import DataSampler
+import numpy as np
 
 if __name__ == "__main__":
     print(f'GPU available: {torch.cuda.is_available()}')
     print("Checking if new device can recognize known attack")
+    torch.random.manual_seed(0)
+    np.random.seed(0)
     train_sets, test_sets = DataSampler.get_all_clients_train_data_and_scaler(
         [(RaspberryPi.PI4_4GB, {Attack.NORMAL: 2500, Attack.SPOOF: 2500}),
          (RaspberryPi.PI3_2GB, {Attack.NORMAL: 250})],
