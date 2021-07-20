@@ -8,10 +8,12 @@ import numpy as np
 from sklearn.metrics import f1_score
 
 if __name__ == "__main__":
-    print(f'GPU available: {torch.cuda.is_available()}')
-    print("Checking if new device can recognize known attack")
     torch.random.manual_seed(0)
     np.random.seed(0)
+
+    print(f'GPU available: {torch.cuda.is_available()}')
+    print("Starting demo experiment: Checking if new device can recognize known attack")
+
     train_sets, test_sets = DataSampler.get_all_clients_train_data_and_scaler(
         [(RaspberryPi.PI4_4GB, {Attack.NORMAL: 2500, Attack.SPOOF: 2500}),
          (RaspberryPi.PI3_2GB, {Attack.NORMAL: 2500}),
@@ -27,4 +29,3 @@ if __name__ == "__main__":
 
     f1 = f1_score(y_test.flatten(), y_predicted.flatten().numpy())
     print(f"Test Accuracy: {correct * 100 / len(y_predicted):.2f}%, F1 score: {f1 * 100:.2f}%")
-    print("Done!")

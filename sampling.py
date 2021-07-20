@@ -344,6 +344,5 @@ class DataSampler:
 
         scaler = MinMaxScaler(clip=True) # StandardScaler()
         all_train_x = np.concatenate(tuple([x[0] for x in train_sets]))
-        print(all_train_x.shape)
         scaler.fit(all_train_x)
         return [(scaler.transform(x), y) for x, y in train_sets], [(scaler.transform(x), y) for x, y in test_sets]

@@ -31,7 +31,7 @@ class Participant:
         for le in range(num_local_epochs):
             current_losses = []
             for batch_idx, (x, y) in enumerate(self.data_loader):
-                x, y = x, y#x.cuda(), y.cuda()
+                x, y = x, y  # x.cuda(), y.cuda()
                 optimizer.zero_grad()
                 model_predictions = self.model(x)
                 loss = loss_function(model_predictions, y)
@@ -39,7 +39,7 @@ class Participant:
                 optimizer.step()
                 current_losses.append(loss.item())
             epoch_losses.append(sum(current_losses) / len(current_losses))
-            print(f'Loss in epoch {le}: {epoch_losses[le]}')
+            print(f'Loss in epoch {le + 1}: {epoch_losses[le]}')
 
     def get_model(self):
         return self.model
@@ -56,9 +56,9 @@ class Server:
         self.model_architecture = model_architecture
         self.participants = participants
         if model_architecture == ModelArchitecture.MLP_MONO_CLASS:
-            self.global_model = MLP(in_features=75, out_classes=1)#.cuda()
+            self.global_model = MLP(in_features=75, out_classes=1)  # .cuda()
         elif model_architecture == ModelArchitecture.MLP_MULTI_CLASS:
-            self.global_model = MLP(in_features=75, out_classes=9)#.cuda()
+            self.global_model = MLP(in_features=75, out_classes=9)  # .cuda()
         else:
             raise ValueError("Not yet implemented!")
 
@@ -75,7 +75,10 @@ class Server:
             for p in self.participants:
                 p.get_model().train()
                 p.train(optimizer=torch.optim.SGD(p.get_model().parameters(), lr=0.001, momentum=0.9),
-                        loss_function=torch.nn.BCEWithLogitsLoss(), num_local_epochs=local_epochs)
+                        loss_function=torch.nn.BCEWithLogitsLoss() if
+                        self.model_architecture == ModelArchitecture.MLP_MONO_CLASS
+                        else torch.nn.CrossEntropyLoss(),
+                        num_local_epochs=local_epochs)
             w_avg = deepcopy(self.global_model.state_dict())
             for key in w_avg.keys():
                 for p in self.participants:
@@ -93,11 +96,11 @@ class Server:
         data_loader = torch.utils.data.DataLoader(test_data, batch_size=16, shuffle=False)
 
         sigmoid = torch.nn.Sigmoid()
-        all_predictions = torch.tensor([])#.cuda()
+        all_predictions = torch.tensor([])  # .cuda()
 
         self.global_model.eval()
         for idx, (batch_x,) in enumerate(data_loader):
-            batch_x = batch_x#.cuda()
+            batch_x = batch_x  # .cuda()
             with torch.no_grad():
                 model_predictions = self.global_model(batch_x)
                 all_predictions = torch.cat((all_predictions, model_predictions))
@@ -110,7 +113,6 @@ class Server:
             raise ValueError("Not yet implemented!")
 
         return all_predictions.flatten()
-
 
 
 # TODO:
