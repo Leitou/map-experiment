@@ -344,7 +344,8 @@ class DataSampler:
             train_sets.append((data_x, data_y))
 
         # TODO: we need to stabilize the minmaxscaler: either remove extreme outliers
-        # or aggregate the standard scalers (e. g. by taking mean average, stddev)
+        #   or aggregate the standard scalers (e. g. by taking mean average, stddev)
+        #   check https://stackoverflow.com/questions/23199796/detect-and-exclude-outliers-in-pandas-data-frame
         scaler = StandardScaler()  # MinMaxScaler(clip=True)
         all_train_x = np.concatenate(tuple([x[0] for x in train_sets]))
         scaler.fit(all_train_x)
