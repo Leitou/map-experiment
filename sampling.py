@@ -342,7 +342,9 @@ class DataSampler:
             data_y = data_y.reshape((len(data_y), 1))
             train_sets.append((data_x, data_y))
 
-        scaler = MinMaxScaler(clip=True) # StandardScaler()
+        # TODO: we need to stabilize the minmaxscaler: either remove extreme outliers
+        # or aggregate the standard scalers (e. g. by taking mean average, stddev)
+        scaler = StandardScaler() # MinMaxScaler(clip=True)
         all_train_x = np.concatenate(tuple([x[0] for x in train_sets]))
         scaler.fit(all_train_x)
         return [(scaler.transform(x), y) for x, y in train_sets], [(scaler.transform(x), y) for x, y in test_sets]

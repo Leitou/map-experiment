@@ -8,8 +8,8 @@ import numpy as np
 from sklearn.metrics import f1_score
 
 if __name__ == "__main__":
-    torch.random.manual_seed(0)
-    np.random.seed(0)
+    torch.random.manual_seed(42)
+    np.random.seed(42)
 
     print(f'GPU available: {torch.cuda.is_available()}')
     print("Starting demo multiclass experiment: Checking if new device can recognize known attacks")
