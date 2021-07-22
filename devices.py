@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import List
 
 import numpy as np
@@ -8,10 +9,10 @@ from torch.utils.data import DataLoader
 from custom_types import ModelArchitecture
 from models import MLP
 from sampling import DataSampler
-from copy import deepcopy
 
 
 class Participant:
+    # TODO: Adi add validaton data here (data_x_valid, data_y_valid)
     def __init__(self, data_x: np.ndarray, data_y: np.ndarray,
                  batch_size: int = 64, y_type: torch.dtype = torch.float):
         data = torch.utils.data.TensorDataset(
@@ -21,8 +22,7 @@ class Participant:
         self.data_loader = torch.utils.data.DataLoader(data, batch_size=batch_size, shuffle=True)
         self.model = None
 
-    # TODO: check if it does make sense to type them?
-    # TODO: early stop per client would be here
+    # TODO: Adi implement early stopping on validaton set here
     def train(self, optimizer, loss_function, num_local_epochs: int = 25):
         if self.model is None:
             raise ValueError("No model set on participant!")
@@ -46,6 +46,18 @@ class Participant:
 
     def set_model(self, model: torch.nn.Module):
         self.model = model
+
+
+# TODO: either we redefine the constructor and use three sets if we also want early stopping here (splitting test)
+#  or we do it as indicated below, using train for training and validation for treshold determination
+class AutoEncoderParticipant(Participant):
+    # TODO: Override train! Will only use train set?
+    def train(self, optimizer, loss_function, num_local_epochs: int = 25):
+        pass
+
+    # TODO: determine threshold based on normal validation data
+    def determine_threshold(self):
+        pass
 
 
 class Server:

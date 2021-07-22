@@ -228,6 +228,7 @@ class DataSampler:
 
         return self.data, self.targets
 
+    # TODO Adi: return train and validation set here, add second dict Attack -> int for validation set
     @staticmethod
     def get_all_clients_train_data_and_scaler(train_devices: List[Tuple[RaspberryPi, Dict[Attack, int]]],
                                               test_devices: List[Tuple[RaspberryPi, Dict[Attack, int]]],
@@ -342,7 +343,8 @@ class DataSampler:
                 data_frames[device][attack] = df
             data_y = data_y.reshape((len(data_y), 1))
             train_sets.append((data_x, data_y))
-
+        # TODO Adi: average means and stddev of scalers per participant instead of one.
+        #   Similar for minmax scaler, avoid extremes
         # TODO: we need to stabilize the minmaxscaler: either remove extreme outliers
         #   or aggregate the standard scalers (e. g. by taking mean average, stddev)
         #   check https://stackoverflow.com/questions/23199796/detect-and-exclude-outliers-in-pandas-data-frame

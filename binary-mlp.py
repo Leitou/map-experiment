@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from models import MLP
 from sampling import DataSampler
-from localops import BinaryOps
+from devices import BinaryOps
 from utils import get_sampler_data, get_baseline_data, scale_baseline, scale_federation
 from federated import train_model
 from sklearn.preprocessing import MinMaxScaler, StandardScaler

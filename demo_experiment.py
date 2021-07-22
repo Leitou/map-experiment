@@ -1,7 +1,7 @@
 import torch
 
 from custom_types import Attack, RaspberryPi, ModelArchitecture
-from localops import Participant, Server
+from devices import Participant, Server
 from sampling import DataSampler
 import numpy as np
 

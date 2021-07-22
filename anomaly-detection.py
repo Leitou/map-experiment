@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from models import AutoEncoder
 from sampling import DataSampler
-from localops import AutoencoderOps
+from devices import AutoencoderOps
 
 ## Test Experiment for centralized anomaly detection
 

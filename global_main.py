@@ -5,7 +5,7 @@ from time import time
 from sklearn.preprocessing import StandardScaler
 
 from federated import train_model, print_test_results
-from localops import BinaryOps
+from devices import BinaryOps
 from models import MLP, AutoEncoder
 from sampling import DataSampler
 from utils import plot_results, get_sampler_data, get_baseline_data, scale_baseline, scale_federation
