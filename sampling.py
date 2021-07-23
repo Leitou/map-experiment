@@ -343,12 +343,9 @@ class DataSampler:
                 data_frames[device][attack] = df
             data_y = data_y.reshape((len(data_y), 1))
             train_sets.append((data_x, data_y))
-        # TODO Adi: average means and stddev of scalers per participant instead of one.
-        #   Similar for minmax scaler, avoid extremes
-        # TODO: we need to stabilize the minmaxscaler: either remove extreme outliers
-        #   or aggregate the standard scalers (e. g. by taking mean average, stddev)
-        #   check https://stackoverflow.com/questions/23199796/detect-and-exclude-outliers-in-pandas-data-frame
-        scaler = StandardScaler()  # MinMaxScaler(clip=True)
-        all_train_x = np.concatenate(tuple([x[0] for x in train_sets]))
-        scaler.fit(all_train_x)
+        # NOTE: We average the man and min value for stability reasons!
+        scalers = [MinMaxScaler(clip=True).fit(x[0]) for x in train_sets]
+        scaler = MinMaxScaler(clip=True)  #
+        scaler.min_ = np.stack([s.min_ for s in scalers], axis=1).mean(axis=1)
+        scaler.scale_ = np.stack([s.scale_ for s in scalers], axis=1).mean(axis=1)
         return [(scaler.transform(x), y) for x, y in train_sets], [(scaler.transform(x), y) for x, y in test_sets]
