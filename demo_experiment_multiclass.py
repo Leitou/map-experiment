@@ -29,3 +29,15 @@ if __name__ == "__main__":
 
     f1 = f1_score(y_test.flatten(), y_predicted.flatten().numpy(), average='micro')
     print(f"Test Accuracy: {correct * 100 / len(y_predicted):.2f}%, F1 score: {f1 * 100:.2f}%")
+
+    print("------------------------------ CENTRALIZED BASELINE -----------------------")
+    x_all = np.concatenate(tuple(x for x, y in train_sets))
+    y_all = np.concatenate(tuple(y for x, y in train_sets))
+    central_participants = [Participant(x_all, y_all.flatten(), y_type=torch.long)]
+    central_server = Server(central_participants, ModelArchitecture.MLP_MULTI_CLASS)
+    central_server.train_global_model(aggregation_rounds=5)
+
+    y_predicted_central = central_server.predict_using_global_model(x_test)
+    correct_central = (torch.from_numpy(y_test).flatten() == y_predicted_central).count_nonzero()
+    f1_central = f1_score(y_test.flatten(), y_predicted_central.flatten().numpy(), average='micro')
+    print(f"Test Accuracy: {correct_central * 100 / len(y_predicted_central):.2f}%, F1 score: {f1_central * 100:.2f}%")
