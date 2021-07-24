@@ -155,10 +155,8 @@ class Server:
 
 
 # TODO:
-#  adaptions needed for multiclass (if desired)
 #  adaptions for autoencoder -> threshold selection, different standardization?
 
-# TODO: rename file, I did not get the LocalOps Meaning :D maybe call it Participant and Coordinator/Server?
 class LocalOps(object):
     def __init__(self, pdata, batch_size, epochs, lr):
         self.lr = lr
