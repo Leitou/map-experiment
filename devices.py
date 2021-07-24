@@ -1,4 +1,5 @@
 from copy import deepcopy
+from math import nan
 from typing import List
 
 import numpy as np
@@ -7,7 +8,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from custom_types import ModelArchitecture
-from models import MLP
+from models import MLP, AE
 from sampling import DataSampler
 
 
@@ -31,6 +32,7 @@ class Participant:
         self.validation_losses = []
 
         self.model = None
+        self.threshold = nan
 
     def train(self, optimizer, loss_function, num_local_epochs: int = 5):
         if self.model is None:
@@ -76,16 +78,38 @@ class Participant:
         self.model = model
 
 
-# TODO: either we redefine the constructor and use three sets if we also want early stopping here (splitting test)
-#  or we do it as indicated below, using train for training and validation for treshold determination
+# TODO: test this implementation and fix errors
 class AutoEncoderParticipant(Participant):
-    # TODO: Override train! Will only use train set?
-    def train(self, optimizer, loss_function, num_local_epochs: int = 25):
-        pass
+    def train(self, optimizer, loss_function, num_local_epochs: int = 5):
+        if self.model is None:
+            raise ValueError("No model set on participant!")
+        epoch_losses = []
+        for le in range(num_local_epochs):
+            self.model.train()
+            current_losses = []
+            for batch_idx, (x, _) in enumerate(self.data_loader):
+                x = x  # x.cuda()
+                optimizer.zero_grad()
+                model_out = self.model(x)
+                loss = loss_function(model_out, x)
+                loss.backward()
+                optimizer.step()
+                current_losses.append(loss.item())
+            epoch_losses.append(sum(current_losses) / len(current_losses))
+            print(f'Training Loss in epoch {le + 1}: {epoch_losses[le]}')
 
-    # TODO: determine threshold based on normal validation data
-    def determine_threshold(self):
-        pass
+    def determine_threshold(self) -> float:
+        self.valid_loader.batch_size = 1
+        mses = []
+        with torch.no_grad:
+            loss_function = torch.nn.MSELoss(reduction='sum')
+            for batch_idx, (x, _) in enumerate(self.valid_loader):
+                x = x  # x.cuda()
+                model_out = self.model(x)
+                loss = loss_function(model_out, x)
+                mses.append(loss.item())
+        mses = np.ndarray(mses)
+        return mses.mean() + mses.std()
 
 
 class Server:
@@ -99,8 +123,11 @@ class Server:
             self.global_model = MLP(in_features=75, out_classes=1)  # .cuda()
         elif model_architecture == ModelArchitecture.MLP_MULTI_CLASS:
             self.global_model = MLP(in_features=75, out_classes=9)  # .cuda()
+        elif model_architecture == ModelArchitecture.MLP_MULTI_CLASS:
+            self.global_model = AE(in_features=75)  # .cuda()
         else:
             raise ValueError("Not yet implemented!")
+        self.global_threshold = nan
 
     def train_global_model(self, aggregation_rounds: int = 15, local_epochs: int = 5):
         # initialize model
@@ -109,6 +136,8 @@ class Server:
                 p.set_model(MLP(in_features=75, out_classes=1))  # .cuda()
             elif self.model_architecture == ModelArchitecture.MLP_MULTI_CLASS:
                 p.set_model(MLP(in_features=75, out_classes=9))  # .cuda()
+            elif self.model_architecture == ModelArchitecture.AUTO_ENCODER:
+                p.set_model(AE(in_features=75))
             else:
                 raise ValueError("Not yet implemented!")
         for round_idx in range(aggregation_rounds):
@@ -116,7 +145,9 @@ class Server:
                 p.train(optimizer=torch.optim.SGD(p.get_model().parameters(), lr=0.001, momentum=0.9),
                         loss_function=torch.nn.BCEWithLogitsLoss(reduction='sum') if
                         self.model_architecture == ModelArchitecture.MLP_MONO_CLASS
-                        else torch.nn.CrossEntropyLoss(reduction='sum'),
+                        else (torch.nn.CrossEntropyLoss(reduction='sum')
+                              if self.model_architecture == ModelArchitecture.MLP_MULTI_CLASS else
+                              torch.nn.MSELoss(reduction='sum')),
                         num_local_epochs=local_epochs)
             w_avg = deepcopy(self.global_model.state_dict())
             for key in w_avg.keys():
@@ -129,10 +160,21 @@ class Server:
                 p.get_model().load_state_dict(deepcopy(w_avg))
 
     def predict_using_global_model(self, x):
+        if self.model_architecture == ModelArchitecture.AUTO_ENCODER:
+            thresholds = []
+            for p in self.participants:
+                # Quick and dirty casting
+                p: AutoEncoderParticipant = p
+                thresholds.append(p.determine_threshold())
+            self.global_threshold = sum(thresholds) / len(thresholds)
+
         test_data = torch.utils.data.TensorDataset(
             torch.from_numpy(x).type(torch.float)
         )
-        data_loader = torch.utils.data.DataLoader(test_data, batch_size=16, shuffle=False)
+        data_loader = torch.utils.data.DataLoader(test_data,
+                                                  batch_size=16 if
+                                                  self.model_architecture != ModelArchitecture.AUTO_ENCODER else 1,
+                                                  shuffle=False)
 
         sigmoid = torch.nn.Sigmoid()
         all_predictions = torch.tensor([])  # .cuda()
@@ -142,12 +184,16 @@ class Server:
             batch_x = batch_x  # .cuda()
             with torch.no_grad():
                 model_predictions = self.global_model(batch_x)
+                if self.model_architecture == ModelArchitecture.AUTO_ENCODER:
+                    model_predictions = torch.nn.MSELoss(model_predictions, batch_x, reduction='sum')
                 all_predictions = torch.cat((all_predictions, model_predictions))
 
         if self.model_architecture == ModelArchitecture.MLP_MONO_CLASS:
             all_predictions = sigmoid(all_predictions).round().type(torch.long)
         elif self.model_architecture == ModelArchitecture.MLP_MULTI_CLASS:
             all_predictions = torch.argmax(all_predictions, dim=1).type(torch.long)
+        elif self.model_architecture == ModelArchitecture.AUTO_ENCODER:
+            all_predictions = (all_predictions > self.global_threshold).type(torch.long)
         else:
             raise ValueError("Not yet implemented!")
 
