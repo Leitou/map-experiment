@@ -20,22 +20,26 @@ class Participant:
             torch.from_numpy(train_y).type(y_type)
         )
         self.data_loader = torch.utils.data.DataLoader(data_train, batch_size=batch_size, shuffle=True)
+
+        # shuffling is not really necessary
+        # and batch size should also be irrelevant, can be set to whatever fits in memory
         data_valid = torch.utils.data.TensorDataset(
             torch.from_numpy(valid_x).type(torch.float),
             torch.from_numpy(valid_y).type(y_type)
         )
-        # shuffling is not really necessary
-        # and batch size should also be irrelevant, can be set to whatever fits in memory
         self.valid_loader = torch.utils.data.DataLoader(data_valid, batch_size=batch_size, shuffle=True)
+        self.validation_losses = []
+
         self.model = None
 
-    # TODO: Adi implement early stopping on validaton set here
     def train(self, optimizer, loss_function, num_local_epochs: int = 5):
         if self.model is None:
             raise ValueError("No model set on participant!")
 
         epoch_losses = []
+        validation_losses = []
         for le in range(num_local_epochs):
+            self.model.train()
             current_losses = []
             for batch_idx, (x, y) in enumerate(self.data_loader):
                 x, y = x, y  # x.cuda(), y.cuda()
@@ -46,7 +50,24 @@ class Participant:
                 optimizer.step()
                 current_losses.append(loss.item())
             epoch_losses.append(sum(current_losses) / len(current_losses))
-            print(f'Loss in epoch {le + 1}: {epoch_losses[le]}')
+            print(f'Training Loss in epoch {le + 1}: {epoch_losses[le]}')
+
+            with torch.no_grad():
+                self.model.eval()
+                current_losses = []
+                for batch_idx, (x, y) in enumerate(self.valid_loader):
+                    x, y = x, y  # x.cuda(), y.cuda()
+                    model_predictions = self.model(x)
+                    loss = loss_function(model_predictions, y)
+                    current_losses.append(loss.item())
+                validation_losses.append(sum(current_losses) / len(current_losses))
+                print(f'Validation Loss in epoch {le + 1}: {sum(current_losses) / len(current_losses)}')
+
+            self.validation_losses = self.validation_losses + validation_losses
+
+            if validation_losses[le] < 1e-4 or (le > 0 and (validation_losses[le] - validation_losses[le - 1]) > 1e-4):
+                print(f"Early stopping criterion reached in epoch {le + 1}")
+                return
 
     def get_model(self):
         return self.model
@@ -92,11 +113,10 @@ class Server:
                 raise ValueError("Not yet implemented!")
         for round_idx in range(aggregation_rounds):
             for p in self.participants:
-                p.get_model().train()
                 p.train(optimizer=torch.optim.SGD(p.get_model().parameters(), lr=0.001, momentum=0.9),
-                        loss_function=torch.nn.BCEWithLogitsLoss() if
+                        loss_function=torch.nn.BCEWithLogitsLoss(reduction='sum') if
                         self.model_architecture == ModelArchitecture.MLP_MONO_CLASS
-                        else torch.nn.CrossEntropyLoss(),
+                        else torch.nn.CrossEntropyLoss(reduction='sum'),
                         num_local_epochs=local_epochs)
             w_avg = deepcopy(self.global_model.state_dict())
             for key in w_avg.keys():

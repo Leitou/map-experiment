@@ -15,9 +15,9 @@ if __name__ == "__main__":
     print("Starting demo experiment: Checking if new device can recognize known attack")
 
     train_sets, test_sets = DataSampler.get_all_clients_train_data_and_scaler(
-        [(RaspberryPi.PI4_4GB, {Attack.NORMAL: 2000, Attack.SPOOF: 2000}, {Attack.NORMAL: 1}),
-         (RaspberryPi.PI3_2GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 1}),
-         (RaspberryPi.PI3_2GB, {Attack.NORMAL_V2: 2000}, {Attack.NORMAL_V2: 1})],
+        [(RaspberryPi.PI4_4GB, {Attack.NORMAL: 2000, Attack.SPOOF: 2000}, {Attack.NORMAL: 50, Attack.SPOOF: 50}),
+         (RaspberryPi.PI3_2GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 100}),
+         (RaspberryPi.PI3_2GB, {Attack.NORMAL_V2: 2000}, {Attack.NORMAL_V2: 100})],
         [(RaspberryPi.PI3_2GB, {Attack.NORMAL: 750, Attack.SPOOF: 250})])
 
     participants = [Participant(x_train, y_train, x_valid, y_valid) for
