@@ -4,18 +4,17 @@ from typing import List, Tuple, Dict
 
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 
 from custom_types import RaspberryPi, Attack
 from utils import read_data
 
 # TODO:
-#  remove noisy paths (ras44gb_path dict)
-#  adapt for samples from missing two devices
-#  -> evtl make global variables defining device types
-#  -> build dicts for paths and adapt sampler constructor
-#  adapt sampler class to multiclass classification if needed
-#  -> use a different read_data function, building different targets
+#   once data collection is completed:
+#   merge all the data into one master csv with additional columns for device and attack
+#   and refactor this accordingly
+#   also remove deprecated stuff
+#   and integrate the second pi4_2gb (easier when data is merged before!)
 
 
 # assuming everything not normal is malicious
@@ -54,9 +53,15 @@ data_file_paths: Dict[RaspberryPi, Dict[Attack, str]] = {
     },
     RaspberryPi.PI4_2GB: {
         Attack.NORMAL: "data/ras-4-black/samples_normal_2021-07-11-22-19_50s",
+        Attack.NORMAL_V2: "data/ras-4-black/samples_normal_v2_2021-07-17-15-38_50s",
         Attack.DELAY: "data/ras-4-black/samples_delay_2021-06-30-14-03_50s",
         Attack.DISORDER: "data/ras-4-black/samples_disorder_2021-06-30-09-44_50s",
-        Attack.HOP: "data/ras-4-black/samples_hop_2021-06-30-18-24_50s"
+        Attack.FREEZE: "data/ras-4-black/samples_freeze_2021-06-29-22-50_50s",
+        Attack.HOP: "data/ras-4-black/samples_hop_2021-06-30-18-24_50s",
+        Attack.MIMIC: "data/ras-4-black/samples_mimic_2021-06-29-18-35_50s",
+        Attack.NOISE: "data/ras-4-black/samples_noise_2021-06-29-14-20_50s",
+        Attack.REPEAT: "data/ras-4-black/samples_repeat_2021-06-28-23-52_50s",
+        Attack.SPOOF: "data/ras-4-black/samples_spoof_2021-06-28-19-34_50s",
     },
     RaspberryPi.PI4_4GB: {
         Attack.NORMAL: "data/ras-4-noisy/samples_normal_2021-06-18-16-09_50s",
@@ -228,18 +233,19 @@ class DataSampler:
 
         return self.data, self.targets
 
-    # TODO Adi: return train and validation set here, add second dict Attack -> int for validation set
     @staticmethod
-    def get_all_clients_train_data_and_scaler(train_devices: List[Tuple[RaspberryPi, Dict[Attack, int]]],
-                                              test_devices: List[Tuple[RaspberryPi, Dict[Attack, int]]],
-                                              multi_class=False) -> \
-            Tuple[List[Tuple[np.ndarray, np.ndarray]], List[Tuple[np.ndarray, np.ndarray]]]:
+    def get_all_clients_train_data_and_scaler(
+            train_devices: List[Tuple[RaspberryPi, Dict[Attack, int], Dict[Attack, int]]],
+            test_devices: List[Tuple[RaspberryPi, Dict[Attack, int]]],
+            multi_class=False) -> \
+            Tuple[List[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]], List[Tuple[np.ndarray, np.ndarray]]]:
 
         assert len(train_devices) > 0 and len(
             test_devices) > 0, "Need to provide at least one train and one test device!"
         # Dictionaries that hold total request: e. g. we want 500 train data for a pi3 and delay
         # but may only have 100 -> oversample and prevent overlaps
         total_data_request_count_train: Dict[str, int] = defaultdict(lambda: 0)
+        total_data_request_count_valid: Dict[str, int] = defaultdict(lambda: 0)
         total_data_request_count_test: Dict[str, int] = defaultdict(lambda: 0)
         total_data_available_count: Dict[str, int] = defaultdict(lambda: 0)
 
@@ -249,11 +255,15 @@ class DataSampler:
         # pandas data frames for devices and attacks that are requested
         data_frames: Dict[RaspberryPi, Dict[Attack, pd.DataFrame]] = {}
 
-        for device, attacks in train_devices:
+        for device, attacks, validation_attacks in train_devices:
             if device not in data_frames:
                 data_frames[device] = {}
             for attack in attacks:
                 total_data_request_count_train[device.value + "-" + attack.value] += attacks[attack]
+                if attack not in data_frames[device]:
+                    data_frames[device][attack] = pd.read_csv(data_file_paths[device][attack])
+            for attack in validation_attacks:
+                total_data_request_count_valid[device.value + "-" + attack.value] += validation_attacks[attack]
                 if attack not in data_frames[device]:
                     data_frames[device][attack] = pd.read_csv(data_file_paths[device][attack])
 
@@ -278,13 +288,22 @@ class DataSampler:
         print("Data availability:", dict(total_data_available_count))
 
         for key in total_data_request_count_test:
-            if total_data_request_count_test[key] > total_data_available_count[key]:
+            if (total_data_request_count_test[key] + total_data_request_count_valid[key]) > \
+                    total_data_available_count[key]:
                 raise ValueError(
                     f'Too much data requested for {key}. Please lower sample number! '
                     f'Available: {total_data_available_count[key]}, '
-                    f'but requested {total_data_request_count_test[key]}')
+                    f'but requested {total_data_request_count_test[key] + total_data_request_count_valid[key]}')
+        for key in total_data_request_count_valid:
+            if (total_data_request_count_test[key] + total_data_request_count_valid[key]) > \
+                    total_data_available_count[key]:
+                raise ValueError(
+                    f'Too much data requested for {key}. Please lower sample number! '
+                    f'Available: {total_data_available_count[key]}, '
+                    f'but requested {total_data_request_count_test[key] + total_data_request_count_valid[key]}')
 
         train_sets = []
+        validation_sets = []
         test_sets = []
 
         # pick test sets
@@ -307,8 +326,29 @@ class DataSampler:
             data_y = data_y.reshape((len(data_y), 1))
             test_sets.append((data_x, data_y))
 
+        # pick validation sets: same as test sets -> in refactoring can be merged
+        for device, _, validation_attacks in train_devices:
+            data_valid_x, data_valid_y = None, None
+            for attack in validation_attacks:
+                df = data_frames[device][attack]
+                sampled = df.sample(n=validation_attacks[attack])
+                if data_valid_x is None:
+                    data_valid_x = sampled.to_numpy()
+                else:
+                    data_valid_x = np.concatenate((data_valid_x, sampled.to_numpy()))
+
+                if data_valid_y is None:
+                    data_valid_y = np.array([label_dict[attack]] * validation_attacks[attack])
+                else:
+                    data_valid_y = np.concatenate(
+                        (data_valid_y, np.array([label_dict[attack]] * validation_attacks[attack])))
+                df = pd.concat([df, sampled]).drop_duplicates(keep=False)
+                data_frames[device][attack] = df
+            data_valid_y = data_valid_y.reshape((len(data_valid_y), 1))
+            validation_sets.append((data_valid_x, data_valid_y))
+
         # pick and sample train sets
-        for device, attacks in train_devices:
+        for device, attacks, _ in train_devices:
             data_x, data_y = None, None
             for attack in attacks:
                 df = data_frames[device][attack]
@@ -348,4 +388,5 @@ class DataSampler:
         scaler = MinMaxScaler(clip=True)  #
         scaler.min_ = np.stack([s.min_ for s in scalers], axis=1).mean(axis=1)
         scaler.scale_ = np.stack([s.scale_ for s in scalers], axis=1).mean(axis=1)
-        return [(scaler.transform(x), y) for x, y in train_sets], [(scaler.transform(x), y) for x, y in test_sets]
+        return [(scaler.transform(x), y, scaler.transform(validation_sets[idx][0]), validation_sets[idx][1]) for
+                idx, (x, y) in enumerate(train_sets)], [(scaler.transform(x), y) for x, y in test_sets]

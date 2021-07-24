@@ -15,12 +15,13 @@ if __name__ == "__main__":
     print("Starting demo experiment: Checking if new device can recognize known attack")
 
     train_sets, test_sets = DataSampler.get_all_clients_train_data_and_scaler(
-        [(RaspberryPi.PI4_4GB, {Attack.NORMAL: 2000, Attack.SPOOF: 2000}),
-         (RaspberryPi.PI3_2GB, {Attack.NORMAL: 2000}),
-         (RaspberryPi.PI3_2GB, {Attack.NORMAL_V2: 2000})],
+        [(RaspberryPi.PI4_4GB, {Attack.NORMAL: 2000, Attack.SPOOF: 2000}, {Attack.NORMAL: 1}),
+         (RaspberryPi.PI3_2GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 1}),
+         (RaspberryPi.PI3_2GB, {Attack.NORMAL_V2: 2000}, {Attack.NORMAL_V2: 1})],
         [(RaspberryPi.PI3_2GB, {Attack.NORMAL: 750, Attack.SPOOF: 250})])
 
-    participants = [Participant(x, y) for x, y in train_sets]
+    participants = [Participant(x_train, y_train, x_valid, y_valid) for
+                    x_train, y_train, x_valid, y_valid in train_sets]
     server = Server(participants, ModelArchitecture.MLP_MONO_CLASS)
     server.train_global_model(aggregation_rounds=5)
     x_test, y_test = test_sets[0]
@@ -31,9 +32,11 @@ if __name__ == "__main__":
     print(f"Test Accuracy: {correct * 100 / len(y_predicted):.2f}%, F1 score: {f1 * 100:.2f}%")
 
     print("------------------------------ CENTRALIZED BASELINE -----------------------")
-    x_all = np.concatenate(tuple(x for x, y in train_sets))
-    y_all = np.concatenate(tuple(y for x, y in train_sets))
-    central_participants = [Participant(x_all, y_all)]
+    x_train_all = np.concatenate(tuple(x_train for x_train, y_train, x_valid, y_valid in train_sets))
+    y_train_all = np.concatenate(tuple(y_train for x_train, y_train, x_valid, y_valid in train_sets))
+    x_valid_all = np.concatenate(tuple(x_valid for x_train, y_train, x_valid, y_valid in train_sets))
+    y_valid_all = np.concatenate(tuple(y_valid for x_train, y_train, x_valid, y_valid in train_sets))
+    central_participants = [Participant(x_train_all, y_train_all, x_valid_all, y_valid_all)]
     central_server = Server(central_participants, ModelArchitecture.MLP_MONO_CLASS)
     central_server.train_global_model(aggregation_rounds=5)
 

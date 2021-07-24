@@ -12,18 +12,25 @@ from sampling import DataSampler
 
 
 class Participant:
-    # TODO: Adi add validaton data here (data_x_valid, data_y_valid)
-    def __init__(self, data_x: np.ndarray, data_y: np.ndarray,
+    def __init__(self, train_x: np.ndarray, train_y: np.ndarray,
+                 valid_x: np.ndarray, valid_y: np.ndarray,
                  batch_size: int = 64, y_type: torch.dtype = torch.float):
-        data = torch.utils.data.TensorDataset(
-            torch.from_numpy(data_x).type(torch.float),
-            torch.from_numpy(data_y).type(y_type)
+        data_train = torch.utils.data.TensorDataset(
+            torch.from_numpy(train_x).type(torch.float),
+            torch.from_numpy(train_y).type(y_type)
         )
-        self.data_loader = torch.utils.data.DataLoader(data, batch_size=batch_size, shuffle=True)
+        self.data_loader = torch.utils.data.DataLoader(data_train, batch_size=batch_size, shuffle=True)
+        data_valid = torch.utils.data.TensorDataset(
+            torch.from_numpy(valid_x).type(torch.float),
+            torch.from_numpy(valid_y).type(y_type)
+        )
+        # shuffling is not really necessary
+        # and batch size should also be irrelevant, can be set to whatever fits in memory
+        self.valid_loader = torch.utils.data.DataLoader(data_valid, batch_size=batch_size, shuffle=True)
         self.model = None
 
     # TODO: Adi implement early stopping on validaton set here
-    def train(self, optimizer, loss_function, num_local_epochs: int = 25):
+    def train(self, optimizer, loss_function, num_local_epochs: int = 5):
         if self.model is None:
             raise ValueError("No model set on participant!")
 
