@@ -40,16 +40,16 @@ class_map_multi: Dict[Attack, int] = defaultdict(lambda: 0, {
 
 data_file_paths: Dict[RaspberryPi, Dict[Attack, str]] = {
     RaspberryPi.PI3_2GB: {
-        Attack.NORMAL: "data/ras-3-data/samples_normal_2021-06-18-15-59_50s",
-        Attack.NORMAL_V2: "data/ras-3-data/samples_normal_v2_2021-06-23-16-54_50s",
-        Attack.DELAY: "data/ras-3-data/samples_delay_2021-07-01-08-30_50s",
-        Attack.DISORDER: "data/ras-3-data/samples_disorder_2021-06-30-23-54_50s",
-        Attack.FREEZE: "data/ras-3-data/samples_freeze_2021-07-01-14-11_50s",
-        Attack.HOP: "data/ras-3-data/samples_hop_2021-06-29-23-23_50s",
-        Attack.MIMIC: "data/ras-3-data/samples_mimic_2021-06-30-10-33_50s",
-        Attack.NOISE: "data/ras-3-data/samples_noise_2021-06-30-19-44_50s",
-        Attack.REPEAT: "data/ras-3-data/samples_repeat_2021-07-01-20-00_50s",
-        Attack.SPOOF: "data/ras-3-data/samples_spoof_2021-06-30-14-49_50s"
+        Attack.NORMAL: "data/ras-3-2gb/samples_normal_2021-06-18-15-59_50s",
+        Attack.NORMAL_V2: "data/ras-3-2gb/samples_normal_v2_2021-06-23-16-54_50s",
+        Attack.DELAY: "data/ras-3-2gb/samples_delay_2021-07-01-08-30_50s",
+        Attack.DISORDER: "data/ras-3-2gb/samples_disorder_2021-06-30-23-54_50s",
+        Attack.FREEZE: "data/ras-3-2gb/samples_freeze_2021-07-01-14-11_50s",
+        Attack.HOP: "data/ras-3-2gb/samples_hop_2021-06-29-23-23_50s",
+        Attack.MIMIC: "data/ras-3-2gb/samples_mimic_2021-06-30-10-33_50s",
+        Attack.NOISE: "data/ras-3-2gb/samples_noise_2021-06-30-19-44_50s",
+        Attack.REPEAT: "data/ras-3-2gb/samples_repeat_2021-07-01-20-00_50s",
+        Attack.SPOOF: "data/ras-3-2gb/samples_spoof_2021-06-30-14-49_50s"
     },
     RaspberryPi.PI4_2GB: {
         Attack.NORMAL: "data/ras-4-black/samples_normal_2021-07-11-22-19_50s",
@@ -64,43 +64,43 @@ data_file_paths: Dict[RaspberryPi, Dict[Attack, str]] = {
         Attack.SPOOF: "data/ras-4-black/samples_spoof_2021-06-28-19-34_50s",
     },
     RaspberryPi.PI4_4GB: {
-        Attack.NORMAL: "data/ras-4-noisy/samples_normal_2021-06-18-16-09_50s",
-        Attack.NORMAL_V2: "data/ras-4-noisy/samples_normal_v2_2021-06-23-16-56_50s",
-        Attack.DELAY: "data/ras-4-data/samples_delay_2021-07-01-08-36_50s",
-        Attack.DISORDER: "data/ras-4-data/samples_disorder_2021-06-30-23-57_50s",
-        Attack.FREEZE: "data/ras-4-data/samples_freeze_2021-07-01-14-13_50s",
-        Attack.HOP: "data/ras-4-data/samples_hop_2021-06-29-23-25_50s",
-        Attack.MIMIC: "data/ras-4-data/samples_mimic_2021-06-30-10-00_50s",
-        Attack.NOISE: "data/ras-4-data/samples_noise_2021-06-30-19-48_50s",
-        Attack.REPEAT: "data/ras-4-data/samples_repeat_2021-07-01-20-06_50s",
-        Attack.SPOOF: "data/ras-4-data/samples_spoof_2021-06-30-14-54_50s"
+        Attack.NORMAL: "data/ras-4-4gb/samples_normal_2021-07-09-09-56_50s",
+        Attack.NORMAL_V2: "data/ras-4-4gb/samples_normal_v2_2021-07-13-10-43_50s",
+        Attack.DELAY: "data/ras-4-4gb/samples_delay_2021-07-01-08-36_50s",
+        Attack.DISORDER: "data/ras-4-4gb/samples_disorder_2021-06-30-23-57_50s",
+        Attack.FREEZE: "data/ras-4-4gb/samples_freeze_2021-07-01-14-13_50s",
+        Attack.HOP: "data/ras-4-4gb/samples_hop_2021-06-29-23-25_50s",
+        Attack.MIMIC: "data/ras-4-4gb/samples_mimic_2021-06-30-10-00_50s",
+        Attack.NOISE: "data/ras-4-4gb/samples_noise_2021-06-30-19-48_50s",
+        Attack.REPEAT: "data/ras-4-4gb/samples_repeat_2021-07-01-20-06_50s",
+        Attack.SPOOF: "data/ras-4-4gb/samples_spoof_2021-06-30-14-54_50s"
     },
 }
 
 ras3_paths = {
-    "normal": "data/ras-3-data/samples_normal_2021-06-18-15-59_50s",
-    "normal_v2": "data/ras-3-data/samples_normal_v2_2021-06-23-16-54_50s",
-    "delay": "data/ras-3-data/samples_delay_2021-07-01-08-30_50s",
-    "disorder": "data/ras-3-data/samples_disorder_2021-06-30-23-54_50s",
-    "freeze": "data/ras-3-data/samples_freeze_2021-07-01-14-11_50s",
-    "hop": "data/ras-3-data/samples_hop_2021-06-29-23-23_50s",
-    "mimic": "data/ras-3-data/samples_mimic_2021-06-30-10-33_50s",
-    "noise": "data/ras-3-data/samples_noise_2021-06-30-19-44_50s",
-    "repeat": "data/ras-3-data/samples_repeat_2021-07-01-20-00_50s",
-    "spoof": "data/ras-3-data/samples_spoof_2021-06-30-14-49_50s"
+    "normal": "data/ras-3-2gb/samples_normal_2021-06-18-15-59_50s",
+    "normal_v2": "data/ras-3-2gb/samples_normal_v2_2021-06-23-16-54_50s",
+    "delay": "data/ras-3-2gb/samples_delay_2021-07-01-08-30_50s",
+    "disorder": "data/ras-3-2gb/samples_disorder_2021-06-30-23-54_50s",
+    "freeze": "data/ras-3-2gb/samples_freeze_2021-07-01-14-11_50s",
+    "hop": "data/ras-3-2gb/samples_hop_2021-06-29-23-23_50s",
+    "mimic": "data/ras-3-2gb/samples_mimic_2021-06-30-10-33_50s",
+    "noise": "data/ras-3-2gb/samples_noise_2021-06-30-19-44_50s",
+    "repeat": "data/ras-3-2gb/samples_repeat_2021-07-01-20-00_50s",
+    "spoof": "data/ras-3-2gb/samples_spoof_2021-06-30-14-49_50s"
 }
 
 ras44gb_paths = {
-    "normal": "data/ras-4-noisy/samples_normal_2021-06-18-16-09_50s",
-    "normal_v2": "data/ras-4-noisy/samples_normal_v2_2021-06-23-16-56_50s",
-    "delay": "data/ras-4-data/samples_delay_2021-07-01-08-36_50s",
-    "disorder": "data/ras-4-data/samples_disorder_2021-06-30-23-57_50s",
-    "freeze": "data/ras-4-data/samples_freeze_2021-07-01-14-13_50s",
-    "hop": "data/ras-4-data/samples_hop_2021-06-29-23-25_50s",
-    "mimic": "data/ras-4-data/samples_mimic_2021-06-30-10-00_50s",
-    "noise": "data/ras-4-data/samples_noise_2021-06-30-19-48_50s",
-    "repeat": "data/ras-4-data/samples_repeat_2021-07-01-20-06_50s",
-    "spoof": "data/ras-4-data/samples_spoof_2021-06-30-14-54_50s"
+    "normal": "data/ras-4-4gb/samples_normal_2021-06-18-16-09_50s",
+    "normal_v2": "data/ras-4-4gb/samples_normal_v2_2021-06-23-16-56_50s",
+    "delay": "data/ras-4-4gb/samples_delay_2021-07-01-08-36_50s",
+    "disorder": "data/ras-4-4gb/samples_disorder_2021-06-30-23-57_50s",
+    "freeze": "data/ras-4-4gb/samples_freeze_2021-07-01-14-13_50s",
+    "hop": "data/ras-4-4gb/samples_hop_2021-06-29-23-25_50s",
+    "mimic": "data/ras-4-4gb/samples_mimic_2021-06-30-10-00_50s",
+    "noise": "data/ras-4-4gb/samples_noise_2021-06-30-19-48_50s",
+    "repeat": "data/ras-4-4gb/samples_repeat_2021-07-01-20-06_50s",
+    "spoof": "data/ras-4-4gb/samples_spoof_2021-06-30-14-54_50s"
 }
 
 ras42gb_paths = {
