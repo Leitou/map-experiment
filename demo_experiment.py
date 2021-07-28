@@ -3,9 +3,10 @@ import torch
 from custom_types import Attack, RaspberryPi, ModelArchitecture
 from devices import Participant, Server
 from sampling import DataSampler
+from utils import print_binary_results
 import numpy as np
 
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, confusion_matrix, classification_report
 
 if __name__ == "__main__":
     torch.random.manual_seed(42)
@@ -60,8 +61,8 @@ if __name__ == "__main__":
 
     y_predicted = server.predict_using_global_model(x_test)
     correct = (torch.from_numpy(y_test).flatten() == y_predicted).count_nonzero()
-    f1 = f1_score(y_test.flatten(), y_predicted.flatten().numpy())
-    print(f"Test Accuracy: {correct * 100 / len(y_predicted):.2f}%, F1 score: {f1 * 100:.2f}%")
+    print_binary_results(y_test.flatten(), y_predicted.flatten().numpy(), correct, federated=True)
+
 
     print("------------------------------ CENTRALIZED BASELINE -----------------------")
     x_train_all = np.concatenate(tuple(x_train for x_train, y_train, x_valid, y_valid in train_sets))
@@ -74,5 +75,4 @@ if __name__ == "__main__":
 
     y_predicted_central = central_server.predict_using_global_model(x_test)
     correct_central = (torch.from_numpy(y_test).flatten() == y_predicted_central).count_nonzero()
-    f1_central = f1_score(y_test.flatten(), y_predicted_central.flatten().numpy())
-    print(f"Test Accuracy: {correct_central * 100 / len(y_predicted_central):.2f}%, F1 score: {f1_central * 100:.2f}%")
+    print_binary_results(y_test.flatten(), y_predicted_central.flatten().numpy(), correct_central, federated=False)
