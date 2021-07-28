@@ -12,13 +12,44 @@ if __name__ == "__main__":
     np.random.seed(42)
 
     print(f'GPU available: {torch.cuda.is_available()}')
-    print("Starting demo experiment: Checking if new device can recognize known attack")
+    print("Starting demo experiment: Federated vs Centralized Binary Classification")
 
+    # print("Use case FL: Detect attacks on different architectures"
+    #       "Is the Federated Model able to recognize attacks on a different device architecture than "
+    #       "the one observed in training data?")
+    # train_sets, test_sets = DataSampler.get_all_clients_train_data_and_scaler(
+    #     [(RaspberryPi.PI4_4GB, {Attack.NORMAL: 2000, Attack.SPOOF: 2000}, {Attack.NORMAL: 50, Attack.SPOOF: 50}),
+    #      (RaspberryPi.PI3_2GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 100}),
+    #      (RaspberryPi.PI4_2GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 100})],
+    #     [(RaspberryPi.PI3_2GB, {Attack.NORMAL: 750, Attack.SPOOF: 250})])
+
+    print("Use case FL: Zero Day Detection, hoping for similarities"
+          "Is the Federated model able to detect attacks that have not been observed previously, "
+          "i.e. attacks that are not at all in the training data?")
+    # e.g disorder and mimic, mimic and spoof, or spoof and noise could from the type of attack/behavior
+    # or affected frequency be possibly expected to have a similar effect on different devices
+    # This could be used to train e.g. frequency band sensitive predictors or
+    # such that are sensitive to power spectrum swaps, value copying etc
+
+    # 1.
+    # train_sets, test_sets = DataSampler.get_all_clients_train_data_and_scaler(
+    #     [(RaspberryPi.PI4_4GB, {Attack.NORMAL: 2000, Attack.DISORDER: 2000}, {Attack.NORMAL: 50, Attack.DISORDER: 50}),
+    #      (RaspberryPi.PI3_2GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 100}),
+    #      (RaspberryPi.PI4_2GB, {Attack.NORMAL: 2000, Attack.DISORDER: 2000}, {Attack.NORMAL: 50, Attack.DISORDER: 50})],
+    #     [(RaspberryPi.PI3_2GB, {Attack.NORMAL: 750, Attack.SPOOF: 250})])
+    # 2.
+    # train_sets, test_sets = DataSampler.get_all_clients_train_data_and_scaler(
+    #     [(RaspberryPi.PI4_4GB, {Attack.NORMAL: 2000, Attack.MIMIC: 2000}, {Attack.NORMAL: 50, Attack.MIMIC: 50}),
+    #      (RaspberryPi.PI3_2GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 100}),
+    #      (RaspberryPi.PI4_2GB, {Attack.NORMAL: 2000, Attack.DISORDER: 2000}, {Attack.NORMAL: 50, Attack.DISORDER: 50})],
+    #     [(RaspberryPi.PI3_2GB, {Attack.NORMAL: 750, Attack.SPOOF: 250})])
+    # 3. only few recognized
+    # -> federated seems to have some benefits due to the averaging across devices compared to baseline
     train_sets, test_sets = DataSampler.get_all_clients_train_data_and_scaler(
-        [(RaspberryPi.PI4_4GB, {Attack.NORMAL: 2000, Attack.SPOOF: 2000}, {Attack.NORMAL: 50, Attack.SPOOF: 50}),
+        [(RaspberryPi.PI4_4GB, {Attack.NORMAL: 2000, Attack.DISORDER: 2000}, {Attack.NORMAL: 50, Attack.DISORDER: 50}),
          (RaspberryPi.PI3_2GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 100}),
-         (RaspberryPi.PI4_2GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 100})],
-        [(RaspberryPi.PI3_2GB, {Attack.NORMAL: 750, Attack.SPOOF: 250})])
+         (RaspberryPi.PI4_2GB, {Attack.NORMAL: 2000, Attack.SPOOF: 2000}, {Attack.NORMAL: 50, Attack.SPOOF: 50})],
+        [(RaspberryPi.PI3_2GB, {Attack.NORMAL: 750, Attack.NOISE: 250})])
 
     participants = [Participant(x_train, y_train, x_valid, y_valid) for
                     x_train, y_train, x_valid, y_valid in train_sets]

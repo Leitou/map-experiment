@@ -10,7 +10,7 @@ from models import MLP, AutoEncoder
 from sampling import DataSampler
 from utils import plot_results, get_sampler_data, get_baseline_data, scale_baseline, scale_federation
 
-# TODO: early stopping - https://machinelearningmastery.com/how-to-stop-training-deep-neural-networks-at-the-right-time-using-early-stopping/
+
 if __name__ == '__main__':
 
     # Define model
