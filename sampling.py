@@ -355,11 +355,11 @@ class DataSampler:
                 train_requested = total_data_request_count_train[device.value + "-" + attack.value]
                 valid_requested = total_data_request_count_valid[device.value + "-" + attack.value]
                 test_requested = total_data_request_count_test[device.value + "-" + attack.value]
-                total_requested = train_requested + valid_requested + test_requested
-                total_available = total_data_available_count[
+                total_available_for_train = total_data_available_count[
                                       device.value + "-" + attack.value] - test_requested - valid_requested
-                if total_requested > total_available:
-                    n_to_pick = floor(attacks[attack] * float(total_available) / total_requested)
+                if train_requested > total_available_for_train:
+                    # participant's percentage of the remaining training data, ensures data is utilized maximally
+                    n_to_pick = floor(float(total_available_for_train) * attacks[attack] / train_requested)
                     picked = df.sample(n=n_to_pick)
                     df = pd.concat([df, picked]).drop_duplicates(keep=False)
                     picked = picked.sample(n=attacks[attack], replace=True)

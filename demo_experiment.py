@@ -23,8 +23,8 @@ if __name__ == "__main__":
     #      (RaspberryPi.PI4_2GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 100})],
     #     [(RaspberryPi.PI3_2GB, {Attack.NORMAL: 750, Attack.SPOOF: 250})])
 
-    print("Use case FL: Zero Day Detection, hoping for similarities"
-          "Is the Federated model able to detect attacks that have not been observed previously, "
+    print("Use case FL: Zero Day Detection, hoping for similarities\n"
+          "Is the Federated model able to detect attacks that have not been observed previously,\n "
           "i.e. attacks that are not at all in the training data?")
     # e.g disorder and mimic, mimic and spoof, or spoof and noise could from the type of attack/behavior
     # or affected frequency be possibly expected to have a similar effect on different devices
@@ -43,8 +43,9 @@ if __name__ == "__main__":
     #      (RaspberryPi.PI3_2GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 100}),
     #      (RaspberryPi.PI4_2GB, {Attack.NORMAL: 2000, Attack.DISORDER: 2000}, {Attack.NORMAL: 50, Attack.DISORDER: 50})],
     #     [(RaspberryPi.PI3_2GB, {Attack.NORMAL: 750, Attack.SPOOF: 250})])
-    # 3. only few recognized
+    # 3. dependent on start seed few till many recognized
     # -> federated seems to have some benefits due to the averaging across devices compared to baseline
+    # -> set different random seeds for testing multiple ways, resp. comment it out
     train_sets, test_sets = DataSampler.get_all_clients_train_data_and_scaler(
         [(RaspberryPi.PI4_4GB, {Attack.NORMAL: 2000, Attack.DISORDER: 2000}, {Attack.NORMAL: 50, Attack.DISORDER: 50}),
          (RaspberryPi.PI3_2GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 100}),
