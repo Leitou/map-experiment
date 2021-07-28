@@ -149,9 +149,10 @@ class Server:
                               if self.model_architecture == ModelArchitecture.MLP_MULTI_CLASS else
                               torch.nn.MSELoss(reduction='sum')),
                         num_local_epochs=local_epochs)
-            w_avg = deepcopy(self.global_model.state_dict())
+
+            w_avg = deepcopy(self.participants[0].get_model().state_dict())
             for key in w_avg.keys():
-                for p in self.participants:
+                for p in self.participants[1:]:
                     w_avg[key] += p.get_model().state_dict()[key]
                 w_avg[key] = torch.div(w_avg[key], len(self.participants))
             self.global_model.load_state_dict(w_avg)
