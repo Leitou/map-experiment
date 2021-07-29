@@ -15,7 +15,7 @@ from sampling import DataSampler
 class Participant:
     def __init__(self, train_x: np.ndarray, train_y: np.ndarray,
                  valid_x: np.ndarray, valid_y: np.ndarray,
-                 batch_size: int = 64, y_type: torch.dtype = torch.float):
+                 batch_size: int = 64, batch_size_valid=64, y_type: torch.dtype = torch.float):
         data_train = torch.utils.data.TensorDataset(
             torch.from_numpy(train_x).type(torch.float),
             torch.from_numpy(train_y).type(y_type)
@@ -28,7 +28,7 @@ class Participant:
             torch.from_numpy(valid_x).type(torch.float),
             torch.from_numpy(valid_y).type(y_type)
         )
-        self.valid_loader = torch.utils.data.DataLoader(data_valid, batch_size=batch_size, shuffle=True)
+        self.valid_loader = torch.utils.data.DataLoader(data_valid, batch_size=batch_size_valid, shuffle=True)
         self.validation_losses = []
 
         self.model = None
@@ -79,7 +79,9 @@ class Participant:
 
 
 # TODO: test this implementation and fix errors
+#  robust AE methods for adversarial part: https://ieeexplore.ieee.org/document/9099561
 class AutoEncoderParticipant(Participant):
+
     def train(self, optimizer, loss_function, num_local_epochs: int = 5):
         if self.model is None:
             raise ValueError("No model set on participant!")
@@ -99,16 +101,15 @@ class AutoEncoderParticipant(Participant):
             print(f'Training Loss in epoch {le + 1}: {epoch_losses[le]}')
 
     def determine_threshold(self) -> float:
-        self.valid_loader.batch_size = 1
         mses = []
-        with torch.no_grad:
+        with torch.no_grad():
             loss_function = torch.nn.MSELoss(reduction='sum')
             for batch_idx, (x, _) in enumerate(self.valid_loader):
                 x = x  # x.cuda()
                 model_out = self.model(x)
                 loss = loss_function(model_out, x)
                 mses.append(loss.item())
-        mses = np.ndarray(mses)
+        mses = np.array(mses)
         return mses.mean() + mses.std()
 
 
@@ -123,7 +124,7 @@ class Server:
             self.global_model = MLP(in_features=75, out_classes=1)  # .cuda()
         elif model_architecture == ModelArchitecture.MLP_MULTI_CLASS:
             self.global_model = MLP(in_features=75, out_classes=9)  # .cuda()
-        elif model_architecture == ModelArchitecture.MLP_MULTI_CLASS:
+        elif model_architecture == ModelArchitecture.AUTO_ENCODER:
             self.global_model = AE(in_features=75)  # .cuda()
         else:
             raise ValueError("Not yet implemented!")
@@ -177,7 +178,6 @@ class Server:
                                                   self.model_architecture != ModelArchitecture.AUTO_ENCODER else 1,
                                                   shuffle=False)
 
-        sigmoid = torch.nn.Sigmoid()
         all_predictions = torch.tensor([])  # .cuda()
 
         self.global_model.eval()
@@ -186,10 +186,12 @@ class Server:
             with torch.no_grad():
                 model_predictions = self.global_model(batch_x)
                 if self.model_architecture == ModelArchitecture.AUTO_ENCODER:
-                    model_predictions = torch.nn.MSELoss(model_predictions, batch_x, reduction='sum')
+                    ae_loss = torch.nn.MSELoss(reduction="sum")
+                    model_predictions = ae_loss(model_predictions, batch_x).unsqueeze(0) # unsqueeze as batch_size set to 1
                 all_predictions = torch.cat((all_predictions, model_predictions))
 
         if self.model_architecture == ModelArchitecture.MLP_MONO_CLASS:
+            sigmoid = torch.nn.Sigmoid()
             all_predictions = sigmoid(all_predictions).round().type(torch.long)
         elif self.model_architecture == ModelArchitecture.MLP_MULTI_CLASS:
             all_predictions = torch.argmax(all_predictions, dim=1).type(torch.long)
@@ -202,131 +204,7 @@ class Server:
 
 
 # TODO:
-#  adaptions for autoencoder -> threshold selection, different standardization?
-
-class LocalOps(object):
-    def __init__(self, pdata, batch_size, epochs, lr):
-        self.lr = lr
-        self.epochs = epochs
-        self.batch_size = batch_size
-        self.trainloader, self.testloader = self.train_test_split(pdata)
-        self.device = "cuda"
-        # Default criterion set to BCEWithlogits loss function (combines BCEloss and sigmoid layer, numerically stable)
-
-    def train_test_split(self, pdata):
-        """
-        Returns train and test dataloaders for a given data and targets
-        """
-        x_train, y_train, x_test, y_test = pdata
-        x_train, y_train = torch.from_numpy(x_train).float(), torch.from_numpy(y_train).unsqueeze(1).float()
-        x_test, y_test = torch.from_numpy(x_test).float(), torch.from_numpy(y_test).unsqueeze(1).float()
-
-        # TODO: if needed split off validation set here
-        # create loaders
-        train_dataset = torch.utils.data.TensorDataset(x_train, y_train.type(torch.FloatTensor))
-        trainloader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
-        test_dataset = torch.utils.data.TensorDataset(x_test, y_test.type(torch.FloatTensor))
-        testloader = DataLoader(test_dataset, batch_size=self.batch_size, shuffle=False)
-
-        return trainloader, testloader
-
-
-class BinaryOps(LocalOps):
-    def __init__(self, pdata, batch_size, epochs, lr):
-        super(BinaryOps, self).__init__(pdata, batch_size, epochs, lr)
-        self.criterion = nn.BCEWithLogitsLoss()
-
-    def update_weights(self, model):
-        # Set mode to train model
-        model.train()
-        epoch_loss = []
-        optimizer = torch.optim.SGD(model.parameters(), lr=self.lr, momentum=0.9)
-
-        for le in range(self.epochs):
-            batch_loss = []
-            for batch_idx, (x, y) in enumerate(self.trainloader):
-                x, y = x.to(self.device), y.to(self.device)
-                model.zero_grad()
-                pred = model(x)
-                loss = self.criterion(pred, y)
-                loss.backward()
-                optimizer.step()
-
-                if batch_idx % 10 == 0:
-                    print('\r| Local Epoch : {} | [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                        le + 1, batch_idx * len(x),
-                        len(self.trainloader.dataset),
-                        100. * batch_idx / len(self.trainloader), loss.item()), end="", flush=True)
-                batch_loss.append(loss.item())
-            epoch_loss.append(sum(batch_loss) / len(batch_loss))
-        print()
-        return model.state_dict(), sum(epoch_loss) / len(epoch_loss)
-
-    def inference(self, model):
-        """ Returns the inference accuracy and loss.
-        """
-        model.eval()
-        loss, total, correct = 0.0, 0.0, 0.0
-
-        with torch.no_grad():
-            for batch_idx, (x, y) in enumerate(self.testloader):
-                x, y = x.to(self.device), y.to(self.device)
-
-                # Inference
-                pred = model(x)
-                batch_loss = self.criterion(pred, y)
-                loss += batch_loss.item()
-
-                # Prediction Binary
-                s = nn.Sigmoid()
-                pred = s(pred)
-                pred[pred < 0.5] = 0
-                pred[pred > 0.5] = 1
-                correct += (pred == y).type(torch.float).sum().item()
-                total += len(y)
-
-        return correct, total, loss
-
-
-# TODO: use validation set to find threshold
 #  data preprocessing specialties? values only in certain range?
-#  different train and testloader needed for update_weights/inference
-#  -> update_weights and inference should be done on two different instances of AutoencoderOps
-#  1. update_weights on exclusively normal samples + untrained model
-#  2. inference on new testdata with malicious samples + the trained model from 1.
-
-class AutoencoderOps(LocalOps):
-    def __init__(self, p: DataSampler, batch_size, epochs, lr):
-        super(AutoencoderOps, self).__init__(p, batch_size, epochs, lr)
-        self.criterion = nn.MSELoss()
-        # TODO: adapt for validation/threshold selection split
-
-    def update_weights(self, model):
-        # Set mode to train model
-        model.train()
-        epoch_loss = []
-        optimizer = torch.optim.SGD(model.parameters(), lr=self.lr, momentum=0.9)
-
-        for le in range(self.epochs):
-            batch_loss = []
-            for batch_idx, (x, _) in enumerate(self.trainloader):
-                # we don't care about targets here
-                x = x.to(self.device)
-                model.zero_grad()
-                pred = model(x)
-                loss = self.criterion(pred, x)
-                loss.backward()
-                optimizer.step()
-
-                # if batch_idx % 10 == 0:
-                #     print('| Global Round : {} | Local Epoch : {} | [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                #         global_round+1, le+1, batch_idx * len(x),
-                #         len(self.trainloader.dataset),
-                #         100. * batch_idx / len(self.trainloader), loss.item()))
-                batch_loss.append(loss.item())
-            epoch_loss.append(sum(batch_loss) / len(batch_loss))
-
-        return model.state_dict(), sum(epoch_loss) / len(epoch_loss)
 
     def inference(self, model):
         """ Returns the inference accuracy and loss.

@@ -7,7 +7,6 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
 from custom_types import RaspberryPi, Attack
-from utils import read_data
 
 # TODO:
 #   once data collection is completed:

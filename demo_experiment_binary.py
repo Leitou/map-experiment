@@ -3,7 +3,7 @@ import torch
 from custom_types import Attack, RaspberryPi, ModelArchitecture
 from devices import Participant, Server
 from sampling import DataSampler
-from utils import print_binary_results
+from utils import print_experiment_scores
 import numpy as np
 
 from sklearn.metrics import f1_score, confusion_matrix, classification_report
@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
     y_predicted = server.predict_using_global_model(x_test)
     correct = (torch.from_numpy(y_test).flatten() == y_predicted).count_nonzero()
-    print_binary_results(y_test.flatten(), y_predicted.flatten().numpy(), correct, federated=True)
+    print_experiment_scores(y_test.flatten(), y_predicted.flatten().numpy(), correct, federated=True)
 
 
     print("------------------------------ CENTRALIZED BASELINE -----------------------")
@@ -75,4 +75,4 @@ if __name__ == "__main__":
 
     y_predicted_central = central_server.predict_using_global_model(x_test)
     correct_central = (torch.from_numpy(y_test).flatten() == y_predicted_central).count_nonzero()
-    print_binary_results(y_test.flatten(), y_predicted_central.flatten().numpy(), correct_central, federated=False)
+    print_experiment_scores(y_test.flatten(), y_predicted_central.flatten().numpy(), correct_central, federated=False)

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import f1_score, confusion_matrix, classification_report
 
 
-def print_binary_results(y_test, y_pred, correct, federated=True):
+def print_experiment_scores(y_test, y_pred, correct, federated=True):
     if federated:
         print("\n\nResults Federated Model:")
     else:
@@ -19,4 +19,3 @@ def print_binary_results(y_test, y_pred, correct, federated=True):
                                 else "only single class predicted, no report generated")
     print(f"Details:\nConfusion matrix \n[(TN, FP),\n(FN, TP)]:\n{cm_fed}")
     print(f"Test Accuracy: {correct * 100 / len(y_pred):.2f}%, F1 score: {f1 * 100:.2f}%")
-
