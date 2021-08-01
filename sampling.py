@@ -203,7 +203,7 @@ class DataSampler:
                 valid_requested = total_data_request_count_valid[device.value + "-" + attack.value]
                 test_requested = total_data_request_count_test[device.value + "-" + attack.value]
                 total_available_for_train = total_data_available_count[
-                                      device.value + "-" + attack.value] - test_requested - valid_requested
+                                                device.value + "-" + attack.value] - test_requested - valid_requested
                 if train_requested > total_available_for_train:
                     # participant's percentage of the remaining training data, ensures data is utilized maximally
                     n_to_pick = floor(float(total_available_for_train) * attacks[attack] / train_requested)

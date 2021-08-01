@@ -1,11 +1,10 @@
+import numpy as np
 import torch
+from sklearn.metrics import f1_score
 
 from custom_types import Attack, RaspberryPi, ModelArchitecture
 from devices import Participant, Server
 from sampling import DataSampler
-import numpy as np
-
-from sklearn.metrics import f1_score
 
 if __name__ == "__main__":
     torch.random.manual_seed(42)

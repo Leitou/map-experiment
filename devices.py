@@ -4,12 +4,11 @@ from typing import List
 
 import numpy as np
 import torch
-from torch import nn
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 from custom_types import ModelArchitecture
 from models import MLP, AE
-from sampling import DataSampler
 
 
 class Participant:
@@ -52,7 +51,7 @@ class Participant:
                 optimizer.step()
                 current_losses.append(loss.item())
             epoch_losses.append(sum(current_losses) / len(current_losses))
-            print(f'Training Loss in epoch {le + 1}: {epoch_losses[le]}')
+            # print(f'Training Loss in epoch {le + 1}: {epoch_losses[le]}')
 
             with torch.no_grad():
                 self.model.eval()
@@ -63,12 +62,12 @@ class Participant:
                     loss = loss_function(model_predictions, y)
                     current_losses.append(loss.item())
                 validation_losses.append(sum(current_losses) / len(current_losses))
-                print(f'Validation Loss in epoch {le + 1}: {sum(current_losses) / len(current_losses)}')
+                #print(f'Validation Loss in epoch {le + 1}: {sum(current_losses) / len(current_losses)}')
 
             self.validation_losses = self.validation_losses + validation_losses
 
             if validation_losses[le] < 1e-4 or (le > 0 and (validation_losses[le] - validation_losses[le - 1]) > 1e-4):
-                print(f"Early stopping criterion reached in epoch {le + 1}")
+                #print(f"Early stopping criterion reached in epoch {le + 1}")
                 return
 
     def get_model(self):
@@ -98,7 +97,7 @@ class AutoEncoderParticipant(Participant):
                 optimizer.step()
                 current_losses.append(loss.item())
             epoch_losses.append(sum(current_losses) / len(current_losses))
-            print(f'Training Loss in epoch {le + 1}: {epoch_losses[le]}')
+            # print(f'Training Loss in epoch {le + 1}: {epoch_losses[le]}')
 
     def determine_threshold(self) -> float:
         mses = []
@@ -141,7 +140,7 @@ class Server:
                 p.set_model(AE(in_features=75))
             else:
                 raise ValueError("Not yet implemented!")
-        for round_idx in range(aggregation_rounds):
+        for _ in tqdm(range(aggregation_rounds), unit="fedavg round"):
             for p in self.participants:
                 p.train(optimizer=torch.optim.SGD(p.get_model().parameters(), lr=0.001, momentum=0.9),
                         loss_function=torch.nn.BCEWithLogitsLoss(reduction='sum') if
@@ -187,7 +186,8 @@ class Server:
                 model_predictions = self.global_model(batch_x)
                 if self.model_architecture == ModelArchitecture.AUTO_ENCODER:
                     ae_loss = torch.nn.MSELoss(reduction="sum")
-                    model_predictions = ae_loss(model_predictions, batch_x).unsqueeze(0) # unsqueeze as batch_size set to 1
+                    model_predictions = ae_loss(model_predictions, batch_x).unsqueeze(
+                        0)  # unsqueeze as batch_size set to 1
                 all_predictions = torch.cat((all_predictions, model_predictions))
 
         if self.model_architecture == ModelArchitecture.MLP_MONO_CLASS:
@@ -201,27 +201,3 @@ class Server:
             raise ValueError("Not yet implemented!")
 
         return all_predictions.flatten()
-
-
-# TODO:
-#  data preprocessing specialties? values only in certain range?
-
-    def inference(self, model):
-        """ Returns the inference accuracy and loss.
-        """
-        model.eval()
-        loss, total, correct = 0.0, 0.0, 0.0
-
-        for batch_idx, (x, y) in enumerate(self.loc_testloader):
-            x, y = x.to(self.device), y.to(self.device)
-
-            # Inference
-            pred = model(x)
-            batch_loss = self.criterion(pred, x)
-            loss += batch_loss.item()
-
-            # Prediction Autoencoder: if further than a certain threshold -> use validation to fin
-            # correct += ((distance(pred,x) >= treshold) == y).type(torch.float).sum().item()
-            total += len(y)
-
-        return correct, total, loss

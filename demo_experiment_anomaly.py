@@ -1,12 +1,10 @@
+import numpy as np
 import torch
 
 from custom_types import Attack, RaspberryPi, ModelArchitecture
-from devices import Participant, AutoEncoderParticipant, Server
+from devices import AutoEncoderParticipant, Server
 from sampling import DataSampler
 from utils import print_experiment_scores
-import numpy as np
-
-from sklearn.metrics import f1_score, confusion_matrix, classification_report
 
 if __name__ == "__main__":
     torch.random.manual_seed(42)
@@ -26,9 +24,9 @@ if __name__ == "__main__":
         [(RaspberryPi.PI4_4GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 100}),
          (RaspberryPi.PI3_2GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 100}),
          (RaspberryPi.PI4_2GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 100})],
-        [#(RaspberryPi.PI3_2GB, {Attack.NORMAL: 500, Attack.SPOOF: 250, Attack.NOISE: 250}),
-         #(RaspberryPi.PI4_2GB, {Attack.NORMAL: 500, Attack.SPOOF: 250, Attack.NOISE: 250}),
-         (RaspberryPi.PI4_4GB, {Attack.NORMAL: 500, Attack.SPOOF: 250, Attack.NOISE: 250})])
+        [  # (RaspberryPi.PI3_2GB, {Attack.NORMAL: 500, Attack.SPOOF: 250, Attack.NOISE: 250}),
+            # (RaspberryPi.PI4_2GB, {Attack.NORMAL: 500, Attack.SPOOF: 250, Attack.NOISE: 250}),
+            (RaspberryPi.PI4_4GB, {Attack.NORMAL: 500, Attack.SPOOF: 250, Attack.NOISE: 250})])
 
     participants = [AutoEncoderParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
                     x_train, y_train, x_valid, y_valid in train_sets]
@@ -43,7 +41,6 @@ if __name__ == "__main__":
     y_predicted = server.predict_using_global_model(x_test)
     correct = (torch.from_numpy(y_test).flatten() == y_predicted).count_nonzero()
     print_experiment_scores(y_test.flatten(), y_predicted.flatten().numpy(), correct, federated=True)
-
 
     print("------------------------------ CENTRALIZED BASELINE -----------------------")
     x_train_all = np.concatenate(tuple(x_train for x_train, y_train, x_valid, y_valid in train_sets))
