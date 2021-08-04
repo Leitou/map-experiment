@@ -80,6 +80,7 @@ data_file_paths: Dict[RaspberryPi, Dict[Attack, str]] = {
 
 class DataSampler:
 
+    # TODO: make two functions: 1. get data and 2. scale
     @staticmethod
     def get_all_clients_train_data_and_scaler(
             train_devices: List[Tuple[RaspberryPi, Dict[Attack, int], Dict[Attack, int]]],

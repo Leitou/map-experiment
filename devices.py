@@ -62,12 +62,12 @@ class Participant:
                     loss = loss_function(model_predictions, y)
                     current_losses.append(loss.item())
                 validation_losses.append(sum(current_losses) / len(current_losses))
-                #print(f'Validation Loss in epoch {le + 1}: {sum(current_losses) / len(current_losses)}')
+                # print(f'Validation Loss in epoch {le + 1}: {sum(current_losses) / len(current_losses)}')
 
             self.validation_losses = self.validation_losses + validation_losses
 
             if validation_losses[le] < 1e-4 or (le > 0 and (validation_losses[le] - validation_losses[le - 1]) > 1e-4):
-                #print(f"Early stopping criterion reached in epoch {le + 1}")
+                # print(f"Early stopping criterion reached in epoch {le + 1}")
                 return
 
     def get_model(self):

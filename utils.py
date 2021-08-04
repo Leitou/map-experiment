@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.metrics import f1_score, confusion_matrix, classification_report
 
 
+# TODO: why do we have to pass correct? Guess we can calculate it ourselves here :)
 def print_experiment_scores(y_test, y_pred, correct, federated=True):
     if federated:
         print("\n\nResults Federated Model:")
