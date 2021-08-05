@@ -58,8 +58,7 @@ if __name__ == "__main__":
     x_test, y_test = test_sets[0]
 
     y_predicted = server.predict_using_global_model(x_test)
-    correct = (torch.from_numpy(y_test).flatten() == y_predicted).count_nonzero()
-    print_experiment_scores(y_test.flatten(), y_predicted.flatten().numpy(), correct, federated=True)
+    print_experiment_scores(y_test.flatten(), y_predicted.flatten().numpy(), federated=True)
 
     print("------------------------------ CENTRALIZED BASELINE -----------------------")
     x_train_all = np.concatenate(tuple(x_train for x_train, y_train, x_valid, y_valid in train_sets))
@@ -71,5 +70,4 @@ if __name__ == "__main__":
     central_server.train_global_model(aggregation_rounds=5)
 
     y_predicted_central = central_server.predict_using_global_model(x_test)
-    correct_central = (torch.from_numpy(y_test).flatten() == y_predicted_central).count_nonzero()
-    print_experiment_scores(y_test.flatten(), y_predicted_central.flatten().numpy(), correct_central, federated=False)
+    print_experiment_scores(y_test.flatten(), y_predicted_central.flatten().numpy(), federated=False)
