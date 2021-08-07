@@ -8,30 +8,27 @@ from utils import calculate_metrics
 from tabulate import tabulate
 
 if __name__ == "__main__":
-    torch.random.manual_seed(6314)
-    np.random.seed(8352)
+    torch.random.manual_seed(42)
+    np.random.seed(42)
 
-    print(f'GPU available: {torch.cuda.is_available()}')
-    print("Federated Anomaly Detection")
-
-    print("Use case standalone devices: Anomaly/Zero Day Detection"
+    print("Use case standalone devices: Anomaly/Zero Day Detection\n"
           "Is the standalone model able to detect attacks as anomalies,\nie. recognize the difference from attacks"
-          " to normal samples? Which attacks are hardest to detect?")
+          " to normal samples? Which attacks are hardest to detect?\n")
 
     normals = [Attack.NORMAL, Attack.NORMAL_V2]
     for device in RaspberryPi:
         for normal in normals:
             results = []
 
-            test_devices = [(device, {normal: 150, Attack.DELAY: 150}),
-                            (device, {normal: 150, Attack.DISORDER: 150}),
-                            (device, {normal: 150, Attack.FREEZE: 150}),
-                            (device, {normal: 150, Attack.HOP: 150}),
-                            (device, {normal: 150, Attack.MIMIC: 150}),
-                            (device, {normal: 150, Attack.NOISE: 150}),
-                            (device, {normal: 150, Attack.REPEAT: 150}),
-                            (device, {normal: 150, Attack.SPOOF: 150})]
-            train_sets, test_sets = DataSampler.get_all_clients_train_data_and_scaler(
+            test_devices = [(device, {normal: 500, Attack.DELAY: 150}),
+                            (device, {normal: 500, Attack.DISORDER: 150}),
+                            (device, {normal: 500, Attack.FREEZE: 150}),
+                            (device, {normal: 500, Attack.HOP: 150}),
+                            (device, {normal: 500, Attack.MIMIC: 150}),
+                            (device, {normal: 500, Attack.NOISE: 150}),
+                            (device, {normal: 500, Attack.REPEAT: 150}),
+                            (device, {normal: 500, Attack.SPOOF: 150})]
+            train_sets, test_sets = DataSampler.get_all_clients_data_and_scale(
                 [(device, {normal: 1500}, {normal: 150})],
                 test_devices)
 

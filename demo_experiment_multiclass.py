@@ -13,7 +13,7 @@ if __name__ == "__main__":
     print(f'GPU available: {torch.cuda.is_available()}')
     print("Starting demo multiclass experiment: Checking if new device can recognize known attacks")
 
-    train_sets, test_sets = DataSampler.get_all_clients_train_data_and_scaler(
+    train_sets, test_sets = DataSampler.get_all_clients_data_and_scale(
         [(RaspberryPi.PI4_4GB, {Attack.NORMAL: 2000, Attack.SPOOF: 1000, Attack.NOISE: 1000},
           {Attack.NORMAL: 100, Attack.SPOOF: 50, Attack.NOISE: 50}),
          (RaspberryPi.PI4_2GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 200}),

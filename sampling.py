@@ -4,7 +4,7 @@ from typing import List, Tuple, Dict
 
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from custom_types import RaspberryPi, Attack
 from tabulate import tabulate
@@ -17,11 +17,6 @@ from tabulate import tabulate
 #   and integrate the second pi4_2gb (easier when data is merged before!)
 #   check whether further processing valuable
 
-
-# assuming everything not normal is malicious
-malicious = defaultdict(lambda: 1)
-malicious["normal"] = 0
-malicious["normal_v2"] = 0
 
 class_map_binary: Dict[Attack, int] = defaultdict(lambda: 1, {
     Attack.NORMAL: 0,
@@ -39,6 +34,7 @@ class_map_multi: Dict[Attack, int] = defaultdict(lambda: 0, {
     Attack.SPOOF: 8
 })
 
+# TODO: make pi4-2gb-1 and pi4-2gb-2 and add file paths (black and white!)
 data_file_paths: Dict[RaspberryPi, Dict[Attack, str]] = {
     RaspberryPi.PI3_2GB: {
         Attack.NORMAL: "data/ras-3-2gb/samples_normal_2021-06-18-15-59_50s",
@@ -82,6 +78,37 @@ data_file_paths: Dict[RaspberryPi, Dict[Attack, str]] = {
 class DataSampler:
 
     @staticmethod
+    def __pick_from_all_data(all_data: pd.DataFrame, device: RaspberryPi, attacks: Dict[Attack, int],
+                             label_dict: Dict[Attack, int], pick_ratios: Dict[str, float]) -> \
+            Tuple[pd.DataFrame, np.ndarray, np.ndarray]:
+        data_x, data_y = None, None
+        for attack in attacks:
+            df = all_data.loc[(all_data['attack'] == attack.value) & (all_data['device'] == device.value)]
+            key = device.value + "-" + attack.value
+            if pick_ratios[key] < 1.:
+                sampled = df.sample(n=floor(pick_ratios[key] * attacks[attack]))
+                all_data = pd.concat([sampled, all_data]).drop_duplicates(keep=False)
+                n_to_pick = floor(1. / pick_ratios[key] * attacks[attack])
+                sampled = sampled.sample(n=n_to_pick, replace=True)
+            else:
+                sampled = df.sample(n=attacks[attack])
+                all_data = pd.concat([sampled, all_data]).drop_duplicates(keep=False)
+
+            if data_x is None:
+                data_x = sampled.drop(['attack', 'device'], axis=1).to_numpy()
+            else:
+                data_x = np.concatenate((data_x, sampled.drop(['attack', 'device'], axis=1).to_numpy()))
+
+            sampled_y = np.array([label_dict[attack]] * (
+                floor(1. / pick_ratios[key] * attacks[attack]) if pick_ratios[key] < 1. else attacks[attack]))
+            if data_y is None:
+                data_y = sampled_y
+            else:
+                data_y = np.concatenate((data_y, sampled_y))
+        data_y = data_y.reshape((len(data_y), 1))
+        return all_data, data_x, data_y
+
+    @staticmethod
     def __parse_all_files_to_df() -> pd.DataFrame:
         full_df = pd.DataFrame()
         for device in data_file_paths:
@@ -106,7 +133,7 @@ class DataSampler:
 
     # TODO: make two functions: 1. get data and 2. scale
     @staticmethod
-    def get_all_clients_train_data_and_scaler(
+    def get_all_clients_data_and_scale(
             train_devices: List[Tuple[RaspberryPi, Dict[Attack, int], Dict[Attack, int]]],
             test_devices: List[Tuple[RaspberryPi, Dict[Attack, int]]],
             multi_class=False) -> \
@@ -114,149 +141,50 @@ class DataSampler:
 
         assert len(train_devices) > 0 and len(
             test_devices) > 0, "Need to provide at least one train and one test device!"
+
+        all_data = DataSampler.__parse_all_files_to_df()
+
         # Dictionaries that hold total request: e. g. we want 500 train data for a pi3 and delay
         # but may only have 100 -> oversample and prevent overlaps
         total_data_request_count_train: Dict[str, int] = defaultdict(lambda: 0)
-        total_data_request_count_valid: Dict[str, int] = defaultdict(lambda: 0)
-        total_data_request_count_test: Dict[str, int] = defaultdict(lambda: 0)
-        total_data_available_count: Dict[str, int] = defaultdict(lambda: 0)
+        remaining_data_available_count: Dict[str, int] = defaultdict(lambda: 0)
 
         # determine how to label data
         label_dict = class_map_multi if multi_class else class_map_binary
 
-        # pandas data frames for devices and attacks that are requested
-        data_frames: Dict[RaspberryPi, Dict[Attack, pd.DataFrame]] = {}
-
         for device, attacks, validation_attacks in train_devices:
-            if device not in data_frames:
-                data_frames[device] = {}
             for attack in attacks:
                 total_data_request_count_train[device.value + "-" + attack.value] += attacks[attack]
-                if attack not in data_frames[device]:
-                    data_frames[device][attack] = pd.read_csv(data_file_paths[device][attack])
-            for attack in validation_attacks:
-                total_data_request_count_valid[device.value + "-" + attack.value] += validation_attacks[attack]
-                if attack not in data_frames[device]:
-                    data_frames[device][attack] = pd.read_csv(data_file_paths[device][attack])
-
-        for device, attacks in test_devices:
-            if device not in data_frames:
-                data_frames[device] = {}
-            for attack in attacks:
-                total_data_request_count_test[device.value + "-" + attack.value] += attacks[attack]
-                if attack not in data_frames[device]:
-                    data_frames[device][attack] = pd.read_csv(data_file_paths[device][attack])
-
-        for device in data_frames:
-            for attack in data_frames[device]:
-                df = data_frames[device][attack]
-                # filter for connectivity
-                df = df[df['connectivity'] == 1]
-                # remove model-irrelevant columns
-                df = df.drop(["time", "timestamp", "seconds", "connectivity"], axis=1)
-                data_frames[device][attack] = df
-                total_data_available_count[device.value + "-" + attack.value] = len(df)
-
-        print("Data availability:", dict(total_data_available_count))
-
-        for key in total_data_request_count_test:
-            if (total_data_request_count_test[key] + total_data_request_count_valid[key]) > \
-                    total_data_available_count[key]:
-                raise ValueError(
-                    f'Too much data requested for {key}. Please lower sample number! '
-                    f'Available: {total_data_available_count[key]}, '
-                    f'but requested {total_data_request_count_test[key] + total_data_request_count_valid[key]}')
-        for key in total_data_request_count_valid:
-            if (total_data_request_count_test[key] + total_data_request_count_valid[key]) > \
-                    total_data_available_count[key]:
-                raise ValueError(
-                    f'Too much data requested for {key}. Please lower sample number! '
-                    f'Available: {total_data_available_count[key]}, '
-                    f'but requested {total_data_request_count_test[key] + total_data_request_count_valid[key]}')
 
         train_sets = []
         validation_sets = []
         test_sets = []
 
         # pick test sets
-        for device, attacks in test_devices:
-            data_x, data_y = None, None
-            for attack in attacks:
-                df = data_frames[device][attack]
-                sampled = df.sample(n=attacks[attack])
-                if data_x is None:
-                    data_x = sampled.to_numpy()
-                else:
-                    data_x = np.concatenate((data_x, sampled.to_numpy()))
-
-                if data_y is None:
-                    data_y = np.array([label_dict[attack]] * attacks[attack])
-                else:
-                    data_y = np.concatenate((data_y, np.array([label_dict[attack]] * attacks[attack])))
-                df = pd.concat([df, sampled]).drop_duplicates(keep=False)
-                data_frames[device][attack] = df
-            data_y = data_y.reshape((len(data_y), 1))
-            test_sets.append((data_x, data_y))
+        for device, test_attacks in test_devices:
+            all_data, test_x, test_y = DataSampler.__pick_from_all_data(all_data, device, test_attacks, label_dict,
+                                                                        defaultdict(lambda: 1))
+            test_sets.append((test_x, test_y))
 
         # pick validation sets: same as test sets -> in refactoring can be merged
-        for device, _, validation_attacks in train_devices:
-            data_valid_x, data_valid_y = None, None
-            for attack in validation_attacks:
-                df = data_frames[device][attack]
-                sampled = df.sample(n=validation_attacks[attack])
-                if data_valid_x is None:
-                    data_valid_x = sampled.to_numpy()
-                else:
-                    data_valid_x = np.concatenate((data_valid_x, sampled.to_numpy()))
+        for device, _, val_attacks in train_devices:
+            all_data, val_x, val_y = DataSampler.__pick_from_all_data(all_data, device, val_attacks, label_dict,
+                                                                      defaultdict(lambda: 1))
+            validation_sets.append((val_x, val_y))
 
-                if data_valid_y is None:
-                    data_valid_y = np.array([label_dict[attack]] * validation_attacks[attack])
-                else:
-                    data_valid_y = np.concatenate(
-                        (data_valid_y, np.array([label_dict[attack]] * validation_attacks[attack])))
-                df = pd.concat([df, sampled]).drop_duplicates(keep=False)
-                data_frames[device][attack] = df
-            data_valid_y = data_valid_y.reshape((len(data_valid_y), 1))
-            validation_sets.append((data_valid_x, data_valid_y))
+        for __i, row in all_data.groupby(['device', 'attack']).count().iterrows():
+            remaining_data_available_count[row.name[0] + "-" + row.name[1]] += row.cs
+
+        train_ratio_dict = {}
+        for key in total_data_request_count_train:
+            train_ratio_dict[key] = float(remaining_data_available_count[key]) / total_data_request_count_train[key]
 
         # pick and sample train sets
         for device, attacks, _ in train_devices:
-            data_x, data_y = None, None
-            for attack in attacks:
-                df = data_frames[device][attack]
-                train_requested = total_data_request_count_train[device.value + "-" + attack.value]
-                valid_requested = total_data_request_count_valid[device.value + "-" + attack.value]
-                test_requested = total_data_request_count_test[device.value + "-" + attack.value]
-                total_available_for_train = total_data_available_count[
-                                                device.value + "-" + attack.value] - test_requested - valid_requested
-                if train_requested > total_available_for_train:
-                    # participant's percentage of the remaining training data, ensures data is utilized maximally
-                    n_to_pick = floor(float(total_available_for_train) * attacks[attack] / train_requested)
-                    picked = df.sample(n=n_to_pick)
-                    df = pd.concat([df, picked]).drop_duplicates(keep=False)
-                    picked = picked.sample(n=attacks[attack], replace=True)
+            all_data, train_x, train_y = DataSampler.__pick_from_all_data(all_data, device, attacks, label_dict,
+                                                                          train_ratio_dict)
+            train_sets.append((train_x, train_y))
 
-                    if data_x is None:
-                        data_x = picked.to_numpy()
-                    else:
-                        data_x = np.concatenate((data_x, picked.to_numpy()))
-                else:
-                    sampled = df.sample(n=attacks[attack])
-                    if data_x is None:
-                        data_x = sampled.to_numpy()
-                    else:
-                        data_x = np.concatenate((data_x, sampled.to_numpy()))
-
-                    df = pd.concat([df, sampled]).drop_duplicates(keep=False)
-
-                if data_y is None:
-                    data_y = np.array([label_dict[attack]] * attacks[attack])
-                else:
-                    data_y = np.concatenate((data_y, np.array([label_dict[attack]] * attacks[attack])))
-
-                data_frames[device][attack] = df
-            data_y = data_y.reshape((len(data_y), 1))
-            train_sets.append((data_x, data_y))
         # NOTE: We average the man and min value for stability reasons!
         scalers = [MinMaxScaler(clip=True).fit(x[0]) for x in train_sets]
         scaler = MinMaxScaler(clip=True)  #
@@ -264,3 +192,33 @@ class DataSampler:
         scaler.scale_ = np.stack([s.scale_ for s in scalers], axis=1).mean(axis=1)
         return [(scaler.transform(x), y, scaler.transform(validation_sets[idx][0]), validation_sets[idx][1]) for
                 idx, (x, y) in enumerate(train_sets)], [(scaler.transform(x), y) for x, y in test_sets]
+
+    @staticmethod
+    def scale(train_devices: List[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]],
+              test_devices: List[Tuple[np.ndarray, np.ndarray]], central=False) -> Tuple[
+        List[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]], List[Tuple[np.ndarray, np.ndarray]]]:
+        train_scaled = []
+        test_scaled = []
+        if central:
+            assert len(train_devices) == 1, "Only single training device allowed in central mode!"
+            scaler: StandardScaler = StandardScaler()
+            scaler.fit(train_devices[0][0])
+            for x_train, y_train, x_val, y_val in train_devices:
+                train_scaled.append((scaler.transform(x_train), y_train, scaler.transform(x_val), y_val))
+            for i, (x_test, y_test) in enumerate(test_devices):
+                test_scaled.append((scaler.transform(x_test), y_test))
+        else:
+            scalers: List[MinMaxScaler] = []
+            for x_train, y_train, x_val, y_val in train_devices:
+                scaler: MinMaxScaler = MinMaxScaler(clip=True)
+                scaler.fit(x_train)
+                scalers.append(scaler)
+            final_scaler = MinMaxScaler(clip=True)
+            final_scaler.min_ = np.stack([s.min_ for s in scalers], axis=1).mean(axis=1)
+            final_scaler.scale_ = np.stack([s.scale_ for s in scalers], axis=1).mean(axis=1)
+            for x_train, y_train, x_val, y_val in train_devices:
+                train_scaled.append((final_scaler.transform(x_train), y_train, final_scaler.transform(x_val), y_val))
+            for x_test, y_test in test_devices:
+                test_scaled.append((final_scaler.transform(x_test), y_test))
+
+        return train_scaled, test_scaled
