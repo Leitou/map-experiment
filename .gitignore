@@ -4,3 +4,4 @@
 *.model
 venv/
 results
+playground.py

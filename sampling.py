@@ -7,6 +7,7 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
 from custom_types import RaspberryPi, Attack
+from tabulate import tabulate
 
 # TODO:
 #   once data collection is completed:
@@ -79,6 +80,29 @@ data_file_paths: Dict[RaspberryPi, Dict[Attack, str]] = {
 
 
 class DataSampler:
+
+    @staticmethod
+    def __parse_all_files_to_df() -> pd.DataFrame:
+        full_df = pd.DataFrame()
+        for device in data_file_paths:
+            for attack in data_file_paths[device]:
+                df = pd.read_csv(data_file_paths[device][attack])
+                # filter for measurements where the device was connected
+                df = df[df['connectivity'] == 1]
+                # remove model-irrelevant columns
+                df = df.drop(["time", "timestamp", "seconds", "connectivity"], axis=1)
+                df['device'] = device.value
+                df['attack'] = attack.value
+                full_df = pd.concat([full_df, df])
+        return full_df
+
+    @staticmethod
+    def show_data_availability():
+        all_data = DataSampler.__parse_all_files_to_df()
+        drop_cols = [col for col in list(all_data) if col not in ['device', 'attack', 'alarmtimer:alarmtimer_fired']]
+        print(tabulate(
+            all_data.drop(drop_cols, axis=1).rename(columns={'alarmtimer:alarmtimer_fired': 'count'}).groupby(
+                ['device', 'attack'], as_index=False).count(), tablefmt="pretty"))
 
     # TODO: make two functions: 1. get data and 2. scale
     @staticmethod
