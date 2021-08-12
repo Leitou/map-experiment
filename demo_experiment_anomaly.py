@@ -20,7 +20,7 @@ if __name__ == "__main__":
     #  1. update_weights on exclusively normal samples + untrained model
     #  2. inference on new testdata with malicious samples + the trained model from 1.
 
-    train_sets, test_sets = DataSampler.get_all_clients_data_and_scale(
+    train_sets, test_sets = DataSampler.get_all_clients_data(
         [(RaspberryPi.PI4_4GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 100}),
          (RaspberryPi.PI3_2GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 100}),
          (RaspberryPi.PI4_2GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 100})],

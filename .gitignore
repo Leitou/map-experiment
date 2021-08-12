@@ -5,3 +5,4 @@
 venv/
 results
 playground.py
+data/all.csv

@@ -34,7 +34,7 @@ class_map_multi: Dict[Attack, int] = defaultdict(lambda: 0, {
     Attack.SPOOF: 8
 })
 
-# TODO: make pi4-2gb-1 and pi4-2gb-2 and add file paths (black and white!)
+# TODO: make pi4-2gb-1 and pi4-2gb-2 and add file paths (black and white covers!)
 data_file_paths: Dict[RaspberryPi, Dict[Attack, str]] = {
     RaspberryPi.PI3_2GB: {
         Attack.NORMAL: "data/ras-3-2gb/samples_normal_2021-06-18-15-59_50s",
@@ -108,6 +108,7 @@ class DataSampler:
         data_y = data_y.reshape((len(data_y), 1))
         return all_data, data_x, data_y
 
+    # TODO: once merged: check if file exists, if yes: pd.read_csv, else this style
     @staticmethod
     def __parse_all_files_to_df() -> pd.DataFrame:
         full_df = pd.DataFrame()
@@ -121,6 +122,7 @@ class DataSampler:
                 df['device'] = device.value
                 df['attack'] = attack.value
                 full_df = pd.concat([full_df, df])
+        #full_df.to_csv('./data/all.csv', index_label=False)
         return full_df
 
     @staticmethod
@@ -131,9 +133,8 @@ class DataSampler:
             all_data.drop(drop_cols, axis=1).rename(columns={'alarmtimer:alarmtimer_fired': 'count'}).groupby(
                 ['device', 'attack'], as_index=False).count(), tablefmt="pretty"))
 
-    # TODO: make two functions: 1. get data and 2. scale
     @staticmethod
-    def get_all_clients_data_and_scale(
+    def get_all_clients_data(
             train_devices: List[Tuple[RaspberryPi, Dict[Attack, int], Dict[Attack, int]]],
             test_devices: List[Tuple[RaspberryPi, Dict[Attack, int]]],
             multi_class=False) -> \
@@ -185,13 +186,8 @@ class DataSampler:
                                                                           train_ratio_dict)
             train_sets.append((train_x, train_y))
 
-        # NOTE: We average the man and min value for stability reasons!
-        scalers = [MinMaxScaler(clip=True).fit(x[0]) for x in train_sets]
-        scaler = MinMaxScaler(clip=True)  #
-        scaler.min_ = np.stack([s.min_ for s in scalers], axis=1).mean(axis=1)
-        scaler.scale_ = np.stack([s.scale_ for s in scalers], axis=1).mean(axis=1)
-        return [(scaler.transform(x), y, scaler.transform(validation_sets[idx][0]), validation_sets[idx][1]) for
-                idx, (x, y) in enumerate(train_sets)], [(scaler.transform(x), y) for x, y in test_sets]
+        return [(x, y, validation_sets[idx][0], validation_sets[idx][1]) for
+                idx, (x, y) in enumerate(train_sets)], [(x, y) for x, y in test_sets]
 
     @staticmethod
     def scale(train_devices: List[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]],
@@ -205,7 +201,7 @@ class DataSampler:
             scaler.fit(train_devices[0][0])
             for x_train, y_train, x_val, y_val in train_devices:
                 train_scaled.append((scaler.transform(x_train), y_train, scaler.transform(x_val), y_val))
-            for i, (x_test, y_test) in enumerate(test_devices):
+            for x_test, y_test in test_devices:
                 test_scaled.append((scaler.transform(x_test), y_test))
         else:
             scalers: List[MinMaxScaler] = []
