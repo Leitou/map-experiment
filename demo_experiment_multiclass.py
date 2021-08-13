@@ -16,7 +16,7 @@ if __name__ == "__main__":
     train_sets, test_sets = DataSampler.get_all_clients_data(
         [(RaspberryPi.PI4_4GB, {Attack.NORMAL: 2000, Attack.SPOOF: 1000, Attack.NOISE: 1000},
           {Attack.NORMAL: 100, Attack.SPOOF: 50, Attack.NOISE: 50}),
-         (RaspberryPi.PI4_2GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 200}),
+         (RaspberryPi.PI4_2GB_BC, {Attack.NORMAL: 2000}, {Attack.NORMAL: 200}),
          (RaspberryPi.PI3_2GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 200})],
         [(RaspberryPi.PI3_2GB, {Attack.NORMAL: 700, Attack.SPOOF: 150, Attack.NOISE: 150})], multi_class=True)
 

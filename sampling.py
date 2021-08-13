@@ -9,6 +9,8 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from custom_types import RaspberryPi, Attack
 from tabulate import tabulate
 
+import os
+
 # TODO:
 #   once data collection is completed:
 #   merge all the data into one master csv with additional columns for device and attack
@@ -34,7 +36,6 @@ class_map_multi: Dict[Attack, int] = defaultdict(lambda: 0, {
     Attack.SPOOF: 8
 })
 
-# TODO: make pi4-2gb-1 and pi4-2gb-2 and add file paths (black and white covers!)
 data_file_paths: Dict[RaspberryPi, Dict[Attack, str]] = {
     RaspberryPi.PI3_2GB: {
         Attack.NORMAL: "data/ras-3-2gb/samples_normal_2021-06-18-15-59_50s",
@@ -48,7 +49,7 @@ data_file_paths: Dict[RaspberryPi, Dict[Attack, str]] = {
         Attack.REPEAT: "data/ras-3-2gb/samples_repeat_2021-07-01-20-00_50s",
         Attack.SPOOF: "data/ras-3-2gb/samples_spoof_2021-06-30-14-49_50s"
     },
-    RaspberryPi.PI4_2GB: {
+    RaspberryPi.PI4_2GB_BC: {
         Attack.NORMAL: "data/ras-4-black/samples_normal_2021-07-11-22-19_50s",
         Attack.NORMAL_V2: "data/ras-4-black/samples_normal_v2_2021-07-17-15-38_50s",
         Attack.DELAY: "data/ras-4-black/samples_delay_2021-06-30-14-03_50s",
@@ -59,6 +60,18 @@ data_file_paths: Dict[RaspberryPi, Dict[Attack, str]] = {
         Attack.NOISE: "data/ras-4-black/samples_noise_2021-06-29-14-20_50s",
         Attack.REPEAT: "data/ras-4-black/samples_repeat_2021-06-28-23-52_50s",
         Attack.SPOOF: "data/ras-4-black/samples_spoof_2021-06-28-19-34_50s",
+    },
+    RaspberryPi.PI4_2GB_WC: {
+        Attack.NORMAL: "data/ras-4-white/samples_normal_2021-07-31-15-34_50s",
+        Attack.NORMAL_V2: "data/ras-4-white/samples_normal_v2_2021-07-18-15-27_50s",
+        Attack.DELAY: "data/ras-4-white/samples_delay_2021-06-30-14-04_50s",
+        Attack.DISORDER: "data/ras-4-white/samples_disorder_2021-06-30-09-45_50s",
+        Attack.FREEZE: "data/ras-4-white/samples_freeze_2021-06-29-22-51_50s",
+        Attack.HOP: "data/ras-4-white/samples_hop_2021-06-30-18-25_50s",
+        Attack.MIMIC: "data/ras-4-white/samples_mimic_2021-06-29-18-36_50s",
+        Attack.NOISE: "data/ras-4-white/samples_noise_2021-06-29-14-21_50s",
+        Attack.REPEAT: "data/ras-4-white/samples_repeat_2021-06-28-23-52_50s",
+        Attack.SPOOF: "data/ras-4-white/samples_spoof_2021-06-28-19-35_50s",
     },
     RaspberryPi.PI4_4GB: {
         Attack.NORMAL: "data/ras-4-4gb/samples_normal_2021-07-09-09-56_50s",
@@ -108,9 +121,10 @@ class DataSampler:
         data_y = data_y.reshape((len(data_y), 1))
         return all_data, data_x, data_y
 
-    # TODO: once merged: check if file exists, if yes: pd.read_csv, else this style
     @staticmethod
     def __parse_all_files_to_df() -> pd.DataFrame:
+        if os.path.isfile("./data/all.csv"):
+            return pd.read_csv("./data/all.csv")
         full_df = pd.DataFrame()
         for device in data_file_paths:
             for attack in data_file_paths[device]:
@@ -122,7 +136,7 @@ class DataSampler:
                 df['device'] = device.value
                 df['attack'] = attack.value
                 full_df = pd.concat([full_df, df])
-        #full_df.to_csv('./data/all.csv', index_label=False)
+        full_df.to_csv('./data/all.csv', index_label=False)
         return full_df
 
     @staticmethod

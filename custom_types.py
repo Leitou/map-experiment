@@ -16,7 +16,10 @@ class Attack(Enum):
 
 class RaspberryPi(Enum):
     PI3_2GB = "pi3-2gb"
-    PI4_2GB = "pi4-2gb"
+    # black cover
+    PI4_2GB_BC = "pi4-2gb-bc"
+    # white cover
+    PI4_2GB_WC = "pi4-2gb-wc"
     PI4_4GB = "pi4-4gb"
 
 

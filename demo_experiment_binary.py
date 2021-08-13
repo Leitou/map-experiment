@@ -48,7 +48,7 @@ if __name__ == "__main__":
     train_sets, test_sets = DataSampler.get_all_clients_data(
         [(RaspberryPi.PI4_4GB, {Attack.NORMAL: 2000, Attack.DISORDER: 2000}, {Attack.NORMAL: 50, Attack.DISORDER: 50}),
          (RaspberryPi.PI3_2GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 100}),
-         (RaspberryPi.PI4_2GB, {Attack.NORMAL: 2000, Attack.SPOOF: 2000}, {Attack.NORMAL: 50, Attack.SPOOF: 50})],
+         (RaspberryPi.PI4_2GB_BC, {Attack.NORMAL: 2000, Attack.SPOOF: 2000}, {Attack.NORMAL: 50, Attack.SPOOF: 50})],
         [(RaspberryPi.PI3_2GB, {Attack.NORMAL: 750, Attack.NOISE: 250})])
 
     participants = [Participant(x_train, y_train, x_valid, y_valid) for
