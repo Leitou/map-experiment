@@ -28,6 +28,8 @@ if __name__ == "__main__":
             # (RaspberryPi.PI4_2GB, {Attack.NORMAL: 500, Attack.SPOOF: 250, Attack.NOISE: 250}),
             (RaspberryPi.PI4_4GB, {Attack.NORMAL: 500, Attack.SPOOF: 250, Attack.NOISE: 250})])
 
+    train_sets, test_sets = DataSampler.scale(train_sets, test_sets)
+
     participants = [AutoEncoderParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
                     x_train, y_train, x_valid, y_valid in train_sets]
     server = Server(participants, ModelArchitecture.AUTO_ENCODER)

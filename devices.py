@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from custom_types import ModelArchitecture
-from models import MLP, AE
+from models import mlp_model, auto_encoder_model
 
 
 class Participant:
@@ -120,11 +120,11 @@ class Server:
         self.model_architecture = model_architecture
         self.participants = participants
         if model_architecture == ModelArchitecture.MLP_MONO_CLASS:
-            self.global_model = MLP(in_features=75, out_classes=1)  # .cuda()
+            self.global_model = mlp_model(in_features=75, out_classes=1)  # .cuda()
         elif model_architecture == ModelArchitecture.MLP_MULTI_CLASS:
-            self.global_model = MLP(in_features=75, out_classes=9)  # .cuda()
+            self.global_model = mlp_model(in_features=75, out_classes=9)  # .cuda()
         elif model_architecture == ModelArchitecture.AUTO_ENCODER:
-            self.global_model = AE(in_features=75)  # .cuda()
+            self.global_model = auto_encoder_model(in_features=75)  # .cuda()
         else:
             raise ValueError("Not yet implemented!")
         self.global_threshold = nan
@@ -133,11 +133,11 @@ class Server:
         # initialize model
         for p in self.participants:
             if self.model_architecture == ModelArchitecture.MLP_MONO_CLASS:
-                p.set_model(MLP(in_features=75, out_classes=1))  # .cuda()
+                p.set_model(mlp_model(in_features=75, out_classes=1))  # .cuda()
             elif self.model_architecture == ModelArchitecture.MLP_MULTI_CLASS:
-                p.set_model(MLP(in_features=75, out_classes=9))  # .cuda()
+                p.set_model(mlp_model(in_features=75, out_classes=9))  # .cuda()
             elif self.model_architecture == ModelArchitecture.AUTO_ENCODER:
-                p.set_model(AE(in_features=75))
+                p.set_model(auto_encoder_model(in_features=75))
             else:
                 raise ValueError("Not yet implemented!")
         for _ in tqdm(range(aggregation_rounds), unit="fedavg round"):
