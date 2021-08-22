@@ -19,7 +19,7 @@ class Participant:
             torch.from_numpy(train_x).type(torch.float),
             torch.from_numpy(train_y).type(y_type)
         )
-        self.data_loader = torch.utils.data.DataLoader(data_train, batch_size=batch_size, shuffle=True)
+        self.data_loader = torch.utils.data.DataLoader(data_train, batch_size=batch_size, shuffle=True, drop_last=True)
 
         # shuffling is not really necessary
         # and batch size should also be irrelevant, can be set to whatever fits in memory
@@ -140,7 +140,7 @@ class Server:
                 p.set_model(auto_encoder_model(in_features=75))
             else:
                 raise ValueError("Not yet implemented!")
-        for _ in tqdm(range(aggregation_rounds), unit="fedavg round"):
+        for _ in tqdm(range(aggregation_rounds), unit="fedavg round", leave=False):
             for p in self.participants:
                 p.train(optimizer=torch.optim.SGD(p.get_model().parameters(), lr=0.001, momentum=0.9),
                         loss_function=torch.nn.BCEWithLogitsLoss(reduction='sum') if

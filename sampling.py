@@ -1,24 +1,13 @@
+import os
 from collections import defaultdict
-from math import floor
 from typing import List, Tuple, Dict
 
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
-
-from custom_types import RaspberryPi, Attack
 from tabulate import tabulate
 
-import os
-
-# TODO:
-#   once data collection is completed:
-#   merge all the data into one master csv with additional columns for device and attack
-#   and refactor this accordingly
-#   also remove deprecated stuff
-#   and integrate the second pi4_2gb (easier when data is merged before!)
-#   check whether further processing valuable
-
+from custom_types import RaspberryPi, Attack
 
 class_map_binary: Dict[Attack, int] = defaultdict(lambda: 1, {
     Attack.NORMAL: 0,
@@ -99,9 +88,9 @@ class DataSampler:
             df = all_data.loc[(all_data['attack'] == attack.value) & (all_data['device'] == device.value)]
             key = device.value + "-" + attack.value
             if pick_ratios[key] < 1.:
-                sampled = df.sample(n=floor(pick_ratios[key] * attacks[attack]))
+                sampled = df.sample(n=round(pick_ratios[key] * attacks[attack]))
                 all_data = pd.concat([sampled, all_data]).drop_duplicates(keep=False)
-                n_to_pick = floor(1. / pick_ratios[key] * attacks[attack])
+                n_to_pick = round(1. / pick_ratios[key] * attacks[attack])
                 sampled = sampled.sample(n=n_to_pick, replace=True)
             else:
                 sampled = df.sample(n=attacks[attack])
@@ -113,7 +102,7 @@ class DataSampler:
                 data_x = np.concatenate((data_x, sampled.drop(['attack', 'device'], axis=1).to_numpy()))
 
             sampled_y = np.array([label_dict[attack]] * (
-                floor(1. / pick_ratios[key] * attacks[attack]) if pick_ratios[key] < 1. else attacks[attack]))
+                round(1. / pick_ratios[key] * attacks[attack]) if pick_ratios[key] < 1. else attacks[attack]))
             if data_y is None:
                 data_y = sampled_y
             else:
