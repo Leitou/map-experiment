@@ -77,7 +77,7 @@ class Participant:
         self.model = model
 
 
-# TODO: test this implementation and fix errors
+# TODO: check
 #  robust AE methods for adversarial part: https://ieeexplore.ieee.org/document/9099561
 class AutoEncoderParticipant(Participant):
 

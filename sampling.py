@@ -90,8 +90,7 @@ class DataSampler:
             if pick_ratios[key] < 1.:
                 sampled = df.sample(n=round(pick_ratios[key] * attacks[attack]))
                 all_data = pd.concat([sampled, all_data]).drop_duplicates(keep=False)
-                n_to_pick = round(1. / pick_ratios[key] * attacks[attack])
-                sampled = sampled.sample(n=n_to_pick, replace=True)
+                sampled = sampled.sample(n=attacks[attack], replace=True)
             else:
                 sampled = df.sample(n=attacks[attack])
                 all_data = pd.concat([sampled, all_data]).drop_duplicates(keep=False)
@@ -101,8 +100,7 @@ class DataSampler:
             else:
                 data_x = np.concatenate((data_x, sampled.drop(['attack', 'device'], axis=1).to_numpy()))
 
-            sampled_y = np.array([label_dict[attack]] * (
-                round(1. / pick_ratios[key] * attacks[attack]) if pick_ratios[key] < 1. else attacks[attack]))
+            sampled_y = np.array([label_dict[attack]] * attacks[attack])
             if data_y is None:
                 data_y = sampled_y
             else:

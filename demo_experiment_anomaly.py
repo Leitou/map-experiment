@@ -13,7 +13,7 @@ if __name__ == "__main__":
     print(f'GPU available: {torch.cuda.is_available()}')
     print("Starting demo experiment: Federated vs Centralized Anomaly Detection")
 
-    print("Use case FL: Anomaly/Zero Day Detection"
+    print("Use case FL: Anomaly/Zero Day Detection\n"
           "Is the Federated model able to detect attacks as anomalies,\nie. recognize the difference from attacks"
           " to normal samples? Which attacks are hardest to detect?")
 
