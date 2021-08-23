@@ -6,3 +6,4 @@ venv/
 results
 playground.py
 data/all.csv
+data/raw_all.csv

@@ -2,6 +2,7 @@ import os
 from collections import defaultdict
 from typing import List, Tuple, Dict
 
+from math import floor
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
@@ -88,7 +89,7 @@ class DataSampler:
             df = all_data.loc[(all_data['attack'] == attack.value) & (all_data['device'] == device.value)]
             key = device.value + "-" + attack.value
             if pick_ratios[key] < 1.:
-                sampled = df.sample(n=round(pick_ratios[key] * attacks[attack]))
+                sampled = df.sample(n=round(pick_ratios[key] * attacks[attack]), replace=True)
                 all_data = pd.concat([sampled, all_data]).drop_duplicates(keep=False)
                 sampled = sampled.sample(n=attacks[attack], replace=True)
             else:
