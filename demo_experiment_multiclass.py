@@ -4,7 +4,7 @@ from sklearn.metrics import f1_score
 
 from custom_types import Attack, RaspberryPi, ModelArchitecture
 from devices import Participant, Server
-from sampling import DataSampler
+from data_handler import DataHandler
 
 if __name__ == "__main__":
     torch.random.manual_seed(42)
@@ -13,7 +13,7 @@ if __name__ == "__main__":
     print(f'GPU available: {torch.cuda.is_available()}')
     print("Starting demo multiclass experiment: Checking if new device can recognize known attacks")
 
-    train_sets, test_sets = DataSampler.get_all_clients_data(
+    train_sets, test_sets = DataHandler.get_all_clients_data(
         [(RaspberryPi.PI4_4GB, {Attack.NORMAL: 2000, Attack.SPOOF: 1000, Attack.NOISE: 1000},
           {Attack.NORMAL: 100, Attack.SPOOF: 50, Attack.NOISE: 50}),
          (RaspberryPi.PI4_2GB_BC, {Attack.NORMAL: 2000}, {Attack.NORMAL: 200}),

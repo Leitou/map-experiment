@@ -4,7 +4,7 @@ from tabulate import tabulate
 
 from custom_types import Attack, RaspberryPi, ModelArchitecture
 from devices import Server, Participant
-from sampling import DataSampler
+from data_handler import DataHandler
 from utils import calculate_metrics
 
 if __name__ == "__main__":
@@ -20,11 +20,11 @@ if __name__ == "__main__":
         for normal in normals:
             results = []
             for attack in attacks:
-                train_sets, test_sets = DataSampler.get_all_clients_data(
+                train_sets, test_sets = DataHandler.get_all_clients_data(
                     [(device, {normal: 1500, attack: 500}, {normal: 150, attack: 50})],
                     [(device, {normal: 500, attack: 150})])
 
-                train_sets, test_sets = DataSampler.scale(train_sets, test_sets, True)
+                train_sets, test_sets = DataHandler.scale(train_sets, test_sets, True)
 
                 participants = [Participant(x_train, y_train, x_valid, y_valid) for
                                 x_train, y_train, x_valid, y_valid in train_sets]

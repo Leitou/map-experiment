@@ -3,7 +3,7 @@ import torch
 
 from custom_types import Attack, RaspberryPi, ModelArchitecture
 from devices import AutoEncoderParticipant, Server
-from sampling import DataSampler
+from data_handler import DataHandler
 from utils import print_experiment_scores
 
 if __name__ == "__main__":
@@ -20,7 +20,7 @@ if __name__ == "__main__":
     #  1. update_weights on exclusively normal samples + untrained model
     #  2. inference on new testdata with malicious samples + the trained model from 1.
 
-    train_sets, test_sets = DataSampler.get_all_clients_data(
+    train_sets, test_sets = DataHandler.get_all_clients_data(
         [(RaspberryPi.PI4_4GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 100}),
          (RaspberryPi.PI3_2GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 100}),
          (RaspberryPi.PI4_2GB_BC, {Attack.NORMAL: 2000}, {Attack.NORMAL: 100})],
@@ -28,7 +28,7 @@ if __name__ == "__main__":
             # (RaspberryPi.PI4_2GB, {Attack.NORMAL: 500, Attack.SPOOF: 250, Attack.NOISE: 250}),
             (RaspberryPi.PI4_4GB, {Attack.NORMAL: 500, Attack.SPOOF: 250, Attack.NOISE: 250})])
 
-    train_sets, test_sets = DataSampler.scale(train_sets, test_sets)
+    train_sets, test_sets = DataHandler.scale(train_sets, test_sets)
 
     participants = [AutoEncoderParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
                     x_train, y_train, x_valid, y_valid in train_sets]

@@ -3,7 +3,7 @@ import torch
 
 from custom_types import Attack, RaspberryPi, ModelArchitecture
 from devices import AutoEncoderParticipant, Server
-from sampling import DataSampler
+from data_handler import DataHandler
 from utils import calculate_metrics
 from tabulate import tabulate
 
@@ -28,11 +28,11 @@ if __name__ == "__main__":
                             (device, {normal: 500, Attack.NOISE: 150}),
                             (device, {normal: 500, Attack.REPEAT: 150}),
                             (device, {normal: 500, Attack.SPOOF: 150})]
-            train_sets, test_sets = DataSampler.get_all_clients_data(
+            train_sets, test_sets = DataHandler.get_all_clients_data(
                 [(device, {normal: 1500}, {normal: 150})],
                 test_devices)
 
-            train_sets, test_sets = DataSampler.scale(train_sets, test_sets, True)
+            train_sets, test_sets = DataHandler.scale(train_sets, test_sets, True)
 
             participants = [AutoEncoderParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
                             x_train, y_train, x_valid, y_valid in train_sets]

@@ -3,7 +3,7 @@ import torch
 
 from custom_types import Attack, RaspberryPi, ModelArchitecture
 from devices import Participant, Server
-from sampling import DataSampler
+from data_handler import DataHandler
 from utils import print_experiment_scores
 
 if __name__ == "__main__":
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     # 3. dependent on start seed few till many recognized
     # -> federated seems to have some benefits due to the averaging across devices compared to baseline
     # -> set different random seeds for testing multiple ways, resp. comment it out
-    train_sets, test_sets = DataSampler.get_all_clients_data(
+    train_sets, test_sets = DataHandler.get_all_clients_data(
         [(RaspberryPi.PI4_4GB, {Attack.NORMAL: 2000, Attack.DISORDER: 2000}, {Attack.NORMAL: 50, Attack.DISORDER: 50}),
          (RaspberryPi.PI3_2GB, {Attack.NORMAL: 2000}, {Attack.NORMAL: 100}),
          (RaspberryPi.PI4_2GB_BC, {Attack.NORMAL: 2000, Attack.SPOOF: 2000}, {Attack.NORMAL: 50, Attack.SPOOF: 50})],
