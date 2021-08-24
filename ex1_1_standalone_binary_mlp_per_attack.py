@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from tabulate import tabulate
 
-from custom_types import Attack, RaspberryPi, ModelArchitecture
+from custom_types import Behavior, RaspberryPi, ModelArchitecture
 from devices import Server, Participant
 from data_handler import DataHandler
 from utils import calculate_metrics
@@ -14,8 +14,8 @@ if __name__ == "__main__":
     print("Difficulty of detecting attacks with an mlp:\n"
           "What attacks are hardest to detect in what configuration?")
 
-    normals = [Attack.NORMAL, Attack.NORMAL_V2]
-    attacks = [val for val in Attack if val not in normals]
+    normals = [Behavior.NORMAL, Behavior.NORMAL_V2]
+    attacks = [val for val in Behavior if val not in normals]
     for device in RaspberryPi:
         for normal in normals:
             results = []

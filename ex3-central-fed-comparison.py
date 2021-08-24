@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from tabulate import tabulate
 
-from custom_types import Attack, ModelArchitecture
+from custom_types import Behavior, ModelArchitecture
 from data_handler import DataHandler
 from devices import Participant, Server
 from utils import select_federation_composition, calculate_metrics
@@ -18,8 +18,8 @@ if __name__ == "__main__":
 
     # define collective experiment config:
     participants_per_arch = [1, 1, 1, 1]
-    normals = [(Attack.NORMAL, 2000)]  # Adapt this value if number of participants is adapted extraordinarily
-    attacks = [val for val in Attack if val not in [Attack.NORMAL, Attack.NORMAL_V2]]
+    normals = [(Behavior.NORMAL, 2000)]  # Adapt this value if number of participants is adapted extraordinarily
+    attacks = [val for val in Behavior if val not in [Behavior.NORMAL, Behavior.NORMAL_V2]]
     val_percentage = 0.1
     attack_frac = 1 / 5  # heuristic as to how much malicious samples can max be expected per participant
     nnorm_test = 500
@@ -62,11 +62,11 @@ if __name__ == "__main__":
     for i, (x_test, y_test) in enumerate(test_sets):
         y_predicted = server.predict_using_global_model(x_test)
         y_predicted_central = central_server.predict_using_global_model(x_test)
-        attack = list(set(test_devices[i][1].keys()) - {Attack.NORMAL, Attack.NORMAL_V2})[0].value
+        attack = list(set(test_devices[i][1].keys()) - {Behavior.NORMAL, Behavior.NORMAL_V2})[0].value
         normal = list(
-            set(test_devices[i][1].keys()) - {Attack.DELAY, Attack.DISORDER, Attack.FREEZE, Attack.HOP,
-                                              Attack.MIMIC,
-                                              Attack.NOISE, Attack.REPEAT, Attack.SPOOF})[0].value
+            set(test_devices[i][1].keys()) - {Behavior.DELAY, Behavior.DISORDER, Behavior.FREEZE, Behavior.HOP,
+                                              Behavior.MIMIC,
+                                              Behavior.NOISE, Behavior.REPEAT, Behavior.SPOOF})[0].value
         # federated results
         acc, f1, _ = calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
         results.append([test_devices[i][0], normal, attack, f'{acc * 100:.2f}%', f'{f1 * 100:.2f}%'])

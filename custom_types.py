@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class Attack(Enum):
+class Behavior(Enum):
     NORMAL = "normal"
     NORMAL_V2 = "normal_v2"
     DELAY = "delay"

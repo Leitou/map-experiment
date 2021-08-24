@@ -8,72 +8,72 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from tabulate import tabulate
 
-from custom_types import RaspberryPi, Attack
+from custom_types import RaspberryPi, Behavior
 
-class_map_binary: Dict[Attack, int] = defaultdict(lambda: 1, {
-    Attack.NORMAL: 0,
-    Attack.NORMAL_V2: 0
+class_map_binary: Dict[Behavior, int] = defaultdict(lambda: 1, {
+    Behavior.NORMAL: 0,
+    Behavior.NORMAL_V2: 0
 })
 
-class_map_multi: Dict[Attack, int] = defaultdict(lambda: 0, {
-    Attack.DELAY: 1,
-    Attack.DISORDER: 2,
-    Attack.FREEZE: 3,
-    Attack.HOP: 4,
-    Attack.MIMIC: 5,
-    Attack.NOISE: 6,
-    Attack.REPEAT: 7,
-    Attack.SPOOF: 8
+class_map_multi: Dict[Behavior, int] = defaultdict(lambda: 0, {
+    Behavior.DELAY: 1,
+    Behavior.DISORDER: 2,
+    Behavior.FREEZE: 3,
+    Behavior.HOP: 4,
+    Behavior.MIMIC: 5,
+    Behavior.NOISE: 6,
+    Behavior.REPEAT: 7,
+    Behavior.SPOOF: 8
 })
 
-data_file_paths: Dict[RaspberryPi, Dict[Attack, str]] = {
+data_file_paths: Dict[RaspberryPi, Dict[Behavior, str]] = {
     RaspberryPi.PI3_2GB: {
-        Attack.NORMAL: "data/ras-3-2gb/samples_normal_2021-06-18-15-59_50s",
-        Attack.NORMAL_V2: "data/ras-3-2gb/samples_normal_v2_2021-06-23-16-54_50s",
-        Attack.DELAY: "data/ras-3-2gb/samples_delay_2021-07-01-08-30_50s",
-        Attack.DISORDER: "data/ras-3-2gb/samples_disorder_2021-06-30-23-54_50s",
-        Attack.FREEZE: "data/ras-3-2gb/samples_freeze_2021-07-01-14-11_50s",
-        Attack.HOP: "data/ras-3-2gb/samples_hop_2021-06-29-23-23_50s",
-        Attack.MIMIC: "data/ras-3-2gb/samples_mimic_2021-06-30-10-33_50s",
-        Attack.NOISE: "data/ras-3-2gb/samples_noise_2021-06-30-19-44_50s",
-        Attack.REPEAT: "data/ras-3-2gb/samples_repeat_2021-07-01-20-00_50s",
-        Attack.SPOOF: "data/ras-3-2gb/samples_spoof_2021-06-30-14-49_50s"
+        Behavior.NORMAL: "data/ras-3-2gb/samples_normal_2021-06-18-15-59_50s",
+        Behavior.NORMAL_V2: "data/ras-3-2gb/samples_normal_v2_2021-06-23-16-54_50s",
+        Behavior.DELAY: "data/ras-3-2gb/samples_delay_2021-07-01-08-30_50s",
+        Behavior.DISORDER: "data/ras-3-2gb/samples_disorder_2021-06-30-23-54_50s",
+        Behavior.FREEZE: "data/ras-3-2gb/samples_freeze_2021-07-01-14-11_50s",
+        Behavior.HOP: "data/ras-3-2gb/samples_hop_2021-06-29-23-23_50s",
+        Behavior.MIMIC: "data/ras-3-2gb/samples_mimic_2021-06-30-10-33_50s",
+        Behavior.NOISE: "data/ras-3-2gb/samples_noise_2021-06-30-19-44_50s",
+        Behavior.REPEAT: "data/ras-3-2gb/samples_repeat_2021-07-01-20-00_50s",
+        Behavior.SPOOF: "data/ras-3-2gb/samples_spoof_2021-06-30-14-49_50s"
     },
     RaspberryPi.PI4_2GB_BC: {
-        Attack.NORMAL: "data/ras-4-black/samples_normal_2021-07-11-22-19_50s",
-        Attack.NORMAL_V2: "data/ras-4-black/samples_normal_v2_2021-07-17-15-38_50s",
-        Attack.DELAY: "data/ras-4-black/samples_delay_2021-06-30-14-03_50s",
-        Attack.DISORDER: "data/ras-4-black/samples_disorder_2021-06-30-09-44_50s",
-        Attack.FREEZE: "data/ras-4-black/samples_freeze_2021-06-29-22-50_50s",
-        Attack.HOP: "data/ras-4-black/samples_hop_2021-06-30-18-24_50s",
-        Attack.MIMIC: "data/ras-4-black/samples_mimic_2021-06-29-18-35_50s",
-        Attack.NOISE: "data/ras-4-black/samples_noise_2021-06-29-14-20_50s",
-        Attack.REPEAT: "data/ras-4-black/samples_repeat_2021-06-28-23-52_50s",
-        Attack.SPOOF: "data/ras-4-black/samples_spoof_2021-06-28-19-34_50s",
+        Behavior.NORMAL: "data/ras-4-black/samples_normal_2021-07-11-22-19_50s",
+        Behavior.NORMAL_V2: "data/ras-4-black/samples_normal_v2_2021-07-17-15-38_50s",
+        Behavior.DELAY: "data/ras-4-black/samples_delay_2021-06-30-14-03_50s",
+        Behavior.DISORDER: "data/ras-4-black/samples_disorder_2021-06-30-09-44_50s",
+        Behavior.FREEZE: "data/ras-4-black/samples_freeze_2021-06-29-22-50_50s",
+        Behavior.HOP: "data/ras-4-black/samples_hop_2021-06-30-18-24_50s",
+        Behavior.MIMIC: "data/ras-4-black/samples_mimic_2021-06-29-18-35_50s",
+        Behavior.NOISE: "data/ras-4-black/samples_noise_2021-06-29-14-20_50s",
+        Behavior.REPEAT: "data/ras-4-black/samples_repeat_2021-06-28-23-52_50s",
+        Behavior.SPOOF: "data/ras-4-black/samples_spoof_2021-06-28-19-34_50s",
     },
     RaspberryPi.PI4_2GB_WC: {
-        Attack.NORMAL: "data/ras-4-white/samples_normal_2021-07-31-15-34_50s",
-        Attack.NORMAL_V2: "data/ras-4-white/samples_normal_v2_2021-07-18-15-27_50s",
-        Attack.DELAY: "data/ras-4-white/samples_delay_2021-06-30-14-04_50s",
-        Attack.DISORDER: "data/ras-4-white/samples_disorder_2021-06-30-09-45_50s",
-        Attack.FREEZE: "data/ras-4-white/samples_freeze_2021-06-29-22-51_50s",
-        Attack.HOP: "data/ras-4-white/samples_hop_2021-06-30-18-25_50s",
-        Attack.MIMIC: "data/ras-4-white/samples_mimic_2021-06-29-18-36_50s",
-        Attack.NOISE: "data/ras-4-white/samples_noise_2021-06-29-14-21_50s",
-        Attack.REPEAT: "data/ras-4-white/samples_repeat_2021-06-28-23-52_50s",
-        Attack.SPOOF: "data/ras-4-white/samples_spoof_2021-06-28-19-35_50s",
+        Behavior.NORMAL: "data/ras-4-white/samples_normal_2021-07-31-15-34_50s",
+        Behavior.NORMAL_V2: "data/ras-4-white/samples_normal_v2_2021-07-18-15-27_50s",
+        Behavior.DELAY: "data/ras-4-white/samples_delay_2021-06-30-14-04_50s",
+        Behavior.DISORDER: "data/ras-4-white/samples_disorder_2021-06-30-09-45_50s",
+        Behavior.FREEZE: "data/ras-4-white/samples_freeze_2021-06-29-22-51_50s",
+        Behavior.HOP: "data/ras-4-white/samples_hop_2021-06-30-18-25_50s",
+        Behavior.MIMIC: "data/ras-4-white/samples_mimic_2021-06-29-18-36_50s",
+        Behavior.NOISE: "data/ras-4-white/samples_noise_2021-06-29-14-21_50s",
+        Behavior.REPEAT: "data/ras-4-white/samples_repeat_2021-06-28-23-52_50s",
+        Behavior.SPOOF: "data/ras-4-white/samples_spoof_2021-06-28-19-35_50s",
     },
     RaspberryPi.PI4_4GB: {
-        Attack.NORMAL: "data/ras-4-4gb/samples_normal_2021-07-09-09-56_50s",
-        Attack.NORMAL_V2: "data/ras-4-4gb/samples_normal_v2_2021-07-13-10-43_50s",
-        Attack.DELAY: "data/ras-4-4gb/samples_delay_2021-07-01-08-36_50s",
-        Attack.DISORDER: "data/ras-4-4gb/samples_disorder_2021-06-30-23-57_50s",
-        Attack.FREEZE: "data/ras-4-4gb/samples_freeze_2021-07-01-14-13_50s",
-        Attack.HOP: "data/ras-4-4gb/samples_hop_2021-06-29-23-25_50s",
-        Attack.MIMIC: "data/ras-4-4gb/samples_mimic_2021-06-30-10-00_50s",
-        Attack.NOISE: "data/ras-4-4gb/samples_noise_2021-06-30-19-48_50s",
-        Attack.REPEAT: "data/ras-4-4gb/samples_repeat_2021-07-01-20-06_50s",
-        Attack.SPOOF: "data/ras-4-4gb/samples_spoof_2021-06-30-14-54_50s"
+        Behavior.NORMAL: "data/ras-4-4gb/samples_normal_2021-07-09-09-56_50s",
+        Behavior.NORMAL_V2: "data/ras-4-4gb/samples_normal_v2_2021-07-13-10-43_50s",
+        Behavior.DELAY: "data/ras-4-4gb/samples_delay_2021-07-01-08-36_50s",
+        Behavior.DISORDER: "data/ras-4-4gb/samples_disorder_2021-06-30-23-57_50s",
+        Behavior.FREEZE: "data/ras-4-4gb/samples_freeze_2021-07-01-14-13_50s",
+        Behavior.HOP: "data/ras-4-4gb/samples_hop_2021-06-29-23-25_50s",
+        Behavior.MIMIC: "data/ras-4-4gb/samples_mimic_2021-06-30-10-00_50s",
+        Behavior.NOISE: "data/ras-4-4gb/samples_noise_2021-06-30-19-48_50s",
+        Behavior.REPEAT: "data/ras-4-4gb/samples_repeat_2021-07-01-20-06_50s",
+        Behavior.SPOOF: "data/ras-4-4gb/samples_spoof_2021-06-30-14-54_50s"
     },
 }
 
@@ -81,8 +81,8 @@ data_file_paths: Dict[RaspberryPi, Dict[Attack, str]] = {
 class DataHandler:
 
     @staticmethod
-    def __pick_from_all_data(all_data: pd.DataFrame, device: RaspberryPi, attacks: Dict[Attack, int],
-                             label_dict: Dict[Attack, int], pick_ratios: Dict[str, float]) -> \
+    def __pick_from_all_data(all_data: pd.DataFrame, device: RaspberryPi, attacks: Dict[Behavior, int],
+                             label_dict: Dict[Behavior, int], pick_ratios: Dict[str, float]) -> \
             Tuple[pd.DataFrame, np.ndarray, np.ndarray]:
         data_x, data_y = None, None
         for attack in attacks:
@@ -137,8 +137,8 @@ class DataHandler:
 
     @staticmethod
     def get_all_clients_data(
-            train_devices: List[Tuple[RaspberryPi, Dict[Attack, int], Dict[Attack, int]]],
-            test_devices: List[Tuple[RaspberryPi, Dict[Attack, int]]],
+            train_devices: List[Tuple[RaspberryPi, Dict[Behavior, int], Dict[Behavior, int]]],
+            test_devices: List[Tuple[RaspberryPi, Dict[Behavior, int]]],
             multi_class=False) -> \
             Tuple[List[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]], List[Tuple[np.ndarray, np.ndarray]]]:
 

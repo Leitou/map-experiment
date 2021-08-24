@@ -1,55 +1,34 @@
-import os
-import pandas as pd
-from data_handler import data_file_paths
-from custom_types import Attack, RaspberryPi
 import matplotlib.pyplot as plt
+import pandas as pd
 
+from custom_types import RaspberryPi, Behavior
+from data_handler import DataHandler
 
-def parse_all_files_to_df_raw() -> pd.DataFrame:
-    if os.path.isfile("./data/all_raw.csv"):
-        return pd.read_csv("./data/all_raw.csv")
-    full_df = pd.DataFrame()
-    for device in data_file_paths:
-        for attack in data_file_paths[device]:
-            df = pd.read_csv(data_file_paths[device][attack])
-            # filter for measurements where the device was connected
-            df = df[df['connectivity'] == 1]
-            #remove model-irrelevant columns
-            #df = df.drop(["time", "timestamp", "seconds", "connectivity"], axis=1)
-            df['device'] = device.value
-            df['attack'] = attack.value
-            full_df = pd.concat([full_df, df])
-    full_df.to_csv('./data/raw_all.csv', index_label=False)
-    return full_df
+if __name__ == "__main__":
+    all_data: pd.DataFrame = DataHandler._DataHandler__parse_all_files_to_df()
+    col_names = [col for col in all_data if col not in ['device', 'attack']]
+    col_names = col_names
 
-# for each of the devices plot their data for all the different options
-# 4 devices, for each 10 monitoring programs -> total 40
+    for device in RaspberryPi:
+        for normal in [Behavior.NORMAL, Behavior.NORMAL_V2]:
+            for attack in [Behavior.FREEZE, Behavior.REPEAT]:
+                fig, axs = plt.subplots(len(col_names))
+                fig.suptitle(f'Plotting {device.value}: {normal.value} vs {attack.value}')
+                fig.set_figheight(len(col_names) * 4)
+                fig.set_figwidth(50)
 
-# TODO: first just plot a random feature at some index
-all_data = parse_all_files_to_df_raw()
+                for i in range(len(col_names)):
+                    df_normal = all_data.loc[
+                        (all_data['attack'] == normal.value) & (all_data['device'] == device.value)]
+                    df_att = all_data.loc[(all_data['attack'] == attack.value) & (all_data['device'] == device.value)]
+                    xes_normal = [i for i in range(len(df_normal))]
+                    ys_normal = df_normal[col_names[i]].tolist()
+                    ys_attack_real = df_att[col_names[i]].tolist()
+                    ys_attack_repeated = []
+                    for j in range(len(ys_normal)):
+                        ys_attack_repeated.append(ys_attack_real[(j % len(ys_attack_real))])
+                    axs[i].plot(xes_normal, ys_normal, color='green')
+                    axs[i].plot(xes_normal, ys_attack_repeated, color='red')
+                    axs[i].set_title(col_names[i])
 
-d = {}
-for name, group in all_data.groupby(['device', 'attack']):
-    ft = group.columns[46]
-    print("device: ", name[0], "- feature: ", ft)
-
-    if name[1] == "normal":
-        group.plot(x="time", y=f'{ft}', kind='scatter', color="b")
-        plt.title(f"{name[0] + '-' + name[1]}")
-        plt.show()
-    elif name[1] == "normal_v2":
-        group.plot(x="time", y=f'{ft}', kind='scatter', color="r")
-        plt.title(f"{name[0] + '-' + name[1]}")
-        plt.show()
-
-
-
-
-
-
-
-
-
-#
-#     d['group_' + str(name)] = group
-# for __i, row in all_data.groupby(['device', 'attack']).count().iterrows():
+                fig.savefig(f'data_plot_{device.value}_{normal.value}_{attack.value}.png', figure=fig)
