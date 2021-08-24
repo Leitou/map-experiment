@@ -14,20 +14,23 @@ if __name__ == "__main__":
     np.random.seed(42)
 
     print(f'GPU available: {torch.cuda.is_available()}')
-    print("Starting demo experiment: Federated vs Centralized Anomaly Detection, just using a single type of attack")
+    print("Starting demo experiment: Federated vs Centralized Anomaly Detection\n"
+          "Training on all attacks and testing for each attack how well the joint model performs.")
 
     # define collective experiment config:
+    # TODO: take care not to exceed available data too much
     participants_per_arch = [1, 1, 1, 1]
     normals = [(Attack.NORMAL, 2000)]  # Adapt this value if number of participants is adapted extraordinarily
     attacks = [val for val in Attack if val not in [Attack.NORMAL, Attack.NORMAL_V2]]
     val_percentage = 0.1
-    attack_frac = 1 / 5  # heuristic as to how much malicious samples can max be expected per participant
+    attack_frac = 1 / 5
     nnorm_test = 500
     natt_test_samples = 100
 
-
     train_devices, test_devices = select_federation_composition(participants_per_arch, normals, attacks, val_percentage,
                                                                 attack_frac, nnorm_test, natt_test_samples)
+    print(train_devices)
+    print(test_devices)
 
     print("Train Federation")
     train_sets, test_sets = DataHandler.get_all_clients_data(train_devices, test_devices)

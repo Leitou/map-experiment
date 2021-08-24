@@ -42,23 +42,23 @@ def select_federation_composition(participants_per_arch: List, normals: List[Tup
             for normal in normals:
                 train_d[normal[0]] = normal[1]
                 val_d[normal[0]] = floor(normal[1] * val_percentage)
-                test_d[normal[0]] = nnorm_test
+                if p == 0:
+                    test_d[normal[0]] = nnorm_test
 
             # add all attacks for training + validation per participant
             for attack in attacks:
                 # TODO: add here choice whether attack is in-/excluded per device? random or determ.
                 train_d[attack] = floor(normals[0][1] * attack_frac)
                 val_d[attack] = floor(normals[0][1] * attack_frac * val_percentage)
-                # if p == 0:  # add test set only once if we have this type normal
-                #     test_d[attack] = natt_test_samples
 
             train_devices.append((list(RaspberryPi)[i], train_d, val_d))
 
 
-            # now populate the test dictionary with all selected attacks
-            for attack in attacks:
-                test_dd = dict(test_d)
-                test_dd[attack] = natt_test_samples
-                test_devices.append((list(RaspberryPi)[i], test_dd))
+            # now populate the test dictionary with all selected attacks (only once per device type)
+            if p == 0:
+                for attack in attacks:
+                    test_dd = dict(test_d)
+                    test_dd[attack] = natt_test_samples
+                    test_devices.append((list(RaspberryPi)[i], test_dd))
 
     return train_devices, test_devices
