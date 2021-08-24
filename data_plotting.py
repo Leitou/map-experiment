@@ -29,6 +29,6 @@ if __name__ == "__main__":
                         ys_attack_repeated.append(ys_attack_real[(j % len(ys_attack_real))])
                     axs[i].plot(xes_normal, ys_normal, color='green')
                     axs[i].plot(xes_normal, ys_attack_repeated, color='red')
-                    axs[i].set_title(col_names[i])
+                    axs[i].set_title(col_names[i], fontsize='xx-large')
 
-                fig.savefig(f'data_plot_{device.value}_{normal.value}_{attack.value}.png', figure=fig)
+                fig.savefig(f'data_plot_{device.value}_{normal.value}_{attack.value}.png', figure=fig, dpi=50)
