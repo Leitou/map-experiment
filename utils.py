@@ -3,7 +3,7 @@ from typing import Tuple, Any, List, Dict, Union
 import numpy as np
 from math import floor
 from sklearn.metrics import f1_score, confusion_matrix, classification_report
-from custom_types import RaspberryPi, Attack
+from custom_types import RaspberryPi, Behavior
 
 
 def calculate_metrics(y_test: np.ndarray, y_pred: np.ndarray) -> Tuple[float, float, Any]:
@@ -28,10 +28,10 @@ def print_experiment_scores(y_test: np.ndarray, y_pred: np.ndarray, federated=Tr
 
 
 # Assumption we test at most on what we train (attack types)
-def select_federation_composition(participants_per_arch: List, normals: List[Tuple[Attack, int]], attacks: List[Attack],
+def select_federation_composition(participants_per_arch: List, normals: List[Tuple[Behavior, int]], attacks: List[Behavior],
                                   val_percentage: float, attack_frac: float, nnorm_test: int, natt_test_samples: int) \
-        -> Tuple[List[Tuple[Any, Dict[Attack, Union[int, float]], Dict[Attack, Union[int, float]]]], List[
-            Tuple[Any, Dict[Attack, int]]]]:
+        -> Tuple[List[Tuple[Any, Dict[Behavior, Union[int, float]], Dict[Behavior, Union[int, float]]]], List[
+            Tuple[Any, Dict[Behavior, int]]]]:
     # populate train and test_devices for
     train_devices, test_devices = [], []
     for i, num_p in enumerate(participants_per_arch):
