@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from sampling import data_file_paths
+from data_handler import data_file_paths
 from custom_types import Attack, RaspberryPi
 import matplotlib.pyplot as plt
 
@@ -30,7 +30,7 @@ all_data = parse_all_files_to_df_raw()
 
 d = {}
 for name, group in all_data.groupby(['device', 'attack']):
-    ft = group.columns[17]
+    ft = group.columns[46]
     print("device: ", name[0], "- feature: ", ft)
 
     if name[1] == "normal":

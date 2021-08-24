@@ -78,7 +78,7 @@ data_file_paths: Dict[RaspberryPi, Dict[Attack, str]] = {
 }
 
 
-class DataSampler:
+class DataHandler:
 
     @staticmethod
     def __pick_from_all_data(all_data: pd.DataFrame, device: RaspberryPi, attacks: Dict[Attack, int],
@@ -89,7 +89,7 @@ class DataSampler:
             df = all_data.loc[(all_data['attack'] == attack.value) & (all_data['device'] == device.value)]
             key = device.value + "-" + attack.value
             if pick_ratios[key] < 1.:
-                sampled = df.sample(n=round(pick_ratios[key] * attacks[attack]), replace=True)
+                sampled = df.sample(n=floor(pick_ratios[key] * attacks[attack]))
                 all_data = pd.concat([sampled, all_data]).drop_duplicates(keep=False)
                 sampled = sampled.sample(n=attacks[attack], replace=True)
             else:
@@ -129,7 +129,7 @@ class DataSampler:
 
     @staticmethod
     def show_data_availability():
-        all_data = DataSampler.__parse_all_files_to_df()
+        all_data = DataHandler.__parse_all_files_to_df()
         drop_cols = [col for col in list(all_data) if col not in ['device', 'attack', 'alarmtimer:alarmtimer_fired']]
         print(tabulate(
             all_data.drop(drop_cols, axis=1).rename(columns={'alarmtimer:alarmtimer_fired': 'count'}).groupby(
@@ -145,7 +145,7 @@ class DataSampler:
         assert len(train_devices) > 0 and len(
             test_devices) > 0, "Need to provide at least one train and one test device!"
 
-        all_data = DataSampler.__parse_all_files_to_df()
+        all_data = DataHandler.__parse_all_files_to_df()
 
         # Dictionaries that hold total request: e. g. we want 500 train data for a pi3 and delay
         # but may only have 100 -> oversample and prevent overlaps
@@ -165,13 +165,13 @@ class DataSampler:
 
         # pick test sets
         for device, test_attacks in test_devices:
-            all_data, test_x, test_y = DataSampler.__pick_from_all_data(all_data, device, test_attacks, label_dict,
+            all_data, test_x, test_y = DataHandler.__pick_from_all_data(all_data, device, test_attacks, label_dict,
                                                                         defaultdict(lambda: 1))
             test_sets.append((test_x, test_y))
 
         # pick validation sets: same as test sets -> in refactoring can be merged
         for device, _, val_attacks in train_devices:
-            all_data, val_x, val_y = DataSampler.__pick_from_all_data(all_data, device, val_attacks, label_dict,
+            all_data, val_x, val_y = DataHandler.__pick_from_all_data(all_data, device, val_attacks, label_dict,
                                                                       defaultdict(lambda: 1))
             validation_sets.append((val_x, val_y))
 
@@ -184,7 +184,7 @@ class DataSampler:
 
         # pick and sample train sets
         for device, attacks, _ in train_devices:
-            all_data, train_x, train_y = DataSampler.__pick_from_all_data(all_data, device, attacks, label_dict,
+            all_data, train_x, train_y = DataHandler.__pick_from_all_data(all_data, device, attacks, label_dict,
                                                                           train_ratio_dict)
             train_sets.append((train_x, train_y))
 
