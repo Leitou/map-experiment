@@ -32,7 +32,7 @@ def plot_normals_against_attacks_per_device(all_data, col_names, attacks = [Beha
                 # fig.savefig(f'data_plot_{device.value}_{normal.value}_{attack.value}.png', figure=fig, dpi=50)
                 fig.savefig(f'data_plot_{device.value}_{normal.value}_{attack.value}.png', dpi=50)
 
-def plot_behaviors_for_all_devices(behaviors, devices=RaspberryPi):
+def plot_behaviors_for_all_devices(all_data, col_names, behaviors, devices=RaspberryPi):
     colors = ["red", "green", "blue", "orange"][:len(devices)]
     for b in behaviors:
         fig, axs = plt.subplots(len(col_names))
@@ -57,4 +57,4 @@ if __name__ == "__main__":
     col_names = col_names
 
     # plot_normals_against_attacks_per_device(all_data, col_names)
-    plot_behaviors_for_all_devices([Behavior.REPEAT, Behavior.FREEZE])
+    plot_behaviors_for_all_devices(all_data, col_names, [Behavior.REPEAT, Behavior.FREEZE])
