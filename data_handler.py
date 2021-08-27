@@ -134,13 +134,13 @@ class DataHandler:
         drop_cols = [col for col in list(all_data) if col not in ['device', 'attack', 'alarmtimer:alarmtimer_fired']]
         grouped = all_data.drop(drop_cols, axis=1).rename(columns={'alarmtimer:alarmtimer_fired': 'count'}).groupby(
                 ['device', 'attack'], as_index=False).count()
-        labels = ['device']
-        for behavior in Behavior:
-            labels += [behavior.value]
-        rows = []
+        labels = ['Attack']
         for device in RaspberryPi:
-            row = [device.value]
-            for behavior in Behavior:
+            labels += [device.value]
+        rows = []
+        for behavior in Behavior:
+            row = [behavior.value]
+            for device in RaspberryPi:
                 cnt_row = grouped.loc[(grouped['attack'] == behavior.value) & (grouped['device'] == device.value)]
                 row += [cnt_row['count'].iloc[0]]
             rows.append(row)

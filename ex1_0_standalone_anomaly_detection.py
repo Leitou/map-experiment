@@ -1,3 +1,5 @@
+from typing import Dict
+
 import numpy as np
 import torch
 
@@ -16,18 +18,14 @@ if __name__ == "__main__":
           " to normal samples? Which attacks are hardest to detect?\n")
 
     normals = [Behavior.NORMAL, Behavior.NORMAL_V2]
-    for device in RaspberryPi:
-        for normal in normals:
-            results = []
-
-            test_devices = [(device, {normal: 500, Behavior.DELAY: 150}),
-                            (device, {normal: 500, Behavior.DISORDER: 150}),
-                            (device, {normal: 500, Behavior.FREEZE: 150}),
-                            (device, {normal: 500, Behavior.HOP: 150}),
-                            (device, {normal: 500, Behavior.MIMIC: 150}),
-                            (device, {normal: 500, Behavior.NOISE: 150}),
-                            (device, {normal: 500, Behavior.REPEAT: 150}),
-                            (device, {normal: 500, Behavior.SPOOF: 150})]
+    for normal in normals:
+        labels = ["Attack"] + [pi.value for pi in RaspberryPi]
+        results = []
+        res_dict: Dict[RaspberryPi, Dict[Behavior, str]] = {}
+        for device in RaspberryPi:
+            device_dict: Dict[Behavior, str] = {}
+            test_devices = [(device, {normal: 500, behavior: 150}) for behavior in Behavior if
+                            behavior not in normals]
             train_sets, test_sets = DataHandler.get_all_clients_data(
                 [(device, {normal: 1500}, {normal: 150})],
                 test_devices)
@@ -38,11 +36,13 @@ if __name__ == "__main__":
                             x_train, y_train, x_valid, y_valid in train_sets]
             server = Server(participants, ModelArchitecture.AUTO_ENCODER)
             server.train_global_model(aggregation_rounds=5)
-
             for i, (x_test, y_test) in enumerate(test_sets):
                 y_predicted = server.predict_using_global_model(x_test)
-                attack = list(set(test_devices[i][1].keys()) - {Behavior.NORMAL, Behavior.NORMAL_V2})[0].value
+                attack = list(set(test_devices[i][1].keys()) - {Behavior.NORMAL, Behavior.NORMAL_V2})[0]
                 acc, f1, _ = calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
-                results.append([device.value, normal.value, attack, f'{acc * 100:.2f}%', f'{f1 * 100:.2f}%'])
-
-            print(tabulate(results, headers=['Device', 'Normal', 'Attack', 'Accuracy', 'F1 score'], tablefmt="pretty"))
+                device_dict[attack] = f'{acc * 100:.2f}% ({f1 * 100:.2f})%'
+            res_dict[device] = device_dict
+        for attack in [behavior for behavior in Behavior if behavior not in normals]:
+            results.append([attack.value] + [res_dict[device][attack] for device in RaspberryPi])
+        print("Normal Behavior:", normal)
+        print(tabulate(results, headers=labels, tablefmt="pretty"))
