@@ -7,7 +7,7 @@ from tabulate import tabulate
 from custom_types import Behavior, ModelArchitecture
 from data_handler import DataHandler
 from devices import Participant, Server
-from utils import select_federation_composition, calculate_metrics
+from utils import select_federation_composition, get_sampling_per_device, calculate_metrics
 
 if __name__ == "__main__":
     torch.random.manual_seed(42)
@@ -15,22 +15,35 @@ if __name__ == "__main__":
 
     print(f'GPU available: {torch.cuda.is_available()}')
     print("Starting demo experiment: Federated vs Centralized Anomaly Detection\n"
-          "Training on all attacks and testing for each attack how well the joint model performs.")
+          "Training on all attacks and testing for each attack how well the joint model performs.\n")
 
     # define collective experiment config:
     # TODO: take care not to exceed available data too much
-    participants_per_arch = [1, 1, 1, 1]
-    normals = [(Behavior.NORMAL, 2000)]  # Adapt this value if number of participants is adapted extraordinarily
-    attacks = [val for val in Behavior if val not in [Behavior.NORMAL, Behavior.NORMAL_V2]]
+    participants_per_arch = [3, 1, 1, 1]
+    normals = [(Behavior.NORMAL, 600)]
+    # attacks = [val for val in Behavior if val not in [Behavior.NORMAL, Behavior.NORMAL_V2]]
+    attacks = [Behavior.DELAY, Behavior.DISORDER, Behavior.FREEZE]
     val_percentage = 0.1
-    attack_frac = 1 / 5
-    nnorm_test = 500
-    natt_test_samples = 100
+    train_attack_frac = 1 / len(attacks)  # enforce balancing per device
+    nnorm_test_samples = 480
+    natt_test_samples = 120
 
     train_devices, test_devices = select_federation_composition(participants_per_arch, normals, attacks, val_percentage,
-                                                                attack_frac, nnorm_test, natt_test_samples)
+                                                                train_attack_frac, nnorm_test_samples,
+                                                                natt_test_samples)
+    print("Training devices:", len(train_devices))
     print(train_devices)
+    print("Testing devices:", len(test_devices))
     print(test_devices)
+
+    incl_test = False
+    incl_train = True
+    incl_val = False
+    print("Number of samples used per device type:", "\nincl. test samples - ", incl_test, "\nincl. val samples -",
+          incl_val, "\nincl. train samples -", incl_train)
+    sample_requirements = get_sampling_per_device(train_devices, test_devices, incl_train, incl_val, incl_test)
+    print(tabulate(sample_requirements, headers=["device"] + [val.value for val in Behavior] + ["Normal/Attack"],
+                   tablefmt="pretty"))
 
     print("Train Federation")
     train_sets, test_sets = DataHandler.get_all_clients_data(train_devices, test_devices)
@@ -40,15 +53,7 @@ if __name__ == "__main__":
                     x_train, y_train, x_valid, y_valid in train_sets]
     server = Server(participants, ModelArchitecture.MLP_MONO_CLASS)
     server.train_global_model(aggregation_rounds=5)
-
-    # # no local inference
-    # x_test, y_test = test_sets[0]
-    # for x, y in test_sets[1:]:
-    #     x_test = np.concatenate((x_test, x))
-    #     y_test = np.concatenate((y_test, y))
-
-    # y_predicted = server.predict_using_global_model(x_test)
-    # print_experiment_scores(y_test.flatten(), y_predicted.flatten().numpy(), federated=True)
+    print()
 
     print("Train Centralized")
     x_train_all = np.concatenate(tuple(x_train for x_train, y_train, x_valid, y_valid in train_sets))

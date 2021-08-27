@@ -93,6 +93,7 @@ class DataHandler:
                 all_data = pd.concat([sampled, all_data]).drop_duplicates(keep=False)
                 sampled = sampled.sample(n=attacks[attack], replace=True)
             else:
+                # creates a ValueError in case the experiment takes more validation and testing data than available
                 sampled = df.sample(n=attacks[attack])
                 all_data = pd.concat([sampled, all_data]).drop_duplicates(keep=False)
 
