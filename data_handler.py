@@ -132,9 +132,23 @@ class DataHandler:
     def show_data_availability():
         all_data = DataHandler.__parse_all_files_to_df()
         drop_cols = [col for col in list(all_data) if col not in ['device', 'attack', 'alarmtimer:alarmtimer_fired']]
+        grouped = all_data.drop(drop_cols, axis=1).rename(columns={'alarmtimer:alarmtimer_fired': 'count'}).groupby(
+                ['device', 'attack'], as_index=False).count()
+        labels = ['device']
+        for behavior in Behavior:
+            labels += [behavior.value]
+        rows = []
+        for device in RaspberryPi:
+            row = [device.value]
+            for behavior in Behavior:
+                cnt_row = grouped.loc[(grouped['attack'] == behavior.value) & (grouped['device'] == device.value)]
+                row += [cnt_row['count'].iloc[0]]
+            rows.append(row)
         print(tabulate(
             all_data.drop(drop_cols, axis=1).rename(columns={'alarmtimer:alarmtimer_fired': 'count'}).groupby(
                 ['device', 'attack'], as_index=False).count(), tablefmt="pretty"))
+        print(tabulate(
+            rows, headers=labels, tablefmt="pretty"))
 
     @staticmethod
     def get_all_clients_data(

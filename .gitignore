@@ -4,7 +4,6 @@
 *.model
 venv/
 results
-playground.py
 data/all.csv
 data/raw_all.csv
 data_plot_*.png
