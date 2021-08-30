@@ -28,8 +28,10 @@ def print_experiment_scores(y_test: np.ndarray, y_pred: np.ndarray, federated=Tr
 
 
 # Assumption we test at most on what we train (attack types)
-def select_federation_composition(participants_per_arch: List, normals: List[Tuple[Behavior, int]], attacks: List[Behavior],
-                                  val_percentage: float, attack_frac: float, nnorm_test_samples: int, natt_test_samples: int) \
+def select_federation_composition(participants_per_arch: List, normals: List[Tuple[Behavior, int]],
+                                  attacks: List[Behavior],
+                                  val_percentage: float, attack_frac: float, nnorm_test_samples: int,
+                                  natt_test_samples: int, is_anomaly: bool = False) \
         -> Tuple[List[Tuple[Any, Dict[Behavior, Union[int, float]], Dict[Behavior, Union[int, float]]]], List[
             Tuple[Any, Dict[Behavior, int]]]]:
     # populate train and test_devices for
@@ -45,11 +47,12 @@ def select_federation_composition(participants_per_arch: List, normals: List[Tup
                 if p == 0:
                     test_d[normal[0]] = nnorm_test_samples
 
-            # add all attacks for training + validation per participant
-            for attack in attacks:
-                # TODO: add here choice whether attack is in-/excluded per device? random or determ.
-                train_d[attack] = floor(normals[0][1] * attack_frac)
-                val_d[attack] = floor(normals[0][1] * attack_frac * val_percentage)
+            # add all attacks for training + validation per participant in case of binary classification training
+            if not is_anomaly:
+                for attack in attacks:
+                    # TODO: add here choice whether attack is in-/excluded per device? random or determ.
+                    train_d[attack] = floor(normals[0][1] * attack_frac)
+                    val_d[attack] = floor(normals[0][1] * attack_frac * val_percentage)
 
             train_devices.append((list(RaspberryPi)[i], train_d, val_d))
 
@@ -66,7 +69,7 @@ def select_federation_composition(participants_per_arch: List, normals: List[Tup
 # helper function independent of how test or train_devices are created
 # can be used to plot exactly how many samples of each device are being used for training to estimate the oversampling
 def get_sampling_per_device(train_devices, test_devices, include_train=True, incl_val=True, include_test=False):
-    devices_sample_reqs = [] # header
+    devices_sample_reqs = []  # header
     for d in RaspberryPi:
         device_samples = [d.value]
         for b in Behavior:
@@ -87,8 +90,6 @@ def get_sampling_per_device(train_devices, test_devices, include_train=True, inc
             device_samples.append(bcount)
         normals = sum(device_samples[1:3])
         attacks = sum(device_samples[3:])
-        device_samples.append(normals/attacks if attacks != 0 else None)
+        device_samples.append(normals / attacks if attacks != 0 else None)
         devices_sample_reqs.append(device_samples)
     return devices_sample_reqs
-
-

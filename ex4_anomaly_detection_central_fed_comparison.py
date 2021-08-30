@@ -7,7 +7,7 @@ from tabulate import tabulate
 from copy import deepcopy
 from custom_types import Behavior, ModelArchitecture
 from data_handler import DataHandler
-from devices import Participant, Server
+from devices import AutoEncoderParticipant, Server
 from utils import select_federation_composition, get_sampling_per_device, calculate_metrics
 
 
@@ -17,22 +17,22 @@ if __name__ == "__main__":
 
     print(f'GPU available: {torch.cuda.is_available()}')
     print("Starting demo experiment: Federated vs Centralized Anomaly Detection\n"
-          "Training on all attacks and testing for each attack how well the joint model performs.\n")
+          "Training on a range of attacks and testing for each attack how well the joint model performs.\n")
 
     # define collective experiment config:
     # TODO: take care not to exceed available data too much
-    participants_per_arch = [3, 1, 1, 1]
-    normals = [(Behavior.NORMAL, 600)]
-    # attacks = [val for val in Behavior if val not in [Behavior.NORMAL, Behavior.NORMAL_V2]]
-    attacks = [Behavior.DELAY, Behavior.DISORDER, Behavior.FREEZE]
+    participants_per_arch = [1, 1, 0, 1]
+    normals = [(Behavior.NORMAL, 6000)]
+    attacks = [val for val in Behavior if val not in [Behavior.NORMAL, Behavior.NORMAL_V2]]
+    #attacks = [Behavior.DELAY, Behavior.DISORDER, Behavior.FREEZE]
     val_percentage = 0.1
     train_attack_frac = 1 / len(attacks)  # enforce balancing per device
-    nnorm_test_samples = 480
-    natt_test_samples = 120
+    nnorm_test_samples = 0
+    natt_test_samples = 250
 
     train_devices, test_devices = select_federation_composition(participants_per_arch, normals, attacks, val_percentage,
                                                                 train_attack_frac, nnorm_test_samples,
-                                                                natt_test_samples)
+                                                                natt_test_samples, is_anomaly=True)
     print("Training devices:", len(train_devices))
     print(train_devices)
     print("Testing devices:", len(test_devices))
@@ -52,9 +52,9 @@ if __name__ == "__main__":
     train_sets_fed, test_sets_fed = deepcopy(train_sets), deepcopy(test_sets)
     train_sets_fed, test_sets_fed = DataHandler.scale(train_sets_fed, test_sets_fed)
 
-    participants = [Participant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
+    participants = [AutoEncoderParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
                     x_train, y_train, x_valid, y_valid in train_sets_fed]
-    server = Server(participants, ModelArchitecture.MLP_MONO_CLASS)
+    server = Server(participants, ModelArchitecture.AUTO_ENCODER)
     server.train_global_model(aggregation_rounds=5)
     print()
 
@@ -65,9 +65,9 @@ if __name__ == "__main__":
     y_valid_all = np.concatenate(tuple(y_valid for x_train, y_train, x_valid, y_valid in train_sets))
     train_set_cen = [(x_train_all, y_train_all, x_valid_all, y_valid_all)]
     train_set_cen, test_sets_cen = DataHandler.scale(train_set_cen, test_sets, central=True)
-    central_participants = [Participant(train_set_cen[0][0], train_set_cen[0][1],
+    central_participant = [AutoEncoderParticipant(train_set_cen[0][0], train_set_cen[0][1],
                                         train_set_cen[0][2], train_set_cen[0][3], batch_size_valid=1)]
-    central_server = Server(central_participants, ModelArchitecture.MLP_MONO_CLASS)
+    central_server = Server(central_participant, ModelArchitecture.AUTO_ENCODER)
     central_server.train_global_model(aggregation_rounds=5)
     # print_experiment_scores(y_test.flatten(), y_predicted_central.flatten().numpy(), federated=False)
 
