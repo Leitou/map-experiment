@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from tabulate import tabulate
 
-from custom_types import Behavior, RaspberryPi, ModelArchitecture
+from custom_types import Behavior, RaspberryPi, ModelArchitecture, Scaler
 from devices import Server, Participant
 from data_handler import DataHandler
 from utils import calculate_metrics
@@ -40,7 +40,7 @@ if __name__ == "__main__":
         train_devices,
         test_devices)
 
-    train_sets, test_sets = DataHandler.scale(train_sets, test_sets)
+    train_sets, test_sets = DataHandler.scale(train_sets, test_sets, scaling=Scaler.MINMAX_SCALER)
 
     participants = [Participant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
                     x_train, y_train, x_valid, y_valid in train_sets]

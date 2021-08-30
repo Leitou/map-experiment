@@ -1,4 +1,5 @@
 from enum import Enum
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 
 class Behavior(Enum):
@@ -27,3 +28,8 @@ class ModelArchitecture(Enum):
     MLP_MONO_CLASS = "MLP_mono_class"
     MLP_MULTI_CLASS = "MLP_multi_class"
     AUTO_ENCODER = "auto_encoder"
+
+
+class Scaler(Enum):
+    STANDARD_SCALER = "std"
+    MINMAX_SCALER = "minmax"

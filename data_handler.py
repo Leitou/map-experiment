@@ -8,7 +8,7 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from tabulate import tabulate
 
-from custom_types import RaspberryPi, Behavior
+from custom_types import RaspberryPi, Behavior, Scaler
 
 class_map_binary: Dict[Behavior, int] = defaultdict(lambda: 1, {
     Behavior.NORMAL: 0,
@@ -208,27 +208,32 @@ class DataHandler:
 
     @staticmethod
     def scale(train_devices: List[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]],
-              test_devices: List[Tuple[np.ndarray, np.ndarray]], central=False) -> Tuple[
+              test_devices: List[Tuple[np.ndarray, np.ndarray]], central: bool = False, scaling = Scaler.STANDARD_SCALER) -> Tuple[
         List[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]], List[Tuple[np.ndarray, np.ndarray]]]:
         train_scaled = []
         test_scaled = []
         if central:
             assert len(train_devices) == 1, "Only single training device allowed in central mode!"
-            scaler: StandardScaler = StandardScaler()
+            scaler = StandardScaler() if scaling == Scaler.STANDARD_SCALER else MinMaxScaler()
             scaler.fit(train_devices[0][0])
             for x_train, y_train, x_val, y_val in train_devices:
                 train_scaled.append((scaler.transform(x_train), y_train, scaler.transform(x_val), y_val))
             for x_test, y_test in test_devices:
                 test_scaled.append((scaler.transform(x_test), y_test))
         else:
-            scalers: List[MinMaxScaler] = []
+            scalers = []
             for x_train, y_train, x_val, y_val in train_devices:
-                scaler: MinMaxScaler = MinMaxScaler(clip=True)
+                scaler = StandardScaler() if scaling == Scaler.STANDARD_SCALER else MinMaxScaler(clip=True)
                 scaler.fit(x_train)
                 scalers.append(scaler)
-            final_scaler = MinMaxScaler(clip=True)
-            final_scaler.min_ = np.stack([s.min_ for s in scalers], axis=1).mean(axis=1)
-            final_scaler.scale_ = np.stack([s.scale_ for s in scalers], axis=1).mean(axis=1)
+            if scaling == Scaler.STANDARD_SCALER:
+                final_scaler = StandardScaler()
+                final_scaler.scale_ = np.stack([s.scale_ for s in scalers], axis=1).mean(axis=1)
+                final_scaler.mean_ = np.stack([s.mean_ for s in scalers], axis=1).mean(axis=1)
+            else:
+                final_scaler = MinMaxScaler(clip=True)
+                final_scaler.min_ = np.stack([s.min_ for s in scalers], axis=1).mean(axis=1)
+                final_scaler.scale_ = np.stack([s.scale_ for s in scalers], axis=1).mean(axis=1)
             for x_train, y_train, x_val, y_val in train_devices:
                 train_scaled.append((final_scaler.transform(x_train), y_train, final_scaler.transform(x_val), y_val))
             for x_test, y_test in test_devices:

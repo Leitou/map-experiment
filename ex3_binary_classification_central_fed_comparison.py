@@ -5,7 +5,7 @@ import torch
 from tabulate import tabulate
 
 from copy import deepcopy
-from custom_types import Behavior, ModelArchitecture
+from custom_types import Behavior, ModelArchitecture, Scaler
 from data_handler import DataHandler
 from devices import Participant, Server
 from utils import select_federation_composition, get_sampling_per_device, calculate_metrics
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     print("Train Federation")
     train_sets, test_sets = DataHandler.get_all_clients_data(train_devices, test_devices)
     train_sets_fed, test_sets_fed = deepcopy(train_sets), deepcopy(test_sets)
-    train_sets_fed, test_sets_fed = DataHandler.scale(train_sets_fed, test_sets_fed)
+    train_sets_fed, test_sets_fed = DataHandler.scale(train_sets_fed, test_sets_fed, scaling=Scaler.STANDARD_SCALER)
 
     participants = [Participant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
                     x_train, y_train, x_valid, y_valid in train_sets_fed]
