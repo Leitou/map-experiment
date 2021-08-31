@@ -40,19 +40,15 @@ if __name__ == "__main__":
                 behavior = list(Behavior)[i]
                 acc, f1, conf_mat = calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
                 if acc == 1.0:
-                    tn = conf_mat.ravel().item()
-                    tp = tn
-                    fn, fp = 0, 0
+                    device_dict[behavior] = '100.00%'
                 else:
                     (tn, fp, fn, tp) = conf_mat.ravel()
-                device_dict[behavior] = tabulate([[f'{acc * 100:.2f}%',
-                                                   str(tn if behavior in normals else tp),
-                                                   str(fp if behavior in normals else fn)]],
-                                                 headers=['Accuracy', 'TN' if behavior in normals else 'TP',
-                                                          'FP' if behavior in normals else 'FN'],
-                                                 tablefmt="pretty")
+                    if behavior in normals:
+                        device_dict[behavior] = f'{(100 * tn / (tn + fp)):.2f}%'
+                    else:
+                        device_dict[behavior] = f'{(100 * tp / (tp + fn)):.2f}%'
             res_dict[device] = device_dict
         for attack in [behavior for behavior in Behavior]:
             results.append([attack.value] + [res_dict[device][attack] for device in RaspberryPi])
         print("Normal Behavior:", normal)
-        print(tabulate(results, headers=labels, tablefmt="pretty"))
+        print(tabulate(results, headers=labels, tablefmt="latex"))
