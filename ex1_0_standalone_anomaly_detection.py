@@ -19,15 +19,14 @@ if __name__ == "__main__":
 
     normals = [Behavior.NORMAL, Behavior.NORMAL_V2]
     for normal in normals:
-        labels = ["Attack"] + [pi.value for pi in RaspberryPi]
+        labels = ["Behavior"] + [pi.value for pi in RaspberryPi]
         results = []
         res_dict: Dict[RaspberryPi, Dict[Behavior, str]] = {}
         for device in RaspberryPi:
             device_dict: Dict[Behavior, str] = {}
-            test_devices = [(device, {normal: 500, behavior: 150}) for behavior in Behavior if
-                            behavior not in normals]
+            test_devices = [(device, {behavior: 250}) for behavior in Behavior]
             train_sets, test_sets = DataHandler.get_all_clients_data(
-                [(device, {normal: 1500}, {normal: 150})],
+                [(device, {normal: 2500}, {normal: 500})],
                 test_devices)
 
             train_sets, test_sets = DataHandler.scale(train_sets, test_sets, True)
@@ -38,11 +37,22 @@ if __name__ == "__main__":
             server.train_global_model(aggregation_rounds=5)
             for i, (x_test, y_test) in enumerate(test_sets):
                 y_predicted = server.predict_using_global_model(x_test)
-                attack = list(set(test_devices[i][1].keys()) - {Behavior.NORMAL, Behavior.NORMAL_V2})[0]
-                acc, f1, _ = calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
-                device_dict[attack] = f'{acc * 100:.2f}% ({f1 * 100:.2f})%'
+                behavior = list(Behavior)[i]
+                acc, f1, conf_mat = calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
+                if acc == 1.0:
+                    tn = conf_mat.ravel().item()
+                    tp = tn
+                    fn, fp = 0, 0
+                else:
+                    (tn, fp, fn, tp) = conf_mat.ravel()
+                device_dict[behavior] = tabulate([[f'{acc * 100:.2f}%',
+                                                   str(tn if behavior in normals else tp),
+                                                   str(fp if behavior in normals else fn)]],
+                                                 headers=['Accuracy', 'TN' if behavior in normals else 'TP',
+                                                          'FP' if behavior in normals else 'FN'],
+                                                 tablefmt="pretty")
             res_dict[device] = device_dict
-        for attack in [behavior for behavior in Behavior if behavior not in normals]:
+        for attack in [behavior for behavior in Behavior]:
             results.append([attack.value] + [res_dict[device][attack] for device in RaspberryPi])
         print("Normal Behavior:", normal)
         print(tabulate(results, headers=labels, tablefmt="pretty"))
