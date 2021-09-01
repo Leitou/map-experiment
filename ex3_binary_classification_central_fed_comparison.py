@@ -73,20 +73,20 @@ if __name__ == "__main__":
     for i, (tfed, tcen) in enumerate(zip(test_sets_fed, test_sets_cen)):
         y_predicted = server.predict_using_global_model(tfed[0])
         y_predicted_central = central_server.predict_using_global_model(tcen[0])
-        behavior = list(Behavior)[i % len(Behavior)].value
+        behavior = list(Behavior)[i % len(Behavior)]
         normal = normals[0][0].value if len(normals) == 1 else "normal/normal_v2"
         # federated results
         acc, _, conf_mat = calculate_metrics(tfed[1].flatten(), y_predicted.flatten().numpy())
         (tn, fp, fn, tp) = get_confusion_matrix_vals_in_percent(acc, conf_mat, behavior)
         results.append(
-            [test_devices[i][0], normal, behavior, f'{acc * 100:.2f}%', f'{tn * 100:.2f}%', f'{fp * 100:.2f}%',
+            [test_devices[i][0], normal, behavior.value, f'{acc * 100:.2f}%', f'{tn * 100:.2f}%', f'{fp * 100:.2f}%',
              f'{fn * 100:.2f}%', f'{tp * 100:.2f}%'])
 
         # centralized results
         acc, _, conf_mat = calculate_metrics(tcen[1].flatten(), y_predicted_central.flatten().numpy())
         (tn, fp, fn, tp) = get_confusion_matrix_vals_in_percent(acc, conf_mat, behavior)
         central_results.append(
-            [test_devices[i][0], normal, behavior, f'{acc * 100:.2f}%', f'{tn * 100:.2f}%', f'{fp * 100:.2f}%',
+            [test_devices[i][0], normal, behavior.value, f'{acc * 100:.2f}%', f'{tn * 100:.2f}%', f'{fp * 100:.2f}%',
              f'{fn * 100:.2f}%', f'{tp * 100:.2f}%'])
 
     print("Federated Results")
