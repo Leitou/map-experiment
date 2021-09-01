@@ -57,4 +57,4 @@ if __name__ == "__main__":
     col_names = col_names
 
     # plot_normals_against_attacks_per_device(all_data, col_names)
-    plot_behaviors_for_all_devices(all_data, col_names, [Behavior.REPEAT, Behavior.FREEZE])
+    plot_behaviors_for_all_devices(all_data, col_names, [Behavior.NORMAL, Behavior.NORMAL_V2])

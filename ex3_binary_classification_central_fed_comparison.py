@@ -8,8 +8,8 @@ from copy import deepcopy
 from custom_types import Behavior, ModelArchitecture, Scaler
 from data_handler import DataHandler
 from devices import Participant, Server
-from utils import select_federation_composition, get_sampling_per_device, calculate_metrics
-
+from utils import select_federation_composition, get_sampling_per_device, calculate_metrics, \
+    get_confusion_matrix_vals_in_percent
 
 if __name__ == "__main__":
     torch.random.manual_seed(42)
@@ -23,24 +23,22 @@ if __name__ == "__main__":
     # TODO: take care not to exceed available data too much
     participants_per_arch = [1, 1, 0, 1]
     normals = [(Behavior.NORMAL, 1000)]
-    attacks = [val for val in Behavior if val not in [Behavior.NORMAL, Behavior.NORMAL_V2]]
-    #attacks = [Behavior.DELAY, Behavior.DISORDER, Behavior.FREEZE]
+    # attacks = [val for val in Behavior if val not in [Behavior.NORMAL, Behavior.NORMAL_V2]]
+    attacks = [Behavior.DELAY, Behavior.DISORDER, Behavior.FREEZE]
     val_percentage = 0.1
-    train_attack_frac = 1 / len(attacks)  # enforce balancing per device
-    nnorm_test_samples = 480
-    natt_test_samples = 120
+    train_attack_frac = 1 / len(attacks) if len(normals) == 1 else 2 / len(attacks)  # enforce balancing per device
+    num_att_test_samples = 100
 
     train_devices, test_devices = select_federation_composition(participants_per_arch, normals, attacks, val_percentage,
-                                                                train_attack_frac, nnorm_test_samples,
-                                                                natt_test_samples)
+                                                                train_attack_frac, num_att_test_samples)
     print("Training devices:", len(train_devices))
     print(train_devices)
     print("Testing devices:", len(test_devices))
     print(test_devices)
 
-    incl_test = True
+    incl_test = False
     incl_train = True
-    incl_val = True
+    incl_val = False
     print("Number of samples used per device type:", "\nincl. test samples - ", incl_test, "\nincl. val samples -",
           incl_val, "\nincl. train samples -", incl_train)
     sample_requirements = get_sampling_per_device(train_devices, test_devices, incl_train, incl_val, incl_test)
@@ -75,19 +73,24 @@ if __name__ == "__main__":
     for i, (tfed, tcen) in enumerate(zip(test_sets_fed, test_sets_cen)):
         y_predicted = server.predict_using_global_model(tfed[0])
         y_predicted_central = central_server.predict_using_global_model(tcen[0])
-        attack = list(set(test_devices[i][1].keys()) - {Behavior.NORMAL, Behavior.NORMAL_V2})[0].value
-        normal = list(
-            set(test_devices[i][1].keys()) - {Behavior.DELAY, Behavior.DISORDER, Behavior.FREEZE, Behavior.HOP,
-                                              Behavior.MIMIC,
-                                              Behavior.NOISE, Behavior.REPEAT, Behavior.SPOOF})[0].value
+        behavior = list(Behavior)[i % len(Behavior)].value
+        normal = normals[0][0].value if len(normals) == 1 else "normal/normal_v2"
         # federated results
-        acc, f1, _ = calculate_metrics(tfed[1].flatten(), y_predicted.flatten().numpy())
-        results.append([test_devices[i][0], normal, attack, f'{acc * 100:.2f}%', f'{f1 * 100:.2f}%'])
+        acc, _, conf_mat = calculate_metrics(tfed[1].flatten(), y_predicted.flatten().numpy())
+        (tn, fp, fn, tp) = get_confusion_matrix_vals_in_percent(acc, conf_mat, behavior)
+        results.append(
+            [test_devices[i][0], normal, behavior, f'{acc * 100:.2f}%', f'{tn * 100:.2f}%', f'{fp * 100:.2f}%',
+             f'{fn * 100:.2f}%', f'{tp * 100:.2f}%'])
+
         # centralized results
-        acc, f1, _ = calculate_metrics(tcen[1].flatten(), y_predicted_central.flatten().numpy())
-        central_results.append([test_devices[i][0], normal, attack, f'{acc * 100:.2f}%', f'{f1 * 100:.2f}%'])
+        acc, _, conf_mat = calculate_metrics(tcen[1].flatten(), y_predicted_central.flatten().numpy())
+        (tn, fp, fn, tp) = get_confusion_matrix_vals_in_percent(acc, conf_mat, behavior)
+        central_results.append(
+            [test_devices[i][0], normal, behavior, f'{acc * 100:.2f}%', f'{tn * 100:.2f}%', f'{fp * 100:.2f}%',
+             f'{fn * 100:.2f}%', f'{tp * 100:.2f}%'])
 
     print("Federated Results")
-    print(tabulate(results, headers=['Device', 'Normal', 'Attack', 'Accuracy', 'F1 score'], tablefmt="pretty"))
+    print(tabulate(results, headers=['Device', 'Normal', 'Attack', 'Accuracy', 'tn', 'fp', 'fn', 'tp'],
+                   tablefmt="pretty"))
     print("Centralized Results")
-    print(tabulate(central_results, headers=['Device', 'Normal', 'Attack', 'Accuracy', 'F1 score'], tablefmt="pretty"))
+    print(tabulate(central_results, headers=['Device', 'Normal', 'Attack', 'Accuracy',  'tn', 'fp', 'fn', 'tp'], tablefmt="pretty"))

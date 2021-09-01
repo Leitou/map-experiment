@@ -1,5 +1,4 @@
 from enum import Enum
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 
 class Behavior(Enum):

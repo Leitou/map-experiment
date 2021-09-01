@@ -5,7 +5,9 @@ from custom_types import Behavior, RaspberryPi, ModelArchitecture
 from devices import AutoEncoderParticipant, Server
 from data_handler import DataHandler
 from utils import print_experiment_scores
-
+# TODO: decide which use cases from demo experiments to integrate in report,
+#  make subfolder for demo experiments
+#  and fix scaling there
 if __name__ == "__main__":
     torch.random.manual_seed(42)
     np.random.seed(42)

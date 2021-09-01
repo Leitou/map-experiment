@@ -12,6 +12,16 @@ def calculate_metrics(y_test: np.ndarray, y_pred: np.ndarray) -> Tuple[float, fl
     cm_fed = confusion_matrix(y_test, y_pred)  # could also extract via tn, fp, fn, tp = confusion_matrix().ravel()
     return correct / len(y_pred), f1, cm_fed
 
+def get_confusion_matrix_vals_in_percent(acc, conf_mat, behavior):
+    if acc == 1.0:
+        if behavior in [Behavior.NORMAL, Behavior.NORMAL_V2]:
+            tn, fp, fn, tp = 1, 0, 0, 0
+        else:
+            tn, fp, fn, tp = 0, 0, 0, 1
+    else:
+        tn, fp, fn, tp = conf_mat.ravel() / sum(conf_mat.ravel())
+    return tn, fp, fn, tp
+
 
 def print_experiment_scores(y_test: np.ndarray, y_pred: np.ndarray, federated=True):
     if federated:
@@ -30,38 +40,36 @@ def print_experiment_scores(y_test: np.ndarray, y_pred: np.ndarray, federated=Tr
 # Assumption we test at most on what we train (attack types)
 def select_federation_composition(participants_per_arch: List, normals: List[Tuple[Behavior, int]],
                                   attacks: List[Behavior],
-                                  val_percentage: float, attack_frac: float, nnorm_test_samples: int,
-                                  natt_test_samples: int, is_anomaly: bool = False) \
+                                  val_percentage: float, attack_frac: float,
+                                  num_behavior_test_samples: int, is_anomaly: bool = False) \
         -> Tuple[List[Tuple[Any, Dict[Behavior, Union[int, float]], Dict[Behavior, Union[int, float]]]], List[
             Tuple[Any, Dict[Behavior, int]]]]:
+    assert len(list(RaspberryPi)) == len(participants_per_arch), "lengths must be equal"
+    assert normals[0][1] == normals[1][1] if len(normals) == 2 else True, "equal amount of normal version samples required"
     # populate train and test_devices for
     train_devices, test_devices = [], []
     for i, num_p in enumerate(participants_per_arch):
         for p in range(num_p):
 
             # add all normal monitorings for the training + validation + testing per participant
-            train_d, val_d, test_d = {}, {}, {}
+            train_d, val_d = {}, {}
             for normal in normals:
                 train_d[normal[0]] = normal[1]
                 val_d[normal[0]] = floor(normal[1] * val_percentage)
-                if p == 0:
-                    test_d[normal[0]] = nnorm_test_samples
 
             # add all attacks for training + validation per participant in case of binary classification training
             if not is_anomaly:
                 for attack in attacks:
-                    # TODO: add here choice whether attack is in-/excluded per device? random or determ.
                     train_d[attack] = floor(normals[0][1] * attack_frac)
                     val_d[attack] = floor(normals[0][1] * attack_frac * val_percentage)
-
             train_devices.append((list(RaspberryPi)[i], train_d, val_d))
 
-            # now populate the test dictionary with all selected attacks (only once per device type)
+            # populate test dictionary with all behaviors (only once per device type)
             if p == 0:
-                for attack in attacks:
-                    test_dd = dict(test_d)
-                    test_dd[attack] = natt_test_samples
-                    test_devices.append((list(RaspberryPi)[i], test_dd))
+                for b in list(Behavior):
+                    test_d = {}
+                    test_d[b] = num_behavior_test_samples
+                    test_devices.append((list(RaspberryPi)[i], test_d))
 
     return train_devices, test_devices
 
