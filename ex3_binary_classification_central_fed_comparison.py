@@ -20,17 +20,18 @@ if __name__ == "__main__":
           "Training on a range of attacks and testing for each attack how well the joint model performs.\n")
 
     # define collective experiment config:
-    # TODO: take care not to exceed available data too much
+    # TODO: for report looping over different nrs of participants / Attack Behaviors to train with /
+    #  behaviors to test on etc. while taking care to avoid too extensive upsampling
     participants_per_arch = [1, 1, 0, 1]
     normals = [(Behavior.NORMAL, 1000)]
     # attacks = [val for val in Behavior if val not in [Behavior.NORMAL, Behavior.NORMAL_V2]]
     attacks = [Behavior.DELAY, Behavior.DISORDER, Behavior.FREEZE]
     val_percentage = 0.1
     train_attack_frac = 1 / len(attacks) if len(normals) == 1 else 2 / len(attacks)  # enforce balancing per device
-    num_att_test_samples = 100
+    num_behavior_test_samples = 100
 
     train_devices, test_devices = select_federation_composition(participants_per_arch, normals, attacks, val_percentage,
-                                                                train_attack_frac, num_att_test_samples)
+                                                                train_attack_frac, num_behavior_test_samples)
     print("Training devices:", len(train_devices))
     print(train_devices)
     print("Testing devices:", len(test_devices))
@@ -93,4 +94,5 @@ if __name__ == "__main__":
     print(tabulate(results, headers=['Device', 'Normal', 'Attack', 'Accuracy', 'tn', 'fp', 'fn', 'tp'],
                    tablefmt="pretty"))
     print("Centralized Results")
-    print(tabulate(central_results, headers=['Device', 'Normal', 'Attack', 'Accuracy',  'tn', 'fp', 'fn', 'tp'], tablefmt="pretty"))
+    print(tabulate(central_results, headers=['Device', 'Normal', 'Attack', 'Accuracy', 'tn', 'fp', 'fn', 'tp'],
+                   tablefmt="pretty"))
