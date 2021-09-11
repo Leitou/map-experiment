@@ -1,3 +1,5 @@
+from typing import Dict
+
 import numpy as np
 import torch
 from tabulate import tabulate
@@ -7,7 +9,6 @@ from data_handler import DataHandler
 from devices import AutoEncoderParticipant, Server
 from utils import calculate_metrics
 
-# TODO: reformat output: Device as column
 if __name__ == "__main__":
     torch.random.manual_seed(42)
     np.random.seed(42)
@@ -15,9 +16,11 @@ if __name__ == "__main__":
     print("Use case federated Anomaly/Zero Day Detection\n"
           "Is the federation able to transfer its knowledge to a new device?\n")
 
+    res_dict: Dict[RaspberryPi, Dict[Behavior, str]] = {}
     results = []
-    normals = [Behavior.NORMAL, Behavior.NORMAL_V2]
+
     for device in RaspberryPi:
+        device_dict: Dict[Behavior, str] = {}
         train_devices = []
         for device2 in RaspberryPi:
             if device2 != device:
@@ -41,6 +44,9 @@ if __name__ == "__main__":
             y_predicted = server.predict_using_global_model(x_test)
             behavior = list(test_devices[i][1].keys())[0]
             acc, f1, _ = calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
-            results.append([device, behavior, f'{acc * 100:.2f}%'])
+            device_dict[behavior] = f'{acc * 100:.2f}%'
+        res_dict[device] = device_dict
+    for behavior in Behavior:
+        results.append([behavior.value] + [res_dict[device][behavior] for device in RaspberryPi])
 
-    print(tabulate(results, headers=['Device', 'Behavior', 'Accuracy'], tablefmt="pretty"))
+    print(tabulate(results, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="pretty"))
