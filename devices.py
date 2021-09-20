@@ -101,6 +101,7 @@ class AutoEncoderParticipant(Participant):
 
     def determine_threshold(self) -> float:
         mses = []
+        self.model.eval()
         with torch.no_grad():
             loss_function = torch.nn.MSELoss(reduction='sum')
             for batch_idx, (x, _) in enumerate(self.valid_loader):
@@ -201,3 +202,12 @@ class Server:
             raise ValueError("Not yet implemented!")
 
         return all_predictions.flatten()
+
+
+class RandomGradientAdversary(Participant):
+    def train(self, optimizer, loss_function, num_local_epochs: int = 5):
+        state_dict = self.model.state_dict()
+        new_dict = deepcopy(state_dict)
+        for key in state_dict.keys():
+            new_dict[key] = torch.rand(state_dict[key].size())
+        self.model.load_state_dict(new_dict)
