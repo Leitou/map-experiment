@@ -7,14 +7,14 @@ from copy import deepcopy
 
 from custom_types import Behavior, RaspberryPi, ModelArchitecture, Scaler
 from data_handler import DataHandler
-from devices import AutoEncoderParticipant, Server
+from devices import Participant, Server
 from utils import calculate_metrics
 
 if __name__ == "__main__":
     torch.random.manual_seed(42)
     np.random.seed(42)
 
-    print("Use case federated Anomaly/Zero Day Detection\n"
+    print("Use case federated Binary Classification/Zero Day Detection\n"
           "Is the federation able to transfer its knowledge to a new device?\n")
 
     results, results_central = [], []
@@ -22,10 +22,20 @@ if __name__ == "__main__":
     res_dict_central: Dict[RaspberryPi, Dict[Behavior, str]] = {}
 
     for device in RaspberryPi:
+        device_dict: Dict[Behavior, str] = {}
         train_devices = []
         for device2 in RaspberryPi:
             if device2 != device:
-                train_devices.append((device2, {Behavior.NORMAL: 2000}, {Behavior.NORMAL: 200}))
+                train_devices.append((device2, {Behavior.NORMAL: 1000,
+                                                Behavior.DELAY: 250,
+                                                Behavior.FREEZE: 250,
+                                                Behavior.MIMIC: 250,
+                                                Behavior.SPOOF: 250},
+                                      {Behavior.NORMAL: 100,
+                                       Behavior.DELAY: 25,
+                                       Behavior.FREEZE: 25,
+                                       Behavior.MIMIC: 25,
+                                       Behavior.SPOOF: 25}))
 
         test_devices = []
         for behavior in Behavior:
@@ -39,9 +49,9 @@ if __name__ == "__main__":
         train_sets_fed, test_sets_fed = DataHandler.scale(train_sets_fed, test_sets_fed, scaling=Scaler.MINMAX_SCALER)
 
         print("Train Federation")
-        participants = [AutoEncoderParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
+        participants = [Participant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
                         x_train, y_train, x_valid, y_valid in train_sets_fed]
-        server = Server(participants, ModelArchitecture.AUTO_ENCODER)
+        server = Server(participants, ModelArchitecture.MLP_MONO_CLASS)
         server.train_global_model(aggregation_rounds=5)
 
         print("\nTrain Centralized")
@@ -52,9 +62,9 @@ if __name__ == "__main__":
         train_set_cen = [(x_train_all, y_train_all, x_valid_all, y_valid_all)]
         train_set_cen, test_sets_cen = DataHandler.scale(train_set_cen, test_sets, central=True)
         central_participant = [
-            AutoEncoderParticipant(train_set_cen[0][0], train_set_cen[0][1], train_set_cen[0][2], train_set_cen[0][3],
-                                   batch_size_valid=1)]
-        central_server = Server(central_participant, ModelArchitecture.AUTO_ENCODER)
+            Participant(train_set_cen[0][0], train_set_cen[0][1], train_set_cen[0][2], train_set_cen[0][3],
+                        batch_size_valid=1)]
+        central_server = Server(central_participant, ModelArchitecture.MLP_MONO_CLASS)
         central_server.train_global_model(aggregation_rounds=5)
 
         device_dict: Dict[Behavior, str] = {}
@@ -81,3 +91,4 @@ if __name__ == "__main__":
     print(tabulate(results, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="pretty"))
     print("Centralized Results")
     print(tabulate(results_central, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="pretty"))
+

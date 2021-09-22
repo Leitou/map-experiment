@@ -25,7 +25,7 @@ if __name__ == "__main__":
     participants_per_arch = [1, 1, 0, 1]
     normals = [(Behavior.NORMAL, 1000)]
     # attacks = [val for val in Behavior if val not in [Behavior.NORMAL, Behavior.NORMAL_V2]]
-    attacks = [Behavior.DELAY, Behavior.DISORDER, Behavior.FREEZE]
+    attacks = [Behavior.DELAY, Behavior.FREEZE, Behavior.MIMIC, Behavior.SPOOF]
     val_percentage = 0.1
     train_attack_frac = 1 / len(attacks) if len(normals) == 1 else 2 / len(attacks)  # enforce balancing per device
     num_behavior_test_samples = 100
