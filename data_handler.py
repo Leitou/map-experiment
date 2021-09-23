@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from tabulate import tabulate
+from scipy import stats
 
 from custom_types import RaspberryPi, Behavior, Scaler
 
@@ -122,6 +123,8 @@ class DataHandler:
                 df = df[df['connectivity'] == 1]
                 # remove model-irrelevant columns
                 df = df.drop(["time", "timestamp", "seconds", "connectivity"], axis=1)
+                # drop outliers per measurement, indicated by (absolute z score) > 3
+                df = df[(np.nan_to_num(np.abs(stats.zscore(df))) < 3).all(axis=1)]
                 df['device'] = device.value
                 df['attack'] = attack.value
                 full_df = pd.concat([full_df, df])
@@ -221,7 +224,7 @@ class DataHandler:
         else:
             scalers = []
             for x_train, y_train, x_val, y_val in train_devices:
-                scaler = StandardScaler() if scaling == Scaler.STANDARD_SCALER else MinMaxScaler(clip=True)
+                scaler = StandardScaler() if scaling == Scaler.STANDARD_SCALER else MinMaxScaler(clip=False)
                 scaler.fit(x_train)
                 scalers.append(scaler)
             if scaling == Scaler.STANDARD_SCALER:
@@ -229,7 +232,7 @@ class DataHandler:
                 final_scaler.scale_ = np.stack([s.scale_ for s in scalers], axis=1).mean(axis=1)
                 final_scaler.mean_ = np.stack([s.mean_ for s in scalers], axis=1).mean(axis=1)
             else:
-                final_scaler = MinMaxScaler(clip=True)
+                final_scaler = MinMaxScaler(clip=False)
                 final_scaler.min_ = np.stack([s.min_ for s in scalers], axis=1).mean(axis=1)
                 final_scaler.scale_ = np.stack([s.scale_ for s in scalers], axis=1).mean(axis=1)
             for x_train, y_train, x_val, y_val in train_devices:
