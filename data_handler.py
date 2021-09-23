@@ -78,6 +78,11 @@ data_file_paths: Dict[RaspberryPi, Dict[Behavior, str]] = {
     },
 }
 
+time_status_columns = ["time", "timestamp", "seconds", "connectivity"]
+all_zero_columns = ["alarmtimer:alarmtimer_fired", "alarmtimer:alarmtimer_start", "cachefiles:cachefiles_create",
+                    "cachefiles:cachefiles_lookup", "cachefiles:cachefiles_mark_active", "dma_fence:dma_fence_init",
+                    "udp:udp_fail_queue_rcv_skb"]
+
 
 class DataHandler:
 
@@ -113,7 +118,7 @@ class DataHandler:
 
     @staticmethod
     def __parse_all_files_to_df() -> pd.DataFrame:
-        if os.path.isfile("./data/all.csv"):
+        if False and os.path.isfile("./data/all.csv"):
             return pd.read_csv("./data/all.csv")
         full_df = pd.DataFrame()
         for device in data_file_paths:
@@ -122,7 +127,9 @@ class DataHandler:
                 # filter for measurements where the device was connected
                 df = df[df['connectivity'] == 1]
                 # remove model-irrelevant columns
-                df = df.drop(["time", "timestamp", "seconds", "connectivity"], axis=1)
+                df = df.drop(time_status_columns, axis=1)
+                # remove all-zero columns (was determiend based on full_df)
+                df = df.drop(all_zero_columns, axis=1)
                 # drop outliers per measurement, indicated by (absolute z score) > 3
                 df = df[(np.nan_to_num(np.abs(stats.zscore(df))) < 3).all(axis=1)]
                 df['device'] = device.value
@@ -135,9 +142,9 @@ class DataHandler:
     def show_data_availability():
         all_data = DataHandler.__parse_all_files_to_df()
         print(f'Total data points: {len(all_data)}')
-        drop_cols = [col for col in list(all_data) if col not in ['device', 'attack', 'alarmtimer:alarmtimer_fired']]
-        grouped = all_data.drop(drop_cols, axis=1).rename(columns={'alarmtimer:alarmtimer_fired': 'count'}).groupby(
-                ['device', 'attack'], as_index=False).count()
+        drop_cols = [col for col in list(all_data) if col not in ['device', 'attack', 'block:block_bio_backmerge']]
+        grouped = all_data.drop(drop_cols, axis=1).rename(columns={'block:block_bio_backmerge': 'count'}).groupby(
+            ['device', 'attack'], as_index=False).count()
         labels = ['Behavior']
         for device in RaspberryPi:
             labels += [device.value]
@@ -209,7 +216,8 @@ class DataHandler:
 
     @staticmethod
     def scale(train_devices: List[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]],
-              test_devices: List[Tuple[np.ndarray, np.ndarray]], central: bool = False, scaling = Scaler.STANDARD_SCALER) -> Tuple[
+              test_devices: List[Tuple[np.ndarray, np.ndarray]], central: bool = False,
+              scaling=Scaler.STANDARD_SCALER) -> Tuple[
         List[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]], List[Tuple[np.ndarray, np.ndarray]]]:
         train_scaled = []
         test_scaled = []
