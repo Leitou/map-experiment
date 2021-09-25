@@ -1,13 +1,13 @@
 import os
 from collections import defaultdict
+from math import floor
 from typing import List, Tuple, Dict
 
-from math import floor
 import numpy as np
 import pandas as pd
+from scipy import stats
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from tabulate import tabulate
-from scipy import stats
 
 from custom_types import RaspberryPi, Behavior, Scaler
 
@@ -124,12 +124,12 @@ class DataHandler:
         for device in data_file_paths:
             for attack in data_file_paths[device]:
                 df = pd.read_csv(data_file_paths[device][attack])
-                # drop first and last measurement due to the influence of logging in, respectively out of the server
                 if not raw:
                     # special case: here the pi4 wc has entered some significantly different "normal behavior"
                     # (some features peak significantly, adding variance)
                     if device == RaspberryPi.PI4_2GB_WC and attack == Behavior.NORMAL:
                         df = df.drop(df.index[6300:7300])
+                    # drop first and last measurement due to the influence of logging in, respectively out of the server
                     df = df.iloc[1:-1]
                 # filter for measurements where the device was connected
                 df = df[df['connectivity'] == 1]

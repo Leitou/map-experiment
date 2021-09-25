@@ -11,8 +11,8 @@ from devices import AutoEncoderParticipant, Server
 from utils import calculate_metrics
 
 if __name__ == "__main__":
-    torch.random.manual_seed(55)
-    np.random.seed(55)
+    torch.random.manual_seed(42)
+    np.random.seed(42)
 
     print("Use case federated Anomaly/Zero Day Detection\n"
           "Is the federation able to transfer its knowledge to a new device?\n")
