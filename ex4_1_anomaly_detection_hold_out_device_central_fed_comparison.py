@@ -25,7 +25,9 @@ if __name__ == "__main__":
         train_devices = []
         for device2 in RaspberryPi:
             if device2 != device:
-                train_devices.append((device2, {Behavior.NORMAL: 2000}, {Behavior.NORMAL: 200}))
+                train_devices.append((device2, {Behavior.NORMAL: 1500}, {Behavior.NORMAL: 500}))
+                train_devices.append((device2, {Behavior.NORMAL: 1500}, {Behavior.NORMAL: 500}))
+                train_devices.append((device2, {Behavior.NORMAL: 1500}, {Behavior.NORMAL: 500}))
 
         test_devices = []
         for behavior in Behavior:
