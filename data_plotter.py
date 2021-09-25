@@ -117,11 +117,39 @@ class DataPlotter:
             axs[i].legend()
 
         if plot_name is not None:
-            fig.savefig(f'data_plot_{plot_name}.png', dpi=50)
+            fig.savefig(f'data_plot_{plot_name}.png', dpi=100)
 
 
 if __name__ == "__main__":
     DataPlotter.plot_behaviors(
-        [(RaspberryPi.PI4_2GB_WC, Behavior.HOP, "orange"),
+        [(RaspberryPi.PI4_2GB_WC, Behavior.HOP, "darkred"),
          (RaspberryPi.PI4_2GB_WC, Behavior.NOISE, "red"),
-         (RaspberryPi.PI4_2GB_WC, Behavior.NORMAL, "green")], plot_name="debug_device_differences")
+         (RaspberryPi.PI4_2GB_WC, Behavior.SPOOF, "yellow"),
+         (RaspberryPi.PI4_2GB_WC, Behavior.DELAY, "goldenrod"),
+         (RaspberryPi.PI4_2GB_WC, Behavior.DISORDER, "cyan"),
+         (RaspberryPi.PI4_2GB_WC, Behavior.FREEZE, "black"),
+         (RaspberryPi.PI4_2GB_WC, Behavior.REPEAT, "blue"),
+         (RaspberryPi.PI4_2GB_WC, Behavior.MIMIC, "fuchsia"),
+         (RaspberryPi.PI4_2GB_WC, Behavior.NORMAL, "lightgreen"),
+         (RaspberryPi.PI4_2GB_WC, Behavior.NORMAL_V2, "darkgreen")], plot_name="all_pi4_2gb")
+
+    DataPlotter.plot_behaviors(
+        [(RaspberryPi.PI4_2GB_WC, Behavior.DELAY, "goldenrod"),
+         (RaspberryPi.PI4_2GB_WC, Behavior.DISORDER, "cyan"),
+         (RaspberryPi.PI4_2GB_WC, Behavior.MIMIC, "fuchsia"),
+         (RaspberryPi.PI4_2GB_WC, Behavior.NORMAL, "lightgreen"),
+         (RaspberryPi.PI4_2GB_WC, Behavior.NORMAL_V2, "darkgreen")], plot_name="writeback_affecting_attacks_pi4_2gb")
+
+    DataPlotter.plot_behaviors(
+        [(RaspberryPi.PI4_2GB_WC, Behavior.HOP, "darkred"),
+         (RaspberryPi.PI4_2GB_WC, Behavior.NOISE, "red"),
+         (RaspberryPi.PI4_2GB_WC, Behavior.SPOOF, "yellow"),
+         (RaspberryPi.PI4_2GB_WC, Behavior.NORMAL, "lightgreen"),
+         (RaspberryPi.PI4_2GB_WC, Behavior.NORMAL_V2, "darkgreen")], plot_name="attacks_with_randomness_pi4_2gb")
+
+    DataPlotter.plot_behaviors(
+        [(RaspberryPi.PI4_2GB_WC, Behavior.FREEZE, "black"),
+         (RaspberryPi.PI4_2GB_WC, Behavior.REPEAT, "blue"),
+         (RaspberryPi.PI4_2GB_WC, Behavior.NORMAL, "lightgreen"),
+         (RaspberryPi.PI4_2GB_WC, Behavior.NORMAL_V2, "darkgreen")], plot_name="freeze_repeat_pi4_2gb")
+

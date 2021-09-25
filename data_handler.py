@@ -124,6 +124,13 @@ class DataHandler:
         for device in data_file_paths:
             for attack in data_file_paths[device]:
                 df = pd.read_csv(data_file_paths[device][attack])
+                # drop first and last measurement due to the influence of logging in, respectively out of the server
+                if not raw:
+                    # special case: here the pi4 wc has entered some significantly different "normal behavior"
+                    # (some features peak significantly, adding variance)
+                    if device == RaspberryPi.PI4_2GB_WC and attack == Behavior.NORMAL:
+                        df = df.drop(df.index[6300:7300])
+                    df = df.iloc[1:-1]
                 # filter for measurements where the device was connected
                 df = df[df['connectivity'] == 1]
                 # remove model-irrelevant columns
@@ -141,8 +148,8 @@ class DataHandler:
         return full_df
 
     @staticmethod
-    def show_data_availability():
-        all_data = DataHandler.parse_all_files_to_df()
+    def show_data_availability(raw=False):
+        all_data = DataHandler.parse_all_files_to_df(raw=raw)
         print(f'Total data points: {len(all_data)}')
         drop_cols = [col for col in list(all_data) if col not in ['device', 'attack', 'block:block_bio_backmerge']]
         grouped = all_data.drop(drop_cols, axis=1).rename(columns={'block:block_bio_backmerge': 'count'}).groupby(
@@ -235,7 +242,7 @@ class DataHandler:
             if scaling == Scaler.STANDARD_SCALER:
                 scalers = []
                 for x_train, y_train, x_val, y_val in train_devices:
-                    scaler = StandardScaler() if scaling == Scaler.STANDARD_SCALER else MinMaxScaler(clip=False)
+                    scaler = StandardScaler()
                     scaler.fit(x_train)
                     scalers.append(scaler)
                 final_scaler = StandardScaler()
