@@ -1,11 +1,15 @@
+from typing import List, Tuple, Union
+
 import matplotlib.pyplot as plt
 import pandas as pd
 
 from custom_types import RaspberryPi, Behavior
 from data_handler import DataHandler
 
+
+# TODO: make one function: plot(List[Tuple[Device, Behavior, str]]) to plot list of (Device, Behavior, Color in plot)
 # kept for convenience
-def plot_one_normal_against_attacks(all_data, col_names, attacks = [Behavior.FREEZE, Behavior.REPEAT]) :
+def plot_one_normal_against_attacks(all_data, col_names, attacks=[Behavior.FREEZE, Behavior.REPEAT]):
     for device in RaspberryPi:
         for normal in [Behavior.NORMAL, Behavior.NORMAL_V2]:
             for attack in attacks:
@@ -32,7 +36,8 @@ def plot_one_normal_against_attacks(all_data, col_names, attacks = [Behavior.FRE
                 # fig.savefig(f'data_plot_{device.value}_{normal.value}_{attack.value}.png', figure=fig, dpi=50)
                 fig.savefig(f'data_plot_{device.value}_{normal.value}_{attack.value}.png', dpi=50)
 
-def plot_normals_against_attacks_per_device2(all_data, col_names, attacks = [Behavior.FREEZE, Behavior.REPEAT]) :
+
+def plot_normals_against_attacks_per_device2(all_data, col_names, attacks=[Behavior.FREEZE, Behavior.REPEAT]):
     for device in RaspberryPi:
         for attack in attacks:
             fig, axs = plt.subplots(len(col_names))
@@ -83,11 +88,40 @@ def plot_behaviors_for_all_devices(all_data, col_names, behaviors, devices=Raspb
         fig.savefig(f'data_plot_all_devices_{b.value}.png', dpi=50)
 
 
-if __name__ == "__main__":
-    all_data: pd.DataFrame = DataHandler._DataHandler__parse_all_files_to_df()
-    col_names = [col for col in all_data if col not in ['device', 'attack']]
-    col_names = col_names
+class DataPlotter:
+    @staticmethod
+    def plot_behaviors(behaviors: List[Tuple[RaspberryPi, Behavior, str]], plot_name: Union[str, None] = None):
+        # first find max number of samples
+        all_data_parsed = DataHandler.parse_all_files_to_df(raw=True, save_to_file=False)
+        max_number_of_samples = 0
+        for behavior in behaviors:
+            df_behavior = all_data_parsed.loc[
+                (all_data_parsed['attack'] == behavior[1].value) & (all_data_parsed['device'] == behavior[0].value)]
+            if len(df_behavior) > max_number_of_samples:
+                max_number_of_samples = len(df_behavior)
+        cols_to_plot = [col for col in all_data_parsed if col not in ['device', 'attack']]
 
-    # plot_one_normal_against_attacks(all_data, col_names, [Behavior.NORMAL, Behavior.NORMAL_V2])
-    # plot_normals_against_attacks_per_device(all_data, col_names)
-    plot_normals_against_attacks_per_device2(all_data, col_names)
+        fig, axs = plt.subplots(len(cols_to_plot))
+        fig.suptitle(plot_name)
+        fig.set_figheight(len(cols_to_plot) * 4)
+        fig.set_figwidth(50)
+        for i in range(len(cols_to_plot)):
+            for device, behavior, line_color in behaviors:
+                df_b = all_data_parsed.loc[
+                    (all_data_parsed['attack'] == behavior.value) & (all_data_parsed['device'] == device.value)]
+                xes_b = [i for i in range(max_number_of_samples)]
+                ys_actual_b = df_b[cols_to_plot[i]].tolist()
+                ys_upsampled_b = [ys_actual_b[i % len(ys_actual_b)] for i in range(max_number_of_samples)]
+                axs[i].plot(xes_b, ys_upsampled_b, color=line_color, label=(device.value + " " + behavior.value))
+            axs[i].set_title(cols_to_plot[i], fontsize='xx-large')
+            axs[i].legend()
+
+        if plot_name is not None:
+            fig.savefig(f'data_plot_{plot_name}.png', dpi=50)
+
+
+if __name__ == "__main__":
+    DataPlotter.plot_behaviors(
+        [(RaspberryPi.PI4_2GB_WC, Behavior.HOP, "orange"),
+         (RaspberryPi.PI4_2GB_WC, Behavior.NOISE, "red"),
+         (RaspberryPi.PI4_2GB_WC, Behavior.NORMAL, "green")], plot_name="debug_device_differences")

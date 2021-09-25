@@ -117,9 +117,9 @@ class DataHandler:
         return all_data, data_x, data_y
 
     @staticmethod
-    def __parse_all_files_to_df() -> pd.DataFrame:
-        if False and os.path.isfile("./data/all.csv"):
-            return pd.read_csv("./data/all.csv")
+    def parse_all_files_to_df(raw: bool = False, save_to_file: bool = True) -> pd.DataFrame:
+        if os.path.isfile(f'./data/all{"_raw" if raw else ""}.csv'):
+            return pd.read_csv(f'./data/all{"_raw" if raw else ""}.csv')
         full_df = pd.DataFrame()
         for device in data_file_paths:
             for attack in data_file_paths[device]:
@@ -128,19 +128,21 @@ class DataHandler:
                 df = df[df['connectivity'] == 1]
                 # remove model-irrelevant columns
                 df = df.drop(time_status_columns, axis=1)
-                # remove all-zero columns (was determiend based on full_df)
-                df = df.drop(all_zero_columns, axis=1)
-                # drop outliers per measurement, indicated by (absolute z score) > 3
-                df = df[(np.nan_to_num(np.abs(stats.zscore(df))) < 3).all(axis=1)]
+                if not raw:
+                    # remove all-zero columns (was determiend based on full_df)
+                    df = df.drop(all_zero_columns, axis=1)
+                    # drop outliers per measurement, indicated by (absolute z score) > 3
+                    df = df[(np.nan_to_num(np.abs(stats.zscore(df))) < 3).all(axis=1)]
                 df['device'] = device.value
                 df['attack'] = attack.value
                 full_df = pd.concat([full_df, df])
-        full_df.to_csv('./data/all.csv', index_label=False)
+        if save_to_file:
+            full_df.to_csv(f'./data/all{"_raw" if raw else ""}.csv', index_label=False)
         return full_df
 
     @staticmethod
     def show_data_availability():
-        all_data = DataHandler.__parse_all_files_to_df()
+        all_data = DataHandler.parse_all_files_to_df()
         print(f'Total data points: {len(all_data)}')
         drop_cols = [col for col in list(all_data) if col not in ['device', 'attack', 'block:block_bio_backmerge']]
         grouped = all_data.drop(drop_cols, axis=1).rename(columns={'block:block_bio_backmerge': 'count'}).groupby(
@@ -168,7 +170,7 @@ class DataHandler:
         assert len(train_devices) > 0 and len(
             test_devices) > 0, "Need to provide at least one train and one test device!"
 
-        all_data = DataHandler.__parse_all_files_to_df()
+        all_data = DataHandler.parse_all_files_to_df()
 
         # Dictionaries that hold total request: e. g. we want 500 train data for a pi3 and delay
         # but may only have 100 -> oversample and prevent overlaps

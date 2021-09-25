@@ -204,7 +204,7 @@ class Server:
         return all_predictions.flatten()
 
 
-class RandomGradientAdversary(Participant):
+class RandomGradientAdversary(AutoEncoderParticipant):
     def train(self, optimizer, loss_function, num_local_epochs: int = 5):
         state_dict = self.model.state_dict()
         new_dict = deepcopy(state_dict)
