@@ -232,19 +232,18 @@ class DataHandler:
             for x_test, y_test in test_devices:
                 test_scaled.append((scaler.transform(x_test), y_test))
         else:
-            scalers = []
-            for x_train, y_train, x_val, y_val in train_devices:
-                scaler = StandardScaler() if scaling == Scaler.STANDARD_SCALER else MinMaxScaler(clip=False)
-                scaler.fit(x_train)
-                scalers.append(scaler)
             if scaling == Scaler.STANDARD_SCALER:
+                scalers = []
+                for x_train, y_train, x_val, y_val in train_devices:
+                    scaler = StandardScaler() if scaling == Scaler.STANDARD_SCALER else MinMaxScaler(clip=False)
+                    scaler.fit(x_train)
+                    scalers.append(scaler)
                 final_scaler = StandardScaler()
                 final_scaler.scale_ = np.stack([s.scale_ for s in scalers], axis=1).mean(axis=1)
                 final_scaler.mean_ = np.stack([s.mean_ for s in scalers], axis=1).mean(axis=1)
             else:
                 final_scaler = MinMaxScaler(clip=False)
-                final_scaler.min_ = np.stack([s.min_ for s in scalers], axis=1).mean(axis=1)
-                final_scaler.scale_ = np.stack([s.scale_ for s in scalers], axis=1).mean(axis=1)
+                final_scaler.fit(np.concatenate(tuple([x_train for x_train, y_train, x_val, y_val in train_devices])))
             for x_train, y_train, x_val, y_val in train_devices:
                 train_scaled.append((final_scaler.transform(x_train), y_train, final_scaler.transform(x_val), y_val))
             for x_test, y_test in test_devices:
