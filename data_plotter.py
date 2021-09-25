@@ -1,13 +1,12 @@
 from typing import List, Tuple, Union
 
 import matplotlib.pyplot as plt
-import pandas as pd
 
 from custom_types import RaspberryPi, Behavior
 from data_handler import DataHandler
 
 
-# TODO: make one function: plot(List[Tuple[Device, Behavior, str]]) to plot list of (Device, Behavior, Color in plot)
+# TODO: can be removed or at least replace by calls to Data Plotter
 # kept for convenience
 def plot_one_normal_against_attacks(all_data, col_names, attacks=[Behavior.FREEZE, Behavior.REPEAT]):
     for device in RaspberryPi:
@@ -37,6 +36,7 @@ def plot_one_normal_against_attacks(all_data, col_names, attacks=[Behavior.FREEZ
                 fig.savefig(f'data_plot_{device.value}_{normal.value}_{attack.value}.png', dpi=50)
 
 
+# TODO: can be removed or at least replace by calls to Data Plotter
 def plot_normals_against_attacks_per_device2(all_data, col_names, attacks=[Behavior.FREEZE, Behavior.REPEAT]):
     for device in RaspberryPi:
         for attack in attacks:
@@ -69,6 +69,7 @@ def plot_normals_against_attacks_per_device2(all_data, col_names, attacks=[Behav
             fig.savefig(f'data_plot_{device.value}_NORMALS_{attack.value}.png', dpi=50)
 
 
+# TODO: can be removed or at least replace by calls to Data Plotter
 def plot_behaviors_for_all_devices(all_data, col_names, behaviors, devices=RaspberryPi):
     colors = ["red", "green", "blue", "orange"][:len(devices)]
     for b in behaviors:

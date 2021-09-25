@@ -11,8 +11,8 @@ from devices import AutoEncoderParticipant, Server
 from utils import calculate_metrics
 
 if __name__ == "__main__":
-    torch.random.manual_seed(42)
-    np.random.seed(42)
+    torch.random.manual_seed(55)
+    np.random.seed(55)
 
     print("Use case federated Anomaly/Zero Day Detection\n"
           "Is the federation able to transfer its knowledge to a new device?\n")
@@ -40,13 +40,11 @@ if __name__ == "__main__":
         train_sets_fed, test_sets_fed = deepcopy(train_sets), deepcopy(test_sets)
         train_sets_fed, test_sets_fed = DataHandler.scale(train_sets_fed, test_sets_fed, scaling=Scaler.MINMAX_SCALER)
 
-        print("Train Federation")
         participants = [AutoEncoderParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
                         x_train, y_train, x_valid, y_valid in train_sets_fed]
         server = Server(participants, ModelArchitecture.AUTO_ENCODER)
         server.train_global_model(aggregation_rounds=5)
 
-        print("\nTrain Centralized")
         x_train_all = np.concatenate(tuple(x_train for x_train, y_train, x_valid, y_valid in train_sets))
         y_train_all = np.concatenate(tuple(y_train for x_train, y_train, x_valid, y_valid in train_sets))
         x_valid_all = np.concatenate(tuple(x_valid for x_train, y_train, x_valid, y_valid in train_sets))
