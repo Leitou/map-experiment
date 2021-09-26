@@ -50,7 +50,8 @@ if __name__ == "__main__":
         x_valid_all = np.concatenate(tuple(x_valid for x_train, y_train, x_valid, y_valid in train_sets))
         y_valid_all = np.concatenate(tuple(y_valid for x_train, y_train, x_valid, y_valid in train_sets))
         train_set_cen = [(x_train_all, y_train_all, x_valid_all, y_valid_all)]
-        train_set_cen, test_sets_cen = DataHandler.scale(train_set_cen, test_sets, central=True)
+        train_set_cen, test_sets_cen = DataHandler.scale(train_set_cen, test_sets, central=True,
+                                                         scaling=Scaler.MINMAX_SCALER)
         central_participant = [
             AutoEncoderParticipant(train_set_cen[0][0], train_set_cen[0][1], train_set_cen[0][2], train_set_cen[0][3],
                                    batch_size_valid=1)]

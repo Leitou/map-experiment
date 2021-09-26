@@ -8,7 +8,7 @@ from custom_types import RaspberryPi, Behavior
 
 def calculate_metrics(y_test: np.ndarray, y_pred: np.ndarray) -> Tuple[float, float, Any]:
     correct = np.count_nonzero(y_test == y_pred)
-    f1 = f1_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred, zero_division=1)
     cm_fed = confusion_matrix(y_test, y_pred)  # could also extract via tn, fp, fn, tp = confusion_matrix().ravel()
     return correct / len(y_pred), f1, cm_fed
 
