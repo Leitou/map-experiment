@@ -3,7 +3,7 @@ from typing import Dict
 import numpy as np
 import torch
 
-from custom_types import Behavior, RaspberryPi, ModelArchitecture
+from custom_types import Behavior, RaspberryPi, ModelArchitecture, Scaler
 from devices import AutoEncoderParticipant, Server
 from data_handler import DataHandler
 from utils import calculate_metrics
@@ -24,9 +24,9 @@ if __name__ == "__main__":
         res_dict: Dict[RaspberryPi, Dict[Behavior, str]] = {}
         for device in RaspberryPi:
             device_dict: Dict[Behavior, str] = {}
-            test_devices = [(device, {behavior: 250}) for behavior in Behavior]
+            test_devices = [(device, {behavior: 150}) for behavior in Behavior]
             train_sets, test_sets = DataHandler.get_all_clients_data(
-                [(device, {normal: 2500}, {normal: 500})],
+                [(device, {normal: 3000}, {normal: 1000})],
                 test_devices)
 
             train_sets, test_sets = DataHandler.scale(train_sets, test_sets, True)

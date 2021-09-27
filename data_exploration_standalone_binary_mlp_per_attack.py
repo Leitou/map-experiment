@@ -9,6 +9,7 @@ from devices import Server, Participant
 from data_handler import DataHandler
 from utils import calculate_metrics
 
+# implicitly given by heatmaps
 if __name__ == "__main__":
     torch.random.manual_seed(42)
     np.random.seed(42)
@@ -28,7 +29,7 @@ if __name__ == "__main__":
             device_dict: Dict[Behavior, str] = {}
             for attack in attacks:
                 train_sets, test_sets = DataHandler.get_all_clients_data(
-                    [(device, {normal: 1500, attack: 500}, {normal: 150, attack: 50})],
+                    [(device, {normal: 3000, attack: 500}, {normal: 300, attack: 50})],
                     [(device, {normal: 150}),
                      (device, {other_normal: 150}),
                      (device, {attack: 150})])
