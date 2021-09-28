@@ -29,12 +29,10 @@ if __name__ == "__main__":
                 train_devices.append((device2, {Behavior.NORMAL: 1000,
                                                 Behavior.DISORDER: 250,
                                                 Behavior.FREEZE: 250,
-                                                Behavior.MIMIC: 250,
                                                 Behavior.NOISE: 250},
                                       {Behavior.NORMAL: 100,
                                        Behavior.DISORDER: 25,
                                        Behavior.FREEZE: 25,
-                                       Behavior.MIMIC: 25,
                                        Behavior.NOISE: 25}))
 
         test_devices = []
