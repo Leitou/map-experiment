@@ -7,7 +7,7 @@ from tabulate import tabulate
 from copy import deepcopy
 from custom_types import Behavior, ModelArchitecture, AdversaryType, Scaler
 from data_handler import DataHandler
-from devices import AutoEncoderParticipant, RandomWeightAdversary, Server
+from devices import AutoEncoderParticipant, RandomWeightAdversary, ExaggerateThresholdAdversary, UnderstateThresholdAdversary, Server
 from utils import select_federation_composition, get_sampling_per_device, calculate_metrics
 
 
@@ -26,7 +26,7 @@ if __name__ == "__main__":
     #  behaviors to test on etc. while taking care to avoid too extensive upsampling
     participants_per_arch = [2, 2, 0, 2]
     adversaries_per_arch = [2,2,0,2]
-    adversary_type = AdversaryType.RANDOM_WEIGHT
+    adversary_type = AdversaryType.UNDERSTATE_TRESHOLD
     normals = [(Behavior.NORMAL, 3000)]
     attacks = [val for val in Behavior if val not in [Behavior.NORMAL, Behavior.NORMAL_V2]]
     # attacks = [Behavior.DELAY, Behavior.DISORDER, Behavior.FREEZE]
@@ -63,7 +63,9 @@ if __name__ == "__main__":
         adversaries += [1]*adversaries_per_arch[i] + [0]*(participants_per_arch[i] - adversaries_per_arch[i])
 
     participants = [AutoEncoderParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) if not is_adv else
-                    RandomWeightAdversary(x_train, y_train, x_valid, y_valid)
+                    RandomWeightAdversary(x_train, y_train, x_valid, y_valid) if adversary_type == AdversaryType.RANDOM_WEIGHT
+                    else ExaggerateThresholdAdversary(x_train, y_train, x_valid, y_valid) if adversary_type == AdversaryType.EXAGGERATE_TRESHOLD
+                    else UnderstateThresholdAdversary(x_train, y_train, x_valid, y_valid)
                     for (x_train, y_train, x_valid, y_valid), is_adv in zip(train_sets_fed, adversaries)]
     server = Server(participants, ModelArchitecture.AUTO_ENCODER)
     server.train_global_model(aggregation_rounds=5)

@@ -204,7 +204,9 @@ class Server:
         return all_predictions.flatten()
 
 
+
 # if threshold is selected like in the normal AutoEnc. Participant sending random weights is not an efficient attack
+# a model with 100% malicious participants still recognizes some behaviors with 100% accuracy without attacking the threshold
 class RandomWeightAdversary(AutoEncoderParticipant):
     def train(self, optimizer, loss_function, num_local_epochs: int = 5):
         state_dict = self.model.state_dict()
@@ -212,3 +214,38 @@ class RandomWeightAdversary(AutoEncoderParticipant):
         for key in state_dict.keys():
             new_dict[key] = torch.rand(state_dict[key].size())
         self.model.load_state_dict(new_dict)
+
+# inefficient attack
+class ExaggerateThresholdAdversary(AutoEncoderParticipant):
+
+    def determine_threshold(self) -> float:
+        mses = []
+        self.model.eval()
+        with torch.no_grad():
+            loss_function = torch.nn.MSELoss(reduction='sum')
+            for batch_idx, (x, _) in enumerate(self.valid_loader):
+                x = x  # x.cuda()
+                model_out = self.model(x)
+                loss = loss_function(model_out, x)
+                mses.append(loss.item())
+        mses = np.array(mses)
+        # just way more than normal participants threshold
+        return mses.mean() + 100*mses.std()
+
+# inefficient attack
+class UnderstateThresholdAdversary(AutoEncoderParticipant):
+
+    def determine_threshold(self) -> float:
+        mses = []
+        self.model.eval()
+        with torch.no_grad():
+            loss_function = torch.nn.MSELoss(reduction='sum')
+            for batch_idx, (x, _) in enumerate(self.valid_loader):
+                x = x  # x.cuda()
+                model_out = self.model(x)
+                loss = loss_function(model_out, x)
+                mses.append(loss.item())
+        mses = np.array(mses)
+        # just way more than normal participants threshold
+        return mses.mean() - 100*mses.std()
+
