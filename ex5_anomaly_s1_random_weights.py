@@ -25,9 +25,9 @@ if __name__ == "__main__":
     # TODO: for report looping over different nrs of participants / Attack Behaviors to train with /
     #  behaviors to test on etc. while taking care to avoid too extensive upsampling
     participants_per_arch = [2, 2, 0, 2]
-    adversaries_per_arch = [0,1,0,0]
+    adversaries_per_arch = [2,2,0,2]
     adversary_type = AdversaryType.RANDOM_WEIGHT
-    normals = [(Behavior.NORMAL, 6000)]
+    normals = [(Behavior.NORMAL, 3000)]
     attacks = [val for val in Behavior if val not in [Behavior.NORMAL, Behavior.NORMAL_V2]]
     # attacks = [Behavior.DELAY, Behavior.DISORDER, Behavior.FREEZE]
     val_percentage = 0.1

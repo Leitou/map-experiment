@@ -204,6 +204,7 @@ class Server:
         return all_predictions.flatten()
 
 
+# if threshold is selected like in the normal AutoEnc. Participant sending random weights is not an efficient attack
 class RandomWeightAdversary(AutoEncoderParticipant):
     def train(self, optimizer, loss_function, num_local_epochs: int = 5):
         state_dict = self.model.state_dict()
