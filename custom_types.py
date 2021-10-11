@@ -28,6 +28,9 @@ class ModelArchitecture(Enum):
     MLP_MULTI_CLASS = "MLP_multi_class"
     AUTO_ENCODER = "auto_encoder"
 
+class AdversaryType(Enum):
+    RANDOM_WEIGHT = "random_weight"
+
 
 class Scaler(Enum):
     STANDARD_SCALER = "std"

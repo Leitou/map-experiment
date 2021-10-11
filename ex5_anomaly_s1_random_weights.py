@@ -5,10 +5,13 @@ import torch
 from tabulate import tabulate
 
 from copy import deepcopy
-from custom_types import Behavior, ModelArchitecture, Scaler
+from custom_types import Behavior, ModelArchitecture, AdversaryType, Scaler
 from data_handler import DataHandler
-from devices import AutoEncoderParticipant, Server
+from devices import AutoEncoderParticipant, RandomWeightAdversary, Server
 from utils import select_federation_composition, get_sampling_per_device, calculate_metrics
+
+
+# TODO inject adversaries here using random grads
 
 if __name__ == "__main__":
     torch.random.manual_seed(42)
@@ -21,7 +24,9 @@ if __name__ == "__main__":
     # define collective experiment config:
     # TODO: for report looping over different nrs of participants / Attack Behaviors to train with /
     #  behaviors to test on etc. while taking care to avoid too extensive upsampling
-    participants_per_arch = [1, 1, 0, 1]
+    participants_per_arch = [2, 2, 0, 2]
+    adversaries_per_arch = [0,1,0,0]
+    adversary_type = AdversaryType.RANDOM_WEIGHT
     normals = [(Behavior.NORMAL, 6000)]
     attacks = [val for val in Behavior if val not in [Behavior.NORMAL, Behavior.NORMAL_V2]]
     # attacks = [Behavior.DELAY, Behavior.DISORDER, Behavior.FREEZE]
@@ -51,8 +56,15 @@ if __name__ == "__main__":
     train_sets_fed, test_sets_fed = deepcopy(train_sets), deepcopy(test_sets)
     train_sets_fed, test_sets_fed = DataHandler.scale(train_sets_fed, test_sets_fed, scaling=Scaler.MINMAX_SCALER)
 
-    participants = [AutoEncoderParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
-                    x_train, y_train, x_valid, y_valid in train_sets_fed]
+
+    adversaries = []
+    for i in range(len(participants_per_arch)):
+        assert adversaries_per_arch[i] <= participants_per_arch[i], "There must be less adversaries than participants"
+        adversaries += [1]*adversaries_per_arch[i] + [0]*(participants_per_arch[i] - adversaries_per_arch[i])
+
+    participants = [AutoEncoderParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) if not is_adv else
+                    RandomWeightAdversary(x_train, y_train, x_valid, y_valid)
+                    for (x_train, y_train, x_valid, y_valid), is_adv in zip(train_sets_fed, adversaries)]
     server = Server(participants, ModelArchitecture.AUTO_ENCODER)
     server.train_global_model(aggregation_rounds=5)
     print()
