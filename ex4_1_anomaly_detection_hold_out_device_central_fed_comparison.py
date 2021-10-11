@@ -7,7 +7,8 @@ from copy import deepcopy
 
 from custom_types import Behavior, RaspberryPi, ModelArchitecture, Scaler
 from data_handler import DataHandler
-from devices import AutoEncoderParticipant, Server
+from aggregation import Server
+from participants import AutoEncoderParticipant
 from utils import calculate_metrics
 
 if __name__ == "__main__":

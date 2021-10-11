@@ -4,7 +4,8 @@ import numpy as np
 import torch
 
 from custom_types import Behavior, RaspberryPi, ModelArchitecture, Scaler
-from devices import AutoEncoderParticipant, Server
+from aggregation import Server
+from participants import AutoEncoderParticipant
 from data_handler import DataHandler
 from utils import calculate_metrics
 from tabulate import tabulate

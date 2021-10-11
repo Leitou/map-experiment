@@ -3,7 +3,7 @@ import torch
 from sklearn.metrics import f1_score
 
 from custom_types import Behavior, RaspberryPi, ModelArchitecture
-from devices import Participant, Server
+from participants import Participant, Server
 from data_handler import DataHandler
 
 if __name__ == "__main__":

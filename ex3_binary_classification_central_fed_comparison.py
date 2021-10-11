@@ -7,7 +7,8 @@ from tabulate import tabulate
 from copy import deepcopy
 from custom_types import Behavior, ModelArchitecture, Scaler
 from data_handler import DataHandler
-from devices import Participant, Server
+from aggregation import Server
+from participants import Participant
 from utils import select_federation_composition, get_sampling_per_device, calculate_metrics, \
     get_confusion_matrix_vals_in_percent
 

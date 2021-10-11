@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 from custom_types import Behavior, RaspberryPi, ModelArchitecture
-from devices import Participant, Server
+from participants import Participant, Server
 from data_handler import DataHandler
 from utils import print_experiment_scores
 

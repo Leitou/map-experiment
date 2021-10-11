@@ -3,7 +3,8 @@ import torch
 from tabulate import tabulate
 
 from custom_types import Behavior, RaspberryPi, ModelArchitecture, Scaler
-from devices import Server, Participant
+from aggregation import Server
+from participants import Participant
 from data_handler import DataHandler
 from utils import calculate_metrics
 

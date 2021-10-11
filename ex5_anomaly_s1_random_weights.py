@@ -7,7 +7,8 @@ from tabulate import tabulate
 from copy import deepcopy
 from custom_types import Behavior, ModelArchitecture, AdversaryType, Scaler
 from data_handler import DataHandler
-from devices import AutoEncoderParticipant, RandomWeightAdversary, ExaggerateThresholdAdversary, UnderstateThresholdAdversary, Server
+from aggregation import Server
+from participants import AutoEncoderParticipant, RandomWeightAdversary, ExaggerateThresholdAdversary, UnderstateThresholdAdversary
 from utils import select_federation_composition, get_sampling_per_device, calculate_metrics
 
 
@@ -56,7 +57,7 @@ if __name__ == "__main__":
     train_sets_fed, test_sets_fed = deepcopy(train_sets), deepcopy(test_sets)
     train_sets_fed, test_sets_fed = DataHandler.scale(train_sets_fed, test_sets_fed, scaling=Scaler.MINMAX_SCALER)
 
-
+    # injecting participants that do sth weird with the model
     adversaries = []
     for i in range(len(participants_per_arch)):
         assert adversaries_per_arch[i] <= participants_per_arch[i], "There must be less adversaries than participants"

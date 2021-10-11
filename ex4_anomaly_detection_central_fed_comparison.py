@@ -7,7 +7,8 @@ from tabulate import tabulate
 from copy import deepcopy
 from custom_types import Behavior, ModelArchitecture, Scaler
 from data_handler import DataHandler
-from devices import AutoEncoderParticipant, Server
+from aggregation import Server
+from participants import AutoEncoderParticipant
 from utils import select_federation_composition, get_sampling_per_device, calculate_metrics
 
 if __name__ == "__main__":
