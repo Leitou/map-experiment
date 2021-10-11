@@ -207,6 +207,7 @@ class Server:
 
 # if threshold is selected like in the normal AutoEnc. Participant sending random weights is not an efficient attack
 # a model with 100% malicious participants still recognizes some behaviors with 100% accuracy without attacking the threshold
+
 class RandomWeightAdversary(AutoEncoderParticipant):
     def train(self, optimizer, loss_function, num_local_epochs: int = 5):
         state_dict = self.model.state_dict()
@@ -215,7 +216,13 @@ class RandomWeightAdversary(AutoEncoderParticipant):
             new_dict[key] = torch.rand(state_dict[key].size())
         self.model.load_state_dict(new_dict)
 
-# inefficient attack
+# Approx thresholds ranges of non-attacked device types:
+# Ras-3: ~7.5-8
+# Ras-4-4gb: ~1.7-1.9
+# Ras-4-2gb: ~1.8-2.1
+
+# Goal: make as many attacks as possible recognized as normals
+# Side effect: normal samples recognized as normals across heterogeneous devices
 class ExaggerateThresholdAdversary(AutoEncoderParticipant):
 
     def determine_threshold(self) -> float:
@@ -230,9 +237,9 @@ class ExaggerateThresholdAdversary(AutoEncoderParticipant):
                 mses.append(loss.item())
         mses = np.array(mses)
         # just way more than normal participants threshold
-        return mses.mean() + 100*mses.std()
+        return mses.mean() + 15*mses.std()
 
-# inefficient attack
+# GOAL: make the model also raise alarm on normal samples
 class UnderstateThresholdAdversary(AutoEncoderParticipant):
 
     def determine_threshold(self) -> float:
@@ -246,6 +253,7 @@ class UnderstateThresholdAdversary(AutoEncoderParticipant):
                 loss = loss_function(model_out, x)
                 mses.append(loss.item())
         mses = np.array(mses)
-        # just way more than normal participants threshold
-        return mses.mean() - 100*mses.std()
+        # just way less than normal participants threshold
+        # achieves goal with only one participant,
+        return mses.mean() - 15*mses.std()
 

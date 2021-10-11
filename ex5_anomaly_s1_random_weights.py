@@ -14,8 +14,8 @@ from utils import select_federation_composition, get_sampling_per_device, calcul
 # TODO inject adversaries here using random grads
 
 if __name__ == "__main__":
-    torch.random.manual_seed(42)
-    np.random.seed(42)
+    torch.random.manual_seed(82)
+    np.random.seed(82)
 
     print(f'GPU available: {torch.cuda.is_available()}')
     print("Starting demo experiment: Federated vs Centralized Anomaly Detection\n"
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     # TODO: for report looping over different nrs of participants / Attack Behaviors to train with /
     #  behaviors to test on etc. while taking care to avoid too extensive upsampling
     participants_per_arch = [2, 2, 0, 2]
-    adversaries_per_arch = [2,2,0,2]
+    adversaries_per_arch = [0,0,0,2]
     adversary_type = AdversaryType.UNDERSTATE_TRESHOLD
     normals = [(Behavior.NORMAL, 3000)]
     attacks = [val for val in Behavior if val not in [Behavior.NORMAL, Behavior.NORMAL_V2]]
@@ -61,6 +61,7 @@ if __name__ == "__main__":
     for i in range(len(participants_per_arch)):
         assert adversaries_per_arch[i] <= participants_per_arch[i], "There must be less adversaries than participants"
         adversaries += [1]*adversaries_per_arch[i] + [0]*(participants_per_arch[i] - adversaries_per_arch[i])
+    assert len(train_sets_fed) == len(adversaries), "Unequal lenghts"
 
     participants = [AutoEncoderParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) if not is_adv else
                     RandomWeightAdversary(x_train, y_train, x_valid, y_valid) if adversary_type == AdversaryType.RANDOM_WEIGHT
