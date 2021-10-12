@@ -33,6 +33,7 @@ class AdversaryType(Enum):
     RANDOM_WEIGHT = "random_weight"
     EXAGGERATE_TRESHOLD = "exaggerate_threshold"
     UNDERSTATE_TRESHOLD = "understate_threshold"
+    BENIGN_LABEL_FLIP = "benign_label_flip"
 
 
 class AggregationMechanism(Enum):

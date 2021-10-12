@@ -108,9 +108,21 @@ class AutoEncoderParticipant(Participant):
         mses = np.array(mses)
         return mses.mean() + mses.std()
 
+
+# Goal: raise alarm on every sample
+class BenignLabelFlipAdversary(Participant):
+    def __init__(self, train_x: np.ndarray, train_y: np.ndarray,
+                 valid_x: np.ndarray, valid_y: np.ndarray,
+                 batch_size: int = 64, batch_size_valid=64, y_type: torch.dtype = torch.float):
+        # TODO flip all 0 labels to 1
+        train_y[train_y == 0] = 1
+        valid_y[valid_y == 0] = 1
+        super().__init__(train_x, train_y, valid_x, valid_y, batch_size, batch_size_valid, y_type)
+
+
+
 # if threshold is selected like in the normal AutoEnc. Participant sending random weights is not an efficient attack
 # a model with 100% malicious participants still recognizes some behaviors with 100% accuracy without attacking the threshold
-
 class RandomWeightAdversary(AutoEncoderParticipant):
     def train(self, optimizer, loss_function, num_local_epochs: int = 5):
         state_dict = self.model.state_dict()

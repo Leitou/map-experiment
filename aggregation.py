@@ -9,7 +9,7 @@ from custom_types import ModelArchitecture, AggregationMechanism
 from models import mlp_model, auto_encoder_model
 from participants import Participant, AutoEncoderParticipant
 
-
+# TODO: https://github.com/fushuhao6/Attack-Resistant-Federated-Learning
 class Server:
     def __init__(self, participants: List[Participant],
                  model_architecture: ModelArchitecture = ModelArchitecture.MLP_MONO_CLASS,

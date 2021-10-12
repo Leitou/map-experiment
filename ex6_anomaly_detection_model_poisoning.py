@@ -22,8 +22,8 @@ if __name__ == "__main__":
           "Training on a range of attacks and testing for each attack how well the joint model performs.\n")
 
     # define federation composition and data contribution
-    participants_per_arch = [2, 2, 0, 2]
-    adversaries_per_arch = [0, 0, 0, 0]
+    participants_per_arch = [2, 2, 2, 2]
+    adversaries_per_arch = [2, 0, 0, 0]
     adversary_type = AdversaryType.UNDERSTATE_TRESHOLD
     aggregation_mechanism = AggregationMechanism.FED_AVG
     normals = [(Behavior.NORMAL, 3000)]
