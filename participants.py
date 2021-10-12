@@ -109,14 +109,32 @@ class AutoEncoderParticipant(Participant):
         return mses.mean() + mses.std()
 
 
-# Goal: raise alarm on every sample
+# Goal: raise alarm on every sample - TNR -> 0%
 class BenignLabelFlipAdversary(Participant):
     def __init__(self, train_x: np.ndarray, train_y: np.ndarray,
                  valid_x: np.ndarray, valid_y: np.ndarray,
                  batch_size: int = 64, batch_size_valid=64, y_type: torch.dtype = torch.float):
-        # TODO flip all 0 labels to 1
         train_y[train_y == 0] = 1
         valid_y[valid_y == 0] = 1
+        super().__init__(train_x, train_y, valid_x, valid_y, batch_size, batch_size_valid, y_type)
+
+# Goal: raise alarm on none of the samples - TPR -> 0%
+class AttackLabelFlipAdversary(Participant):
+    def __init__(self, train_x: np.ndarray, train_y: np.ndarray,
+                 valid_x: np.ndarray, valid_y: np.ndarray,
+                 batch_size: int = 64, batch_size_valid=64, y_type: torch.dtype = torch.float):
+        train_y[train_y == 1] = 0
+        valid_y[valid_y == 1] = 0
+        super().__init__(train_x, train_y, valid_x, valid_y, batch_size, batch_size_valid, y_type)
+
+# Goal: completely destroy model - drive accuracy to 0%
+class AllLabelFlipAdversary(Participant):
+    def __init__(self, train_x: np.ndarray, train_y: np.ndarray,
+                 valid_x: np.ndarray, valid_y: np.ndarray,
+                 batch_size: int = 64, batch_size_valid=64, y_type: torch.dtype = torch.float):
+        # TODO flip all 0 labels to 1
+        train_y = (train_y != 1).astype(float)
+        valid_y = (valid_y != 1).astype(float)
         super().__init__(train_x, train_y, valid_x, valid_y, batch_size, batch_size_valid, y_type)
 
 

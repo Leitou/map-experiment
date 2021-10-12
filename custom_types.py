@@ -34,6 +34,8 @@ class AdversaryType(Enum):
     EXAGGERATE_TRESHOLD = "exaggerate_threshold"
     UNDERSTATE_TRESHOLD = "understate_threshold"
     BENIGN_LABEL_FLIP = "benign_label_flip"
+    ATTACK_LABEL_FLIP = "attack_label_flip"
+    ALL_LABEL_FLIP = "all_label_flip"
 
 
 class AggregationMechanism(Enum):

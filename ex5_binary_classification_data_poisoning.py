@@ -8,7 +8,7 @@ from copy import deepcopy
 from custom_types import Behavior, ModelArchitecture, AdversaryType, AggregationMechanism, Scaler
 from data_handler import DataHandler
 from aggregation import Server
-from participants import Participant, BenignLabelFlipAdversary
+from participants import Participant, BenignLabelFlipAdversary, AttackLabelFlipAdversary, AllLabelFlipAdversary
 from utils import select_federation_composition, get_sampling_per_device, calculate_metrics, \
     get_confusion_matrix_vals_in_percent
 
@@ -21,11 +21,10 @@ if __name__ == "__main__":
           "Training on a range of attacks and testing for each attack how well the joint model performs.\n")
 
     # define collective experiment config:
-    # TODO: for report looping over different nrs of participants / Attack Behaviors to train with /
-    #  behaviors to test on etc. while taking care to avoid too extensive upsampling
+    # TODO: remove centralized stuff
     participants_per_arch = [1, 1, 0, 1]
-    adversaries_per_arch = [0, 0, 0, 0]
-    adversary_type = AdversaryType.UNDERSTATE_TRESHOLD
+    adversaries_per_arch = [1, 0, 0, 0]
+    adversary_type = AdversaryType.ALL_LABEL_FLIP
     aggregation_mechanism = AggregationMechanism.FED_AVG
     normals = [(Behavior.NORMAL, 1000)]
     # attacks = [val for val in Behavior if val not in [Behavior.NORMAL, Behavior.NORMAL_V2]]
@@ -63,7 +62,11 @@ if __name__ == "__main__":
     assert len(train_sets_fed) == len(adversaries), "Unequal lenghts"
 
     participants = [Participant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) if not is_adv else
-                    BenignLabelFlipAdversary(x_train, y_train, x_valid, y_valid)
+                    BenignLabelFlipAdversary(x_train, y_train, x_valid,
+                                             y_valid) if adversary_type == AdversaryType.BENIGN_LABEL_FLIP
+                    else AttackLabelFlipAdversary(x_train, y_train, x_valid,
+                                                  y_valid) if adversary_type == AdversaryType.ATTACK_LABEL_FLIP
+                    else AllLabelFlipAdversary(x_train, y_train, x_valid, y_valid)
                     for (x_train, y_train, x_valid, y_valid), is_adv in zip(train_sets_fed, adversaries)]
 
     server = Server(participants, ModelArchitecture.MLP_MONO_CLASS, aggregation_mechanism=aggregation_mechanism)
