@@ -5,16 +5,18 @@ from math import nan
 import torch
 from torch.utils.data import DataLoader
 
-from custom_types import ModelArchitecture
+from custom_types import ModelArchitecture, AggregationMechanism
 from models import mlp_model, auto_encoder_model
 from participants import Participant, AutoEncoderParticipant
 
 
 class Server:
     def __init__(self, participants: List[Participant],
-                 model_architecture: ModelArchitecture = ModelArchitecture.MLP_MONO_CLASS):
+                 model_architecture: ModelArchitecture = ModelArchitecture.MLP_MONO_CLASS,
+                 aggregation_mechanism: AggregationMechanism = AggregationMechanism.FED_AVG):
         assert len(participants) > 0, "At least one participant is required!"
         assert model_architecture is not None, "Model architecture has to be supplied!"
+        self.aggregation_mechanism = aggregation_mechanism
         self.model_architecture = model_architecture
         self.participants = participants
         if model_architecture == ModelArchitecture.MLP_MONO_CLASS:
@@ -48,15 +50,13 @@ class Server:
                               torch.nn.MSELoss(reduction='sum')),
                         num_local_epochs=local_epochs)
 
-            w_avg = deepcopy(self.participants[0].get_model().state_dict())
-            for key in w_avg.keys():
-                for p in self.participants[1:]:
-                    w_avg[key] += p.get_model().state_dict()[key]
-                w_avg[key] = torch.div(w_avg[key], len(self.participants))
-            self.global_model.load_state_dict(w_avg)
+            if self.aggregation_mechanism == AggregationMechanism.FED_AVG:
+                new_weights = self.fedavg()
+            # TODO add & implement multiple ways of aggregation
 
+            self.global_model.load_state_dict(new_weights)
             for p in self.participants:
-                p.get_model().load_state_dict(deepcopy(w_avg))
+                p.get_model().load_state_dict(deepcopy(new_weights))
 
     def predict_using_global_model(self, x):
         if self.model_architecture == ModelArchitecture.AUTO_ENCODER:
@@ -100,4 +100,10 @@ class Server:
 
         return all_predictions.flatten()
 
-
+    def fedavg(self):
+        w_avg = deepcopy(self.participants[0].get_model().state_dict())
+        for key in w_avg.keys():
+            for p in self.participants[1:]:
+                w_avg[key] += p.get_model().state_dict()[key]
+            w_avg[key] = torch.div(w_avg[key], len(self.participants))
+        return w_avg

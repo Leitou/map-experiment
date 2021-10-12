@@ -28,10 +28,16 @@ class ModelArchitecture(Enum):
     MLP_MULTI_CLASS = "MLP_multi_class"
     AUTO_ENCODER = "auto_encoder"
 
+
 class AdversaryType(Enum):
     RANDOM_WEIGHT = "random_weight"
     EXAGGERATE_TRESHOLD = "exaggerate_threshold"
     UNDERSTATE_TRESHOLD = "understate_threshold"
+
+
+class AggregationMechanism(Enum):
+    FED_AVG = "fed_avg",
+    TRIMMED_MEAN = "trimmed_mean"
 
 
 class Scaler(Enum):

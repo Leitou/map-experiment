@@ -8,12 +8,11 @@ from copy import deepcopy
 from custom_types import Behavior, ModelArchitecture, AdversaryType, Scaler
 from data_handler import DataHandler
 from aggregation import Server
-from participants import AutoEncoderParticipant, RandomWeightAdversary, ExaggerateThresholdAdversary, UnderstateThresholdAdversary
+from participants import AutoEncoderParticipant, RandomWeightAdversary, ExaggerateThresholdAdversary, \
+    UnderstateThresholdAdversary
 from utils import select_federation_composition, get_sampling_per_device, calculate_metrics
 
-
-# TODO inject adversaries here using random grads
-
+# TODO exchange centralized comparison to normal federation
 if __name__ == "__main__":
     torch.random.manual_seed(82)
     np.random.seed(82)
@@ -22,11 +21,9 @@ if __name__ == "__main__":
     print("Starting demo experiment: Federated vs Centralized Anomaly Detection\n"
           "Training on a range of attacks and testing for each attack how well the joint model performs.\n")
 
-    # define collective experiment config:
-    # TODO: for report looping over different nrs of participants / Attack Behaviors to train with /
-    #  behaviors to test on etc. while taking care to avoid too extensive upsampling
+    # define federation composition and data contribution
     participants_per_arch = [2, 2, 0, 2]
-    adversaries_per_arch = [0,0,0,2]
+    adversaries_per_arch = [0, 0, 0, 2]
     adversary_type = AdversaryType.UNDERSTATE_TRESHOLD
     normals = [(Behavior.NORMAL, 3000)]
     attacks = [val for val in Behavior if val not in [Behavior.NORMAL, Behavior.NORMAL_V2]]
@@ -57,16 +54,18 @@ if __name__ == "__main__":
     train_sets_fed, test_sets_fed = deepcopy(train_sets), deepcopy(test_sets)
     train_sets_fed, test_sets_fed = DataHandler.scale(train_sets_fed, test_sets_fed, scaling=Scaler.MINMAX_SCALER)
 
-    # injecting participants that do sth weird with the model
+    # injecting model poisoning participants
     adversaries = []
     for i in range(len(participants_per_arch)):
         assert adversaries_per_arch[i] <= participants_per_arch[i], "There must be less adversaries than participants"
-        adversaries += [1]*adversaries_per_arch[i] + [0]*(participants_per_arch[i] - adversaries_per_arch[i])
+        adversaries += [1] * adversaries_per_arch[i] + [0] * (participants_per_arch[i] - adversaries_per_arch[i])
     assert len(train_sets_fed) == len(adversaries), "Unequal lenghts"
 
     participants = [AutoEncoderParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) if not is_adv else
-                    RandomWeightAdversary(x_train, y_train, x_valid, y_valid) if adversary_type == AdversaryType.RANDOM_WEIGHT
-                    else ExaggerateThresholdAdversary(x_train, y_train, x_valid, y_valid) if adversary_type == AdversaryType.EXAGGERATE_TRESHOLD
+                    RandomWeightAdversary(x_train, y_train, x_valid,
+                                          y_valid) if adversary_type == AdversaryType.RANDOM_WEIGHT
+                    else ExaggerateThresholdAdversary(x_train, y_train, x_valid,
+                                                      y_valid) if adversary_type == AdversaryType.EXAGGERATE_TRESHOLD
                     else UnderstateThresholdAdversary(x_train, y_train, x_valid, y_valid)
                     for (x_train, y_train, x_valid, y_valid), is_adv in zip(train_sets_fed, adversaries)]
     server = Server(participants, ModelArchitecture.AUTO_ENCODER)
