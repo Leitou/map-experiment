@@ -5,7 +5,7 @@ import torch
 from tabulate import tabulate
 
 from copy import deepcopy
-from custom_types import Behavior, ModelArchitecture, AdversaryType, Scaler
+from custom_types import Behavior, ModelArchitecture, AdversaryType, AggregationMechanism, Scaler
 from data_handler import DataHandler
 from aggregation import Server
 from participants import AutoEncoderParticipant, RandomWeightAdversary, ExaggerateThresholdAdversary, \
@@ -23,8 +23,9 @@ if __name__ == "__main__":
 
     # define federation composition and data contribution
     participants_per_arch = [2, 2, 0, 2]
-    adversaries_per_arch = [0, 0, 0, 2]
+    adversaries_per_arch = [0, 0, 0, 0]
     adversary_type = AdversaryType.UNDERSTATE_TRESHOLD
+    aggregation_mechanism = AggregationMechanism.FED_AVG
     normals = [(Behavior.NORMAL, 3000)]
     attacks = [val for val in Behavior if val not in [Behavior.NORMAL, Behavior.NORMAL_V2]]
     # attacks = [Behavior.DELAY, Behavior.DISORDER, Behavior.FREEZE]
@@ -68,7 +69,7 @@ if __name__ == "__main__":
                                                       y_valid) if adversary_type == AdversaryType.EXAGGERATE_TRESHOLD
                     else UnderstateThresholdAdversary(x_train, y_train, x_valid, y_valid)
                     for (x_train, y_train, x_valid, y_valid), is_adv in zip(train_sets_fed, adversaries)]
-    server = Server(participants, ModelArchitecture.AUTO_ENCODER)
+    server = Server(participants, ModelArchitecture.AUTO_ENCODER, aggregation_mechanism=aggregation_mechanism)
     server.train_global_model(aggregation_rounds=5)
     print()
 

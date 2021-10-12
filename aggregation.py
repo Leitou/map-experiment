@@ -50,11 +50,13 @@ class Server:
                               torch.nn.MSELoss(reduction='sum')),
                         num_local_epochs=local_epochs)
 
-            if self.aggregation_mechanism == AggregationMechanism.FED_AVG:
+            if self.aggregation_mechanism == AggregationMechanism.TRIMMED_MEAN:
+                new_weights = self.trimmed_mean_1()
+            else:
                 new_weights = self.fedavg()
             # TODO add & implement multiple ways of aggregation
 
-            self.global_model.load_state_dict(new_weights)
+            self.global_model.load_state_dict(deepcopy(new_weights))
             for p in self.participants:
                 p.get_model().load_state_dict(deepcopy(new_weights))
 
@@ -107,3 +109,24 @@ class Server:
                 w_avg[key] += p.get_model().state_dict()[key]
             w_avg[key] = torch.div(w_avg[key], len(self.participants))
         return w_avg
+
+    def trimmed_mean_1(self):
+        return self.__trimmed_mean(1)
+
+    # not so good with only few participants
+    def trimmed_mean_2(self):
+        return self.__trimmed_mean(2)
+
+    def __trimmed_mean(self, n_trim: int) -> None:
+        n = len(self.participants)
+        n_remaining = n - 2 * n_trim
+
+        with torch.no_grad():
+            state_dict = self.global_model.state_dict()
+            for key in state_dict:
+                sorted_tensor, _ = torch.sort(
+                    torch.stack([model.state_dict()[key] for model in [p.get_model() for p in self.participants]], dim=-1),
+                    dim=-1)
+                trimmed_tensor = torch.narrow(sorted_tensor, -1, n_trim, n_remaining).type(torch.FloatTensor)
+                state_dict[key] = trimmed_tensor.mean(dim=-1)
+        return state_dict
