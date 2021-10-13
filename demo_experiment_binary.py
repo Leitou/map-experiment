@@ -47,9 +47,9 @@ if __name__ == "__main__":
     # -> set different random seeds for testing multiple ways, resp. comment it out
     train_sets, test_sets = DataHandler.get_all_clients_data(
         [(RaspberryPi.PI4_4GB, {Behavior.NORMAL: 2000, Behavior.DISORDER: 2000}, {Behavior.NORMAL: 50, Behavior.DISORDER: 50}),
-         (RaspberryPi.PI3_2GB, {Behavior.NORMAL: 2000}, {Behavior.NORMAL: 100}),
+         (RaspberryPi.PI3_1GB, {Behavior.NORMAL: 2000}, {Behavior.NORMAL: 100}),
          (RaspberryPi.PI4_2GB_BC, {Behavior.NORMAL: 2000, Behavior.SPOOF: 2000}, {Behavior.NORMAL: 50, Behavior.SPOOF: 50})],
-        [(RaspberryPi.PI3_2GB, {Behavior.NORMAL: 750, Behavior.NOISE: 250})])
+        [(RaspberryPi.PI3_1GB, {Behavior.NORMAL: 750, Behavior.NOISE: 250})])
 
     participants = [Participant(x_train, y_train, x_valid, y_valid) for
                     x_train, y_train, x_valid, y_valid in train_sets]

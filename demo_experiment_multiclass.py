@@ -17,8 +17,8 @@ if __name__ == "__main__":
         [(RaspberryPi.PI4_4GB, {Behavior.NORMAL: 2000, Behavior.SPOOF: 1000, Behavior.NOISE: 1000},
           {Behavior.NORMAL: 100, Behavior.SPOOF: 50, Behavior.NOISE: 50}),
          (RaspberryPi.PI4_2GB_BC, {Behavior.NORMAL: 2000}, {Behavior.NORMAL: 200}),
-         (RaspberryPi.PI3_2GB, {Behavior.NORMAL: 2000}, {Behavior.NORMAL: 200})],
-        [(RaspberryPi.PI3_2GB, {Behavior.NORMAL: 700, Behavior.SPOOF: 150, Behavior.NOISE: 150})], multi_class=True)
+         (RaspberryPi.PI3_1GB, {Behavior.NORMAL: 2000}, {Behavior.NORMAL: 200})],
+        [(RaspberryPi.PI3_1GB, {Behavior.NORMAL: 700, Behavior.SPOOF: 150, Behavior.NOISE: 150})], multi_class=True)
 
     participants = [Participant(x_train, y_train.flatten(), x_valid, y_valid.flatten(), y_type=torch.long) for
                     x_train, y_train, x_valid, y_valid in train_sets]

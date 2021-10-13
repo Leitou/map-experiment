@@ -15,7 +15,7 @@ class Behavior(Enum):
 
 
 class RaspberryPi(Enum):
-    PI3_2GB = "pi3-2gb"
+    PI3_1GB = "pi3-1gb"
     # black cover
     PI4_2GB_BC = "pi4-2gb-bc"
     # white cover

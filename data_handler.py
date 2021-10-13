@@ -28,17 +28,17 @@ class_map_multi: Dict[Behavior, int] = defaultdict(lambda: 0, {
 })
 
 data_file_paths: Dict[RaspberryPi, Dict[Behavior, str]] = {
-    RaspberryPi.PI3_2GB: {
-        Behavior.NORMAL: "data/ras-3-2gb/samples_normal_2021-06-18-15-59_50s",
-        Behavior.NORMAL_V2: "data/ras-3-2gb/samples_normal_v2_2021-06-23-16-54_50s",
-        Behavior.DELAY: "data/ras-3-2gb/samples_delay_2021-07-01-08-30_50s",
-        Behavior.DISORDER: "data/ras-3-2gb/samples_disorder_2021-06-30-23-54_50s",
-        Behavior.FREEZE: "data/ras-3-2gb/samples_freeze_2021-07-01-14-11_50s",
-        Behavior.HOP: "data/ras-3-2gb/samples_hop_2021-06-29-23-23_50s",
-        Behavior.MIMIC: "data/ras-3-2gb/samples_mimic_2021-06-30-10-33_50s",
-        Behavior.NOISE: "data/ras-3-2gb/samples_noise_2021-06-30-19-44_50s",
-        Behavior.REPEAT: "data/ras-3-2gb/samples_repeat_2021-07-01-20-00_50s",
-        Behavior.SPOOF: "data/ras-3-2gb/samples_spoof_2021-06-30-14-49_50s"
+    RaspberryPi.PI3_1GB: {
+        Behavior.NORMAL: "data/ras-3-1gb/samples_normal_2021-06-18-15-59_50s",
+        Behavior.NORMAL_V2: "data/ras-3-1gb/samples_normal_v2_2021-06-23-16-54_50s",
+        Behavior.DELAY: "data/ras-3-1gb/samples_delay_2021-07-01-08-30_50s",
+        Behavior.DISORDER: "data/ras-3-1gb/samples_disorder_2021-06-30-23-54_50s",
+        Behavior.FREEZE: "data/ras-3-1gb/samples_freeze_2021-07-01-14-11_50s",
+        Behavior.HOP: "data/ras-3-1gb/samples_hop_2021-06-29-23-23_50s",
+        Behavior.MIMIC: "data/ras-3-1gb/samples_mimic_2021-06-30-10-33_50s",
+        Behavior.NOISE: "data/ras-3-1gb/samples_noise_2021-06-30-19-44_50s",
+        Behavior.REPEAT: "data/ras-3-1gb/samples_repeat_2021-07-01-20-00_50s",
+        Behavior.SPOOF: "data/ras-3-1gb/samples_spoof_2021-06-30-14-49_50s"
     },
     RaspberryPi.PI4_2GB_BC: {
         Behavior.NORMAL: "data/ras-4-black/samples_normal_2021-07-11-22-19_50s",
