@@ -1,13 +1,13 @@
 from copy import deepcopy
 from math import nan
-from typing import List
+from abc import abstractmethod, ABCMeta
 
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
 
-class Participant:
+class Participant(metaclass=ABCMeta):
     def __init__(self, train_x: np.ndarray, train_y: np.ndarray,
                  valid_x: np.ndarray, valid_y: np.ndarray,
                  batch_size: int = 64, batch_size_valid=64, y_type: torch.dtype = torch.float):
@@ -28,6 +28,19 @@ class Participant:
 
         self.model = None
         self.threshold = nan
+
+    @abstractmethod
+    def train(self, optimizer, loss_function, num_local_epochs):
+        pass
+
+    def get_model(self):
+        return self.model
+
+    def set_model(self, model: torch.nn.Module):
+        self.model = model
+
+
+class MLPParticipant(Participant):
 
     def train(self, optimizer, loss_function, num_local_epochs: int = 5):
         if self.model is None:
@@ -66,11 +79,62 @@ class Participant:
                 # print(f"Early stopping criterion reached in epoch {le + 1}")
                 return
 
-    def get_model(self):
-        return self.model
 
-    def set_model(self, model: torch.nn.Module):
-        self.model = model
+# Goal: raise alarm on every sample - TNR -> 0%
+class BenignLabelFlipAdversary(MLPParticipant):
+    def __init__(self, train_x: np.ndarray, train_y: np.ndarray,
+                 valid_x: np.ndarray, valid_y: np.ndarray,
+                 batch_size: int = 64, batch_size_valid=64, y_type: torch.dtype = torch.float):
+        train_y[train_y == 0] = 1
+        valid_y[valid_y == 0] = 1
+        super().__init__(train_x, train_y, valid_x, valid_y, batch_size, batch_size_valid, y_type)
+
+
+# Goal: raise alarm on none of the samples - TPR -> 0%
+class AttackLabelFlipAdversary(MLPParticipant):
+    def __init__(self, train_x: np.ndarray, train_y: np.ndarray,
+                 valid_x: np.ndarray, valid_y: np.ndarray,
+                 batch_size: int = 64, batch_size_valid=64, y_type: torch.dtype = torch.float):
+        train_y[train_y == 1] = 0
+        valid_y[valid_y == 1] = 0
+        super().__init__(train_x, train_y, valid_x, valid_y, batch_size, batch_size_valid, y_type)
+
+
+# Goal: completely destroy model - drive accuracy to 0%
+class AllLabelFlipAdversary(MLPParticipant):
+    def __init__(self, train_x: np.ndarray, train_y: np.ndarray,
+                 valid_x: np.ndarray, valid_y: np.ndarray,
+                 batch_size: int = 64, batch_size_valid=64, y_type: torch.dtype = torch.float):
+        # TODO flip all 0 labels to 1
+        train_y = (train_y != 1).astype(float)
+        valid_y = (valid_y != 1).astype(float)
+        super().__init__(train_x, train_y, valid_x, valid_y, batch_size, batch_size_valid, y_type)
+
+
+# TODO: check whether this makes sense -> does require further normalization of the global model
+class ModelCancelBCAdversary(MLPParticipant):
+    def __init__(self, train_x: np.ndarray, train_y: np.ndarray,
+                 valid_x: np.ndarray, valid_y: np.ndarray, n_honest: int, n_malicious: int,
+                 batch_size: int = 64, batch_size_valid=64, y_type: torch.dtype = torch.float):
+        super().__init__(train_x, train_y, valid_x, valid_y, batch_size, batch_size_valid, y_type)
+        self.n_honest = n_honest
+        self.n_malicious = n_malicious
+
+    def train(self, optimizer, loss_function, num_local_epochs: int = 5):
+
+        # before local training, the participant model corresponds to the old global model / except initialization
+        old_global_model = deepcopy(self.get_model())
+        super().train(optimizer, loss_function, num_local_epochs)
+
+        factor = - self.n_honest / self.n_malicious
+        with torch.no_grad():
+            new_weights = {}
+            for key, original_param in old_global_model.state_dict().items():
+                new_weights.update({key: original_param * factor})
+            self.model.load_state_dict(new_weights)
+
+
+
 
 
 # TODO: check
@@ -107,58 +171,6 @@ class AutoEncoderParticipant(Participant):
                 mses.append(loss.item())
         mses = np.array(mses)
         return mses.mean() + mses.std()
-
-
-# Goal: raise alarm on every sample - TNR -> 0%
-class BenignLabelFlipAdversary(Participant):
-    def __init__(self, train_x: np.ndarray, train_y: np.ndarray,
-                 valid_x: np.ndarray, valid_y: np.ndarray,
-                 batch_size: int = 64, batch_size_valid=64, y_type: torch.dtype = torch.float):
-        train_y[train_y == 0] = 1
-        valid_y[valid_y == 0] = 1
-        super().__init__(train_x, train_y, valid_x, valid_y, batch_size, batch_size_valid, y_type)
-
-
-# Goal: raise alarm on none of the samples - TPR -> 0%
-class AttackLabelFlipAdversary(Participant):
-    def __init__(self, train_x: np.ndarray, train_y: np.ndarray,
-                 valid_x: np.ndarray, valid_y: np.ndarray,
-                 batch_size: int = 64, batch_size_valid=64, y_type: torch.dtype = torch.float):
-        train_y[train_y == 1] = 0
-        valid_y[valid_y == 1] = 0
-        super().__init__(train_x, train_y, valid_x, valid_y, batch_size, batch_size_valid, y_type)
-
-
-# Goal: completely destroy model - drive accuracy to 0%
-class AllLabelFlipAdversary(Participant):
-    def __init__(self, train_x: np.ndarray, train_y: np.ndarray,
-                 valid_x: np.ndarray, valid_y: np.ndarray,
-                 batch_size: int = 64, batch_size_valid=64, y_type: torch.dtype = torch.float):
-        # TODO flip all 0 labels to 1
-        train_y = (train_y != 1).astype(float)
-        valid_y = (valid_y != 1).astype(float)
-        super().__init__(train_x, train_y, valid_x, valid_y, batch_size, batch_size_valid, y_type)
-
-
-
-class ModelCancelBCAdversary(Participant):
-    def __init__(self, train_x: np.ndarray, train_y: np.ndarray,
-                 valid_x: np.ndarray, valid_y: np.ndarray, n_honest: int, n_malicious: int,
-                 batch_size: int = 64, batch_size_valid=64, y_type: torch.dtype = torch.float):
-        super().__init__(train_x, train_y, valid_x, valid_y, batch_size, batch_size_valid, y_type)
-        self.n_honest = n_honest
-        self.n_malicious = n_malicious
-
-    def train(self, optimizer, loss_function, num_local_epochs: int = 5):
-        # before local training, the participant model corresponds to the old global model / except initialization
-        old_global_model = deepcopy(self.get_model())
-        super().train(optimizer, loss_function, num_local_epochs)
-        factor = - self.n_honest / self.n_malicious
-        with torch.no_grad():
-            new_weights = {}
-            for key, original_param in old_global_model.state_dict().items():
-                new_weights.update({key: original_param * factor})
-            self.model.load_state_dict(new_weights)
 
 
 

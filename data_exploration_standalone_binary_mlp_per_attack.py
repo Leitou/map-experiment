@@ -6,7 +6,7 @@ from tabulate import tabulate
 
 from custom_types import Behavior, RaspberryPi, ModelArchitecture
 from aggregation import Server
-from participants import Participant
+from participants import MLPParticipant
 from data_handler import DataHandler
 from utils import calculate_metrics
 
@@ -37,7 +37,7 @@ if __name__ == "__main__":
 
                 train_sets, test_sets = DataHandler.scale(train_sets, test_sets, True)
 
-                participants = [Participant(x_train, y_train, x_valid, y_valid) for
+                participants = [MLPParticipant(x_train, y_train, x_valid, y_valid) for
                                 x_train, y_train, x_valid, y_valid in train_sets]
                 server = Server(participants, ModelArchitecture.MLP_MONO_CLASS)
                 server.train_global_model(aggregation_rounds=5)

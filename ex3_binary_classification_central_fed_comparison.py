@@ -8,7 +8,7 @@ from copy import deepcopy
 from custom_types import Behavior, ModelArchitecture, Scaler
 from data_handler import DataHandler
 from aggregation import Server
-from participants import Participant
+from participants import MLPParticipant
 from utils import select_federation_composition, get_sampling_per_device, calculate_metrics, \
     get_confusion_matrix_vals_in_percent
 
@@ -52,7 +52,7 @@ if __name__ == "__main__":
     train_sets_fed, test_sets_fed = deepcopy(train_sets), deepcopy(test_sets)
     train_sets_fed, test_sets_fed = DataHandler.scale(train_sets_fed, test_sets_fed, scaling=Scaler.STANDARD_SCALER)
 
-    participants = [Participant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
+    participants = [MLPParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
                     x_train, y_train, x_valid, y_valid in train_sets_fed]
     server = Server(participants, ModelArchitecture.MLP_MONO_CLASS)
     server.train_global_model(aggregation_rounds=5)
@@ -65,8 +65,8 @@ if __name__ == "__main__":
     y_valid_all = np.concatenate(tuple(y_valid for x_train, y_train, x_valid, y_valid in train_sets))
     train_set_cen = [(x_train_all, y_train_all, x_valid_all, y_valid_all)]
     train_set_cen, test_sets_cen = DataHandler.scale(train_set_cen, test_sets, central=True)
-    central_participants = [Participant(train_set_cen[0][0], train_set_cen[0][1],
-                                        train_set_cen[0][2], train_set_cen[0][3], batch_size_valid=1)]
+    central_participants = [MLPParticipant(train_set_cen[0][0], train_set_cen[0][1],
+                                           train_set_cen[0][2], train_set_cen[0][3], batch_size_valid=1)]
     central_server = Server(central_participants, ModelArchitecture.MLP_MONO_CLASS)
     central_server.train_global_model(aggregation_rounds=5)
     # print_experiment_scores(y_test.flatten(), y_predicted_central.flatten().numpy(), federated=False)

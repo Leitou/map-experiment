@@ -8,7 +8,8 @@ from copy import deepcopy
 from custom_types import Behavior, ModelArchitecture, AdversaryType, AggregationMechanism, Scaler
 from data_handler import DataHandler
 from aggregation import Server
-from participants import Participant, BenignLabelFlipAdversary, AttackLabelFlipAdversary, AllLabelFlipAdversary, ModelCancelBCAdversary
+from participants import MLPParticipant, BenignLabelFlipAdversary, AttackLabelFlipAdversary, AllLabelFlipAdversary, \
+    ModelCancelBCAdversary
 from utils import select_federation_composition, get_sampling_per_device, calculate_metrics, \
     get_confusion_matrix_vals_in_percent
 
@@ -22,13 +23,15 @@ if __name__ == "__main__":
 
     # define collective experiment config:
     # TODO: remove centralized stuff
-    participants_per_arch = [1, 1, 0, 1]
-    adversaries_per_arch = [0, 0, 0, 0]
-    adversary_type = AdversaryType.MODEL_CANCEL_BC
+    participants_per_arch = [2, 2, 0, 2]
+    adversaries_per_arch = [2, 0, 0, 0]
+    n_malicious = sum(adversaries_per_arch)
+    n_honest = sum(participants_per_arch) - n_malicious
+    adversary_type = AdversaryType.ALL_LABEL_FLIP
     aggregation_mechanism = AggregationMechanism.FED_AVG
-    normals = [(Behavior.NORMAL, 1000)]
+    normals = [(Behavior.NORMAL, 500)]
     # attacks = [val for val in Behavior if val not in [Behavior.NORMAL, Behavior.NORMAL_V2]]
-    attacks = [Behavior.DELAY, Behavior.FREEZE, Behavior.MIMIC, Behavior.SPOOF]
+    attacks = [Behavior.DISORDER, Behavior.FREEZE, Behavior.NOISE]
     val_percentage = 0.1
     train_attack_frac = 1 / len(attacks) if len(normals) == 1 else 2 / len(attacks)  # enforce balancing per device
     num_behavior_test_samples = 100
@@ -61,13 +64,14 @@ if __name__ == "__main__":
         adversaries += [1] * adversaries_per_arch[i] + [0] * (participants_per_arch[i] - adversaries_per_arch[i])
     assert len(train_sets_fed) == len(adversaries), "Unequal lenghts"
 
-    participants = [Participant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) if not is_adv else
+    participants = [MLPParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) if not is_adv else
                     BenignLabelFlipAdversary(x_train, y_train, x_valid,
                                              y_valid) if adversary_type == AdversaryType.BENIGN_LABEL_FLIP
                     else AttackLabelFlipAdversary(x_train, y_train, x_valid,
                                                   y_valid) if adversary_type == AdversaryType.ATTACK_LABEL_FLIP
-                    else AllLabelFlipAdversary(x_train, y_train, x_valid, y_valid) if AdversaryType.ALL_LABEL_FLIP
-                    else ModelCancelBCAdversary(x_train, y_train, x_valid, y_valid)
+                    else AllLabelFlipAdversary(x_train, y_train, x_valid,
+                                               y_valid) if adversary_type == AdversaryType.ALL_LABEL_FLIP
+                    else ModelCancelBCAdversary(x_train, y_train, x_valid, y_valid, n_honest, n_malicious)
                     for (x_train, y_train, x_valid, y_valid), is_adv in zip(train_sets_fed, adversaries)]
 
     server = Server(participants, ModelArchitecture.MLP_MONO_CLASS, aggregation_mechanism=aggregation_mechanism)
@@ -81,7 +85,7 @@ if __name__ == "__main__":
     y_valid_all = np.concatenate(tuple(y_valid for x_train, y_train, x_valid, y_valid in train_sets))
     train_set_cen = [(x_train_all, y_train_all, x_valid_all, y_valid_all)]
     train_set_cen, test_sets_cen = DataHandler.scale(train_set_cen, test_sets, central=True)
-    central_participants = [Participant(train_set_cen[0][0], train_set_cen[0][1],
+    central_participants = [MLPParticipant(train_set_cen[0][0], train_set_cen[0][1],
                                         train_set_cen[0][2], train_set_cen[0][3], batch_size_valid=1)]
     central_server = Server(central_participants, ModelArchitecture.MLP_MONO_CLASS)
     central_server.train_global_model(aggregation_rounds=5)
