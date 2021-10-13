@@ -8,7 +8,7 @@ from copy import deepcopy
 from custom_types import Behavior, ModelArchitecture, AdversaryType, AggregationMechanism, Scaler
 from data_handler import DataHandler
 from aggregation import Server
-from participants import Participant, BenignLabelFlipAdversary, AttackLabelFlipAdversary, AllLabelFlipAdversary
+from participants import Participant, BenignLabelFlipAdversary, AttackLabelFlipAdversary, AllLabelFlipAdversary, ModelCancelBCAdversary
 from utils import select_federation_composition, get_sampling_per_device, calculate_metrics, \
     get_confusion_matrix_vals_in_percent
 
@@ -23,8 +23,8 @@ if __name__ == "__main__":
     # define collective experiment config:
     # TODO: remove centralized stuff
     participants_per_arch = [1, 1, 0, 1]
-    adversaries_per_arch = [1, 0, 0, 0]
-    adversary_type = AdversaryType.ALL_LABEL_FLIP
+    adversaries_per_arch = [0, 0, 0, 0]
+    adversary_type = AdversaryType.MODEL_CANCEL_BC
     aggregation_mechanism = AggregationMechanism.FED_AVG
     normals = [(Behavior.NORMAL, 1000)]
     # attacks = [val for val in Behavior if val not in [Behavior.NORMAL, Behavior.NORMAL_V2]]
@@ -66,7 +66,8 @@ if __name__ == "__main__":
                                              y_valid) if adversary_type == AdversaryType.BENIGN_LABEL_FLIP
                     else AttackLabelFlipAdversary(x_train, y_train, x_valid,
                                                   y_valid) if adversary_type == AdversaryType.ATTACK_LABEL_FLIP
-                    else AllLabelFlipAdversary(x_train, y_train, x_valid, y_valid)
+                    else AllLabelFlipAdversary(x_train, y_train, x_valid, y_valid) if AdversaryType.ALL_LABEL_FLIP
+                    else ModelCancelBCAdversary(x_train, y_train, x_valid, y_valid)
                     for (x_train, y_train, x_valid, y_valid), is_adv in zip(train_sets_fed, adversaries)]
 
     server = Server(participants, ModelArchitecture.MLP_MONO_CLASS, aggregation_mechanism=aggregation_mechanism)

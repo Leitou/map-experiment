@@ -36,6 +36,7 @@ class AdversaryType(Enum):
     BENIGN_LABEL_FLIP = "benign_label_flip"
     ATTACK_LABEL_FLIP = "attack_label_flip"
     ALL_LABEL_FLIP = "all_label_flip"
+    MODEL_CANCEL_BC = "model_cancel_bc"
 
 
 class AggregationMechanism(Enum):

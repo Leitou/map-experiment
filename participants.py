@@ -118,6 +118,7 @@ class BenignLabelFlipAdversary(Participant):
         valid_y[valid_y == 0] = 1
         super().__init__(train_x, train_y, valid_x, valid_y, batch_size, batch_size_valid, y_type)
 
+
 # Goal: raise alarm on none of the samples - TPR -> 0%
 class AttackLabelFlipAdversary(Participant):
     def __init__(self, train_x: np.ndarray, train_y: np.ndarray,
@@ -126,6 +127,7 @@ class AttackLabelFlipAdversary(Participant):
         train_y[train_y == 1] = 0
         valid_y[valid_y == 1] = 0
         super().__init__(train_x, train_y, valid_x, valid_y, batch_size, batch_size_valid, y_type)
+
 
 # Goal: completely destroy model - drive accuracy to 0%
 class AllLabelFlipAdversary(Participant):
@@ -139,6 +141,27 @@ class AllLabelFlipAdversary(Participant):
 
 
 
+class ModelCancelBCAdversary(Participant):
+    def __init__(self, train_x: np.ndarray, train_y: np.ndarray,
+                 valid_x: np.ndarray, valid_y: np.ndarray, n_honest: int, n_malicious: int,
+                 batch_size: int = 64, batch_size_valid=64, y_type: torch.dtype = torch.float):
+        super().__init__(train_x, train_y, valid_x, valid_y, batch_size, batch_size_valid, y_type)
+        self.n_honest = n_honest
+        self.n_malicious = n_malicious
+
+    def train(self, optimizer, loss_function, num_local_epochs: int = 5):
+        # before local training, the participant model corresponds to the old global model / except initialization
+        old_global_model = deepcopy(self.get_model())
+        super().train(optimizer, loss_function, num_local_epochs)
+        factor = - self.n_honest / self.n_malicious
+        with torch.no_grad():
+            new_weights = {}
+            for key, original_param in old_global_model.state_dict().items():
+                new_weights.update({key: original_param * factor})
+            self.model.load_state_dict(new_weights)
+
+
+
 # if threshold is selected like in the normal AutoEnc. Participant sending random weights is not an efficient attack
 # a model with 100% malicious participants still recognizes some behaviors with 100% accuracy without attacking the threshold
 class RandomWeightAdversary(AutoEncoderParticipant):
@@ -148,7 +171,6 @@ class RandomWeightAdversary(AutoEncoderParticipant):
         for key in state_dict.keys():
             new_dict[key] = torch.rand(state_dict[key].size())
         self.model.load_state_dict(new_dict)
-
 
 
 # Approx thresholds ranges of non-attacked device types:
@@ -172,7 +194,8 @@ class ExaggerateThresholdAdversary(AutoEncoderParticipant):
                 mses.append(loss.item())
         mses = np.array(mses)
         # just way more than normal participants threshold
-        return mses.mean() + 15*mses.std()
+        return mses.mean() + 15 * mses.std()
+
 
 # GOAL: make the model also raise alarm on normal samples
 class UnderstateThresholdAdversary(AutoEncoderParticipant):
@@ -190,5 +213,4 @@ class UnderstateThresholdAdversary(AutoEncoderParticipant):
         mses = np.array(mses)
         # just way less than normal participants threshold
         # achieves goal with only one participant,
-        return mses.mean() - 15*mses.std()
-
+        return mses.mean() - 15 * mses.std()
