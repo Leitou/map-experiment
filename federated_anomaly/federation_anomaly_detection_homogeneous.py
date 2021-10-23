@@ -27,7 +27,6 @@ if __name__ == "__main__":
 
     results, results_central = [], []
     res_dict: Dict[RaspberryPi, Dict[Behavior, str]] = {}
-    res_dict_central: Dict[RaspberryPi, Dict[Behavior, str]] = {}
 
     participants_per_device_type: Dict[RaspberryPi, int] = {
         RaspberryPi.PI3_1GB: 4,
@@ -36,7 +35,7 @@ if __name__ == "__main__":
         RaspberryPi.PI4_4GB: 2
     }
     for device in RaspberryPi:
-        train_devices += [(device, {normal: 1500}, {normal: 150})] * participants_per_device_type[device]
+        train_devices += [(device, {normal: 1350}, {normal: 150})] * participants_per_device_type[device]
         for behavior in Behavior:
             test_devices.append((device, {behavior: 150}))
 
@@ -44,25 +43,27 @@ if __name__ == "__main__":
         train_devices,
         test_devices)
 
+    # central
+    train_sets_cen, test_sets_cen = deepcopy(train_sets), deepcopy(test_sets)
+    train_sets_cen, test_sets_cen = DataHandler.scale(train_sets_cen, test_sets_cen, scaling=Scaler.MINMAX_SCALER)
+
+    # copy data for federation and then scale
     train_sets_fed, test_sets_fed = deepcopy(train_sets), deepcopy(test_sets)
     train_sets_fed, test_sets_fed = DataHandler.scale(train_sets_fed, test_sets_fed, scaling=Scaler.MINMAX_SCALER)
 
     # train federation
-    train_sets, test_sets = DataHandler.scale(train_sets, test_sets, scaling=Scaler.MINMAX_SCALER)
-
     participants = [AutoEncoderParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
-                    x_train, y_train, x_valid, y_valid in train_sets]
+                    x_train, y_train, x_valid, y_valid in train_sets_fed]
     server = Server(participants, ModelArchitecture.AUTO_ENCODER)
     server.train_global_model(aggregation_rounds=5)
 
-    x_train_all = np.concatenate(tuple(x_train for x_train, y_train, x_valid, y_valid in train_sets))
-    y_train_all = np.concatenate(tuple(y_train for x_train, y_train, x_valid, y_valid in train_sets))
-    x_valid_all = np.concatenate(tuple(x_valid for x_train, y_train, x_valid, y_valid in train_sets))
-    y_valid_all = np.concatenate(tuple(y_valid for x_train, y_train, x_valid, y_valid in train_sets))
-    train_set_cen = [(x_train_all, y_train_all, x_valid_all, y_valid_all)]
-    train_set_cen, test_sets_cen = DataHandler.scale(train_set_cen, test_sets, central=True)
+    # train central
+    x_train_all = np.concatenate(tuple(x_train for x_train, y_train, x_valid, y_valid in train_sets_cen))
+    y_train_all = np.concatenate(tuple(y_train for x_train, y_train, x_valid, y_valid in train_sets_cen))
+    x_valid_all = np.concatenate(tuple(x_valid for x_train, y_train, x_valid, y_valid in train_sets_cen))
+    y_valid_all = np.concatenate(tuple(y_valid for x_train, y_train, x_valid, y_valid in train_sets_cen))
     central_participant = [
-        AutoEncoderParticipant(train_set_cen[0][0], train_set_cen[0][1], train_set_cen[0][2], train_set_cen[0][3],
+        AutoEncoderParticipant(x_train_all, y_train_all, x_valid_all, y_valid_all,
                                batch_size_valid=1)]
     central_server = Server(central_participant, ModelArchitecture.AUTO_ENCODER)
     central_server.train_global_model(aggregation_rounds=5)
@@ -76,19 +77,11 @@ if __name__ == "__main__":
         acc, f1, _ = calculate_metrics(tfed[1].flatten(), y_predicted.flatten().numpy())
         acc_cen, f1_cen, _ = calculate_metrics(tcen[1].flatten(), y_predicted_central.flatten().numpy())
         device_dict = res_dict[device] if device in res_dict else {}
-        device_dict_central = res_dict_central[device] if device in res_dict else {}
-        # device_dict[behavior] = f'{acc * 100:.2f}%'
         device_dict[behavior] = f'{acc * 100:.2f}% ({(acc - acc_cen) * 100:.2f}%)'
-        device_dict_central[behavior] = f'{acc_cen * 100:.2f}%'
 
         res_dict[device] = device_dict
-        res_dict_central[device] = device_dict_central
 
     for behavior in Behavior:
         results.append([behavior.value] + [res_dict[device][behavior] for device in RaspberryPi])
-        results_central.append([behavior.value] + [res_dict_central[device][behavior] for device in RaspberryPi])
 
-    print("Results")
-    print(tabulate(results, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="latex"))
-    #print("Centralized Results")
-    #print(tabulate(results_central, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="latex"))
+    print(tabulate(results, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="pretty"))
