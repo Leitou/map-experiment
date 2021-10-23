@@ -4,6 +4,5 @@
 *.model
 venv/
 results
-data/all.csv
-data/raw_all.csv
+data/*.csv
 data_plot_*.png

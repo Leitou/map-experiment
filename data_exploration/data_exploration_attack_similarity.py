@@ -1,17 +1,20 @@
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import torch
 
-from custom_types import Behavior, RaspberryPi, ModelArchitecture
-from data_handler import DataHandler
 from aggregation import Server
+from custom_types import Behavior, RaspberryPi, ModelArchitecture, Scaler
+from data_handler import DataHandler
 from participants import MLPParticipant
 from utils import calculate_metrics
 
 if __name__ == "__main__":
     torch.random.manual_seed(42)
     np.random.seed(42)
+    os.chdir("..")
 
     print("Similarity of attacks:\n"
           "Can the knowledge of one attack be used to detect another attack?")
@@ -25,7 +28,7 @@ if __name__ == "__main__":
             [(device, {Behavior.NORMAL: 1000, attack: 250},
               {Behavior.NORMAL: 100, attack: 25})],
             [(device, {other_attack: 100}) for other_attack in attacks])
-        train_sets, test_sets = DataHandler.scale(train_sets, test_sets, True)
+        train_sets, test_sets = DataHandler.scale(train_sets, test_sets, scaling=Scaler.MINMAX_SCALER)
         participants = [MLPParticipant(x_train, y_train, x_valid, y_valid) for
                         x_train, y_train, x_valid, y_valid in train_sets]
         server = Server(participants, ModelArchitecture.MLP_MONO_CLASS)

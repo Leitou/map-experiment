@@ -1,3 +1,4 @@
+import os
 from typing import Dict
 
 import numpy as np
@@ -13,6 +14,7 @@ from tabulate import tabulate
 if __name__ == "__main__":
     torch.random.manual_seed(42)
     np.random.seed(42)
+    os.chdir("..")
 
     print("Use case standalone devices: Anomaly/Zero Day Detection\n"
           "Is the standalone model able to detect attacks as anomalies,\nie. recognize the difference from attacks"
@@ -27,10 +29,10 @@ if __name__ == "__main__":
             device_dict: Dict[Behavior, str] = {}
             test_devices = [(device, {behavior: 150}) for behavior in Behavior]
             train_sets, test_sets = DataHandler.get_all_clients_data(
-                [(device, {normal: 3000}, {normal: 1000})],
+                [(device, {normal: 1350}, {normal: 150})],
                 test_devices)
 
-            train_sets, test_sets = DataHandler.scale(train_sets, test_sets, True)
+            train_sets, test_sets = DataHandler.scale(train_sets, test_sets, scaling=Scaler.MINMAX_SCALER)
 
             participants = [AutoEncoderParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
                             x_train, y_train, x_valid, y_valid in train_sets]

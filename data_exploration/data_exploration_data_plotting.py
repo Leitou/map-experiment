@@ -1,7 +1,10 @@
+import os
+
 from custom_types import RaspberryPi, Behavior
 from data_plotter import DataPlotter
 
 if __name__ == "__main__":
+    os.chdir("..")
     DataPlotter.plot_behaviors(
         [(RaspberryPi.PI4_2GB_WC, Behavior.HOP, "darkred"),
          (RaspberryPi.PI4_2GB_WC, Behavior.NOISE, "red"),

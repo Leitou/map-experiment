@@ -1,26 +1,27 @@
+import os
 from typing import Dict
 
 import numpy as np
 import torch
 from tabulate import tabulate
 
-from custom_types import Behavior, RaspberryPi, ModelArchitecture
+from custom_types import Behavior, RaspberryPi, ModelArchitecture, Scaler
 from aggregation import Server
 from participants import MLPParticipant
 from data_handler import DataHandler
 from utils import calculate_metrics
 
-# implicitly given by heatmaps
+# implicitly given by heatmaps, so only put into appendix
 if __name__ == "__main__":
     torch.random.manual_seed(42)
     np.random.seed(42)
+    os.chdir("..")
 
     print("Difficulty of detecting attacks with an mlp:\n"
           "What attacks are hardest to detect in what configuration?")
 
     normals = [Behavior.NORMAL, Behavior.NORMAL_V2]
     attacks = [val for val in Behavior if val not in normals]
-    #attacks = [Behavior.FREEZE, Behavior.REPEAT]
     for normal in normals:
         other_normal = Behavior.NORMAL_V2 if normal == Behavior.NORMAL else Behavior.NORMAL
         labels = ["Behavior"] + [pi.value for pi in RaspberryPi]
@@ -35,7 +36,7 @@ if __name__ == "__main__":
                      (device, {other_normal: 150}),
                      (device, {attack: 150})])
 
-                train_sets, test_sets = DataHandler.scale(train_sets, test_sets, True)
+                train_sets, test_sets = DataHandler.scale(train_sets, test_sets, scaling=Scaler.MINMAX_SCALER)
 
                 participants = [MLPParticipant(x_train, y_train, x_valid, y_valid) for
                                 x_train, y_train, x_valid, y_valid in train_sets]
