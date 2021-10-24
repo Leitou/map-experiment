@@ -1,5 +1,3 @@
-from sys import exit
-
 import numpy as np
 import torch
 from tabulate import tabulate
