@@ -7,9 +7,9 @@ import torch
 from tabulate import tabulate
 
 from aggregation import Server
-from custom_types import Behavior, RaspberryPi, ModelArchitecture, Scaler
+from custom_types import Behavior, ModelArchitecture, Scaler, RaspberryPi
 from data_handler import DataHandler
-from participants import AutoEncoderParticipant
+from participants import MLPParticipant
 from utils import calculate_metrics
 
 if __name__ == "__main__":
@@ -17,28 +17,28 @@ if __name__ == "__main__":
     np.random.seed(42)
     os.chdir("..")
 
-    print("Use case federated Anomaly/Zero Day Detection\n"
-          "Is the federated model able to detect attacks as anomalies,\nie. recognize the difference from attacks"
-          " to normal samples? Which attacks are hardest to detect?\n")
+    print("Starting demo experiment: Federated vs Centralized Binary Classification\n"
+          "Training on a range of attacks and testing for each attack how well the joint model performs.\n")
 
-    normal = Behavior.NORMAL
     train_devices = []
     test_devices = []
 
     results, results_central = [], []
     res_dict: Dict[RaspberryPi, Dict[Behavior, str]] = {}
 
-    participants_per_device_type: Dict[RaspberryPi, int] = {
-        RaspberryPi.PI3_1GB: 4,
-        RaspberryPi.PI4_2GB_BC: 1,
-        RaspberryPi.PI4_2GB_WC: 1,
-        RaspberryPi.PI4_4GB: 2
-    }
-
     for device in RaspberryPi:
-        train_devices += [(device, {normal: 1350}, {normal: 150})] * participants_per_device_type[device]
         for behavior in Behavior:
-            test_devices.append((device, {behavior: 150}))
+            test_devices.append((device, {behavior: 80}))
+        if device == RaspberryPi.PI4_2GB_WC:
+            continue
+        train_devices += [(device, {Behavior.NORMAL: 300},
+                           {Behavior.NORMAL: 30}),
+                          (device, {Behavior.NORMAL: 300, Behavior.DELAY: 300},
+                           {Behavior.NORMAL: 30, Behavior.DELAY: 30}),
+                          (device, {Behavior.NORMAL: 300, Behavior.FREEZE: 300},
+                           {Behavior.NORMAL: 30, Behavior.FREEZE: 30}),
+                          (device, {Behavior.NORMAL: 300, Behavior.NOISE: 300},
+                           {Behavior.NORMAL: 30, Behavior.NOISE: 30})]
 
     train_sets, test_sets = DataHandler.get_all_clients_data(
         train_devices,
@@ -53,9 +53,9 @@ if __name__ == "__main__":
     train_sets_fed, test_sets_fed = DataHandler.scale(train_sets_fed, test_sets_fed, scaling=Scaler.MINMAX_SCALER)
 
     # train federation
-    participants = [AutoEncoderParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
+    participants = [MLPParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
                     x_train, y_train, x_valid, y_valid in train_sets_fed]
-    server = Server(participants, ModelArchitecture.AUTO_ENCODER)
+    server = Server(participants, ModelArchitecture.MLP_MONO_CLASS)
     server.train_global_model(aggregation_rounds=15)
 
     # train central
@@ -64,9 +64,9 @@ if __name__ == "__main__":
     x_valid_all = np.concatenate(tuple(x_valid for x_train, y_train, x_valid, y_valid in train_sets_cen))
     y_valid_all = np.concatenate(tuple(y_valid for x_train, y_train, x_valid, y_valid in train_sets_cen))
     central_participant = [
-        AutoEncoderParticipant(x_train_all, y_train_all, x_valid_all, y_valid_all,
-                               batch_size_valid=1)]
-    central_server = Server(central_participant, ModelArchitecture.AUTO_ENCODER)
+        MLPParticipant(x_train_all, y_train_all, x_valid_all, y_valid_all,
+                       batch_size_valid=1)]
+    central_server = Server(central_participant, ModelArchitecture.MLP_MONO_CLASS)
     central_server.train_global_model(aggregation_rounds=5)
 
     for i, (tfed, tcen) in enumerate(zip(test_sets_fed, test_sets_cen)):
