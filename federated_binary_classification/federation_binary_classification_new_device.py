@@ -1,3 +1,4 @@
+import os
 from copy import deepcopy
 from typing import Dict
 
@@ -6,42 +7,42 @@ import torch
 from tabulate import tabulate
 
 from aggregation import Server
-from custom_types import Behavior, RaspberryPi, ModelArchitecture, Scaler
+from custom_types import Behavior, ModelArchitecture, Scaler, RaspberryPi
 from data_handler import DataHandler
-from participants import AutoEncoderParticipant
+from participants import MLPParticipant
 from utils import calculate_metrics
-import os
 
 if __name__ == "__main__":
     torch.random.manual_seed(42)
     np.random.seed(42)
-
     os.chdir("..")
 
-    print("Use case federated Anomaly/Zero Day Detection\n"
-          "Is the federation able to transfer its knowledge to a new device?\n")
+    print("Starting demo experiment: Federated vs Centralized Binary Classification\n"
+          "Training on a range of attacks and testing for each attack how well the joint model performs.\n")
 
+    results, results_central = [], []
     res_dict: Dict[RaspberryPi, Dict[Behavior, str]] = {}
-    results = []
-    participants_per_device_type: Dict[RaspberryPi, int] = {RaspberryPi.PI3_1GB: 4, RaspberryPi.PI4_2GB_WC: 2,
-                                                            RaspberryPi.PI4_2GB_BC: 2, RaspberryPi.PI4_4GB: 4}
 
     for device in RaspberryPi:
-        device_dict: Dict[Behavior, str] = {}
-        train_devices = []
         if device == RaspberryPi.PI4_2GB_WC:
             continue
-
-        for device2 in participants_per_device_type:
-            if device2 != device and not (device == RaspberryPi.PI4_2GB_BC and device2 == RaspberryPi.PI4_2GB_WC):
-                train_devices += [(device2, {Behavior.NORMAL: 1350}, {Behavior.NORMAL: 150})] * \
-                                 participants_per_device_type[device2]
-        test_devices = []
+        train_devices, test_devices = [], []
         for behavior in Behavior:
-            test_devices.append((device, {behavior: 150}))
+            test_devices.append((device, {behavior: 80}))
         if device == RaspberryPi.PI4_2GB_BC:
             for behavior in Behavior:
-                test_devices.append((RaspberryPi.PI4_2GB_WC, {behavior: 150}))
+                test_devices.append((RaspberryPi.PI4_2GB_WC, {behavior: 80}))
+
+        for device2 in RaspberryPi:
+            if device2 != device and not (device == RaspberryPi.PI4_2GB_BC and device2 == RaspberryPi.PI4_2GB_WC):
+                train_devices += [(device2, {Behavior.NORMAL: 300},
+                                   {Behavior.NORMAL: 30}),
+                                  (device2, {Behavior.NORMAL: 300, Behavior.DELAY: 300},
+                                   {Behavior.NORMAL: 30, Behavior.DELAY: 30}),
+                                  (device2, {Behavior.NORMAL: 300, Behavior.FREEZE: 300},
+                                   {Behavior.NORMAL: 30, Behavior.FREEZE: 30}),
+                                  (device2, {Behavior.NORMAL: 300, Behavior.NOISE: 300},
+                                   {Behavior.NORMAL: 30, Behavior.NOISE: 30})]
 
         train_sets, test_sets = DataHandler.get_all_clients_data(
             train_devices,
@@ -56,19 +57,20 @@ if __name__ == "__main__":
         train_sets_fed, test_sets_fed = DataHandler.scale(train_sets_fed, test_sets_fed, scaling=Scaler.MINMAX_SCALER)
 
         # train federation
-        participants = [AutoEncoderParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
+        participants = [MLPParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
                         x_train, y_train, x_valid, y_valid in train_sets_fed]
-        server = Server(participants, ModelArchitecture.AUTO_ENCODER)
-        server.train_global_model(aggregation_rounds=5)
+        server = Server(participants, ModelArchitecture.MLP_MONO_CLASS)
+        server.train_global_model(aggregation_rounds=15)
 
+        # train central
         x_train_all = np.concatenate(tuple(x_train for x_train, y_train, x_valid, y_valid in train_sets_cen))
         y_train_all = np.concatenate(tuple(y_train for x_train, y_train, x_valid, y_valid in train_sets_cen))
         x_valid_all = np.concatenate(tuple(x_valid for x_train, y_train, x_valid, y_valid in train_sets_cen))
         y_valid_all = np.concatenate(tuple(y_valid for x_train, y_train, x_valid, y_valid in train_sets_cen))
         central_participant = [
-            AutoEncoderParticipant(x_train_all, y_train_all, x_valid_all, y_valid_all,
-                                   batch_size_valid=1)]
-        central_server = Server(central_participant, ModelArchitecture.AUTO_ENCODER)
+            MLPParticipant(x_train_all, y_train_all, x_valid_all, y_valid_all,
+                           batch_size_valid=1)]
+        central_server = Server(central_participant, ModelArchitecture.MLP_MONO_CLASS)
         central_server.train_global_model(aggregation_rounds=1, local_epochs=15)
 
         for i, (tfed, tcen) in enumerate(zip(test_sets_fed, test_sets_cen)):
@@ -83,7 +85,9 @@ if __name__ == "__main__":
             device_dict[behavior] = f'{acc * 100:.2f}% ({(acc - acc_cen) * 100:.2f}%)'
 
             res_dict[device] = device_dict
+
+
     for behavior in Behavior:
         results.append([behavior.value] + [res_dict[device][behavior] for device in RaspberryPi])
 
-    print(tabulate(results, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="latex"))
+    print(tabulate(results, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="pretty"))

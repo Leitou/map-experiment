@@ -67,7 +67,7 @@ if __name__ == "__main__":
         MLPParticipant(x_train_all, y_train_all, x_valid_all, y_valid_all,
                        batch_size_valid=1)]
     central_server = Server(central_participant, ModelArchitecture.MLP_MONO_CLASS)
-    central_server.train_global_model(aggregation_rounds=5)
+    central_server.train_global_model(aggregation_rounds=1, local_epochs=15)
 
     for i, (tfed, tcen) in enumerate(zip(test_sets_fed, test_sets_cen)):
         y_predicted = server.predict_using_global_model(tfed[0])
