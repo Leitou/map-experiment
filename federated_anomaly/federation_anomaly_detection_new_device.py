@@ -23,8 +23,8 @@ if __name__ == "__main__":
 
     res_dict: Dict[RaspberryPi, Dict[Behavior, str]] = {}
     results = []
-    participants_per_device_type: Dict[RaspberryPi, int] = {RaspberryPi.PI3_1GB: 4, RaspberryPi.PI4_2GB_WC: 2,
-                                                            RaspberryPi.PI4_2GB_BC: 2, RaspberryPi.PI4_4GB: 4}
+    participants_per_device_type: Dict[RaspberryPi, int] = {RaspberryPi.PI3_1GB: 4, RaspberryPi.PI4_2GB_BC: 4,
+                                                            RaspberryPi.PI4_4GB: 4}
 
     for device in RaspberryPi:
         device_dict: Dict[Behavior, str] = {}
@@ -86,4 +86,4 @@ if __name__ == "__main__":
     for behavior in Behavior:
         results.append([behavior.value] + [res_dict[device][behavior] for device in RaspberryPi])
 
-    print(tabulate(results, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="latex"))
+    print(tabulate(results, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="pretty"))

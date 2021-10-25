@@ -30,13 +30,13 @@ if __name__ == "__main__":
 
     participants_per_device_type: Dict[RaspberryPi, int] = {
         RaspberryPi.PI3_1GB: 4,
-        RaspberryPi.PI4_2GB_BC: 1,
-        RaspberryPi.PI4_2GB_WC: 1,
-        RaspberryPi.PI4_4GB: 2
+        RaspberryPi.PI4_2GB_BC: 4,
+        RaspberryPi.PI4_4GB: 4
     }
 
-    for device in RaspberryPi:
+    for device in participants_per_device_type:
         train_devices += [(device, {normal: 1350}, {normal: 150})] * participants_per_device_type[device]
+    for device in RaspberryPi:
         for behavior in Behavior:
             test_devices.append((device, {behavior: 150}))
 
