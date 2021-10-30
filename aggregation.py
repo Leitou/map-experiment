@@ -1,13 +1,14 @@
 from tqdm import tqdm
 from typing import List
 from copy import deepcopy
-from math import nan
+from math import nan, isnan
 import torch
 from torch.utils.data import DataLoader
 
 from custom_types import ModelArchitecture, AggregationMechanism
 from models import mlp_model, auto_encoder_model
 from participants import Participant, AutoEncoderParticipant
+
 
 # TODO: https://github.com/fushuhao6/Attack-Resistant-Federated-Learning
 class Server:
@@ -28,6 +29,8 @@ class Server:
         else:
             raise ValueError("Not yet implemented!")
         self.global_threshold = nan
+        self.participants_thresholds = []
+        self.evaluation_thresholds = []
 
     def train_global_model(self, aggregation_rounds: int = 15, local_epochs: int = 5):
         # initialize model
@@ -61,13 +64,12 @@ class Server:
                 p.get_model().load_state_dict(deepcopy(new_weights))
 
     def predict_using_global_model(self, x):
-        if self.model_architecture == ModelArchitecture.AUTO_ENCODER:
-            thresholds = []
+        if self.model_architecture == ModelArchitecture.AUTO_ENCODER and isnan(self.global_threshold):
             for p in self.participants:
                 # Quick and dirty casting
                 p: AutoEncoderParticipant = p
-                thresholds.append(p.determine_threshold())
-            self.global_threshold = sum(thresholds) / len(thresholds)
+                self.participants_thresholds.append(p.determine_threshold())
+            self.global_threshold = max(self.participants_thresholds)
 
         test_data = torch.utils.data.TensorDataset(
             torch.from_numpy(x).type(torch.float)
@@ -96,6 +98,7 @@ class Server:
         elif self.model_architecture == ModelArchitecture.MLP_MULTI_CLASS:
             all_predictions = torch.argmax(all_predictions, dim=1).type(torch.long)
         elif self.model_architecture == ModelArchitecture.AUTO_ENCODER:
+            self.evaluation_thresholds += all_predictions.tolist()
             all_predictions = (all_predictions > self.global_threshold).type(torch.long)
         else:
             raise ValueError("Not yet implemented!")
@@ -125,7 +128,8 @@ class Server:
             state_dict = self.global_model.state_dict()
             for key in state_dict:
                 sorted_tensor, _ = torch.sort(
-                    torch.stack([model.state_dict()[key] for model in [p.get_model() for p in self.participants]], dim=-1),
+                    torch.stack([model.state_dict()[key] for model in [p.get_model() for p in self.participants]],
+                                dim=-1),
                     dim=-1)
                 trimmed_tensor = torch.narrow(sorted_tensor, -1, n_trim, n_remaining).type(torch.FloatTensor)
                 state_dict[key] = trimmed_tensor.mean(dim=-1)

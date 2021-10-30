@@ -86,3 +86,7 @@ if __name__ == "__main__":
         results.append([behavior.value] + [res_dict[device][behavior] for device in RaspberryPi])
 
     print(tabulate(results, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="pretty"))
+
+    print(f'Thresholds of federation: {server.participants_thresholds}')
+    print(
+        f'First 50 Prediction thresholds: {server.evaluation_thresholds[:50]}, full length: {len(server.evaluation_thresholds)}')
