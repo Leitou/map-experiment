@@ -8,7 +8,7 @@ from data_handler import DataHandler
 from aggregation import Server
 from participants import AutoEncoderParticipant, RandomWeightAdversary, ExaggerateThresholdAdversary, \
     UnderstateThresholdAdversary
-from utils import select_federation_composition, get_sampling_per_device, calculate_metrics
+from utils import select_federation_composition, get_sampling_per_device, FederationUtils
 
 # TODO exchange centralized comparison to normal federation
 if __name__ == "__main__":
@@ -92,10 +92,10 @@ if __name__ == "__main__":
         behavior = list(Behavior)[i % len(Behavior)]
         normal = normals[0][0].value if len(normals) == 1 else "normal/normal_v2"
         # federated results
-        acc, _, conf_mat = calculate_metrics(tfed[1].flatten(), y_predicted.flatten().numpy())
+        acc, _, conf_mat = FederationUtils.calculate_metrics(tfed[1].flatten(), y_predicted.flatten().numpy())
         results.append([test_devices[i][0], normal, behavior.value, f'{acc * 100:.2f}%'])
         # centralized results
-        acc, _, conf_mat = calculate_metrics(tcen[1].flatten(), y_predicted_central.flatten().numpy())
+        acc, _, conf_mat = FederationUtils.calculate_metrics(tcen[1].flatten(), y_predicted_central.flatten().numpy())
         central_results.append([test_devices[i][0], normal, behavior.value, f'{acc * 100:.2f}%'])
 
     print("Federated Results")

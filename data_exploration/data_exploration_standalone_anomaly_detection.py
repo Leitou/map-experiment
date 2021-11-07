@@ -8,8 +8,9 @@ from custom_types import Behavior, RaspberryPi, ModelArchitecture, Scaler
 from aggregation import Server
 from participants import AutoEncoderParticipant
 from data_handler import DataHandler
-from utils import calculate_metrics
 from tabulate import tabulate
+
+from utils import FederationUtils
 
 if __name__ == "__main__":
     torch.random.manual_seed(42)
@@ -41,7 +42,7 @@ if __name__ == "__main__":
             for i, (x_test, y_test) in enumerate(test_sets):
                 y_predicted = server.predict_using_global_model(x_test)
                 behavior = list(Behavior)[i]
-                acc, f1, conf_mat = calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
+                acc, f1, conf_mat = FederationUtils.calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
                 if acc == 1.0:
                     device_dict[behavior] = '100.00%'
                 else:

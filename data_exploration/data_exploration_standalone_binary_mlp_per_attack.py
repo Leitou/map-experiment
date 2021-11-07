@@ -9,9 +9,10 @@ from custom_types import Behavior, RaspberryPi, ModelArchitecture, Scaler
 from aggregation import Server
 from participants import MLPParticipant
 from data_handler import DataHandler
-from utils import calculate_metrics
 
 # implicitly given by heatmaps, so only put into appendix
+from utils import FederationUtils
+
 if __name__ == "__main__":
     torch.random.manual_seed(42)
     np.random.seed(42)
@@ -46,7 +47,7 @@ if __name__ == "__main__":
                 att_rows = []
                 for i, (x_test, y_test) in enumerate(test_sets):
                     y_predicted = server.predict_using_global_model(x_test)
-                    acc, f1, conf_mat = calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
+                    acc, f1, conf_mat = FederationUtils.calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
                     att_rows.append([['nml', 'nml_v2', attack.value[:3]][i], f'{acc*100:.2f}%'])
                 device_dict[attack] = tabulate(att_rows, tablefmt="latex")
             res_dict[device] = device_dict

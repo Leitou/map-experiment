@@ -6,35 +6,43 @@ from sklearn.metrics import f1_score, confusion_matrix, classification_report
 from custom_types import RaspberryPi, Behavior
 
 
-def calculate_metrics(y_test: np.ndarray, y_pred: np.ndarray) -> Tuple[float, float, Any]:
-    correct = np.count_nonzero(y_test == y_pred)
-    f1 = f1_score(y_test, y_pred, zero_division=1)
-    cm_fed = confusion_matrix(y_test, y_pred)  # could also extract via tn, fp, fn, tp = confusion_matrix().ravel()
-    return correct / len(y_pred), f1, cm_fed
+# TODO: add some Reporting Utils. Like
+#   a) print accuracies as table
+#   b) show accuracies as heatmap
+#   c) show thresholds (as heatmap or table, tbd)
+#       could then remove the print_experiment_scores thing
+class FederationUtils:
+    @staticmethod
+    def calculate_metrics(y_test: np.ndarray, y_pred: np.ndarray) -> Tuple[float, float, Any]:
+        correct = np.count_nonzero(y_test == y_pred)
+        f1 = f1_score(y_test, y_pred, zero_division=1)
+        cm_fed = confusion_matrix(y_test, y_pred)  # could also extract via tn, fp, fn, tp = confusion_matrix().ravel()
+        return correct / len(y_pred), f1, cm_fed
 
-def get_confusion_matrix_vals_in_percent(acc, conf_mat, behavior):
-    if acc == 1.0:
-        if behavior in [Behavior.NORMAL, Behavior.NORMAL_V2]:
-            tn, fp, fn, tp = 1, 0, 0, 0
+    @staticmethod
+    def get_confusion_matrix_vals_in_percent(acc, conf_mat, behavior):
+        if acc == 1.0:
+            if behavior in [Behavior.NORMAL, Behavior.NORMAL_V2]:
+                tn, fp, fn, tp = 1, 0, 0, 0
+            else:
+                tn, fp, fn, tp = 0, 0, 0, 1
         else:
-            tn, fp, fn, tp = 0, 0, 0, 1
-    else:
-        tn, fp, fn, tp = conf_mat.ravel() / sum(conf_mat.ravel())
-    return tn, fp, fn, tp
+            tn, fp, fn, tp = conf_mat.ravel() / sum(conf_mat.ravel())
+        return tn, fp, fn, tp
 
+    @staticmethod
+    def print_experiment_scores(y_test: np.ndarray, y_pred: np.ndarray, federated=True):
+        if federated:
+            print("\n\nResults Federated Model:")
+        else:
+            print("\n\nResults Centralized Model:")
 
-def print_experiment_scores(y_test: np.ndarray, y_pred: np.ndarray, federated=True):
-    if federated:
-        print("\n\nResults Federated Model:")
-    else:
-        print("\n\nResults Centralized Model:")
-
-    accuracy, f1, cm_fed = calculate_metrics(y_test, y_pred)
-    print(classification_report(y_test, y_pred, target_names=["Normal", "Infected"])
-          if len(np.unique(y_pred)) > 1
-          else "only single class predicted, no report generated")
-    print(f"Details:\nConfusion matrix \n[(TN, FP),\n(FN, TP)]:\n{cm_fed}")
-    print(f"Test Accuracy: {accuracy * 100:.2f}%, F1 score: {f1 * 100:.2f}%")
+        accuracy, f1, cm_fed = FederationUtils.calculate_metrics(y_test, y_pred)
+        print(classification_report(y_test, y_pred, target_names=["Normal", "Infected"])
+              if len(np.unique(y_pred)) > 1
+              else "only single class predicted, no report generated")
+        print(f"Details:\nConfusion matrix \n[(TN, FP),\n(FN, TP)]:\n{cm_fed}")
+        print(f"Test Accuracy: {accuracy * 100:.2f}%, F1 score: {f1 * 100:.2f}%")
 
 
 # Assumption we test at most on what we train (attack types)
@@ -45,7 +53,8 @@ def select_federation_composition(participants_per_arch: List, normals: List[Tup
         -> Tuple[List[Tuple[Any, Dict[Behavior, Union[int, float]], Dict[Behavior, Union[int, float]]]], List[
             Tuple[Any, Dict[Behavior, int]]]]:
     assert len(list(RaspberryPi)) == len(participants_per_arch), "lengths must be equal"
-    assert normals[0][1] == normals[1][1] if len(normals) == 2 else True, "equal amount of normal version samples required"
+    assert normals[0][1] == normals[1][1] if len(
+        normals) == 2 else True, "equal amount of normal version samples required"
     # populate train and test_devices for
     train_devices, test_devices = [], []
     for i, num_p in enumerate(participants_per_arch):

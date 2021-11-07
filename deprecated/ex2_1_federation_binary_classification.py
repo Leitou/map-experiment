@@ -6,7 +6,7 @@ from custom_types import Behavior, RaspberryPi, ModelArchitecture, Scaler
 from aggregation import Server
 from participants import MLPParticipant
 from data_handler import DataHandler
-from utils import calculate_metrics
+from utils import FederationUtils
 
 if __name__ == "__main__":
     torch.random.manual_seed(42)
@@ -55,7 +55,7 @@ if __name__ == "__main__":
         normal = list(
             set(test_devices[i][1].keys()) - {Behavior.DELAY, Behavior.DISORDER, Behavior.FREEZE, Behavior.HOP, Behavior.MIMIC,
                                               Behavior.NOISE, Behavior.REPEAT, Behavior.SPOOF})[0].value
-        acc, f1, _ = calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
+        acc, f1, _ = FederationUtils.calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
         results.append([test_devices[i][0], normal, attack, f'{acc * 100:.2f}%', f'{f1 * 100:.2f}%'])
 
     print(tabulate(results, headers=['Device', 'Normal', 'Attack', 'Accuracy', 'F1 score'], tablefmt="pretty"))

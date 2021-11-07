@@ -9,7 +9,7 @@ from aggregation import Server
 from custom_types import Behavior, RaspberryPi, ModelArchitecture, Scaler
 from data_handler import DataHandler
 from participants import MLPParticipant
-from utils import calculate_metrics
+from utils import FederationUtils
 
 if __name__ == "__main__":
     torch.random.manual_seed(42)
@@ -40,7 +40,7 @@ if __name__ == "__main__":
         att_accs = []
         for i, (x_test, y_test) in enumerate(test_sets):
             y_predicted = server.predict_using_global_model(x_test)
-            acc, f1, conf_mat = calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
+            acc, f1, conf_mat = FederationUtils.calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
             att_accs.append(acc)
         all_accs.append(att_accs)
         train_labels.append(attack.value)
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     att_accs = []
     for i, (x_test, y_test) in enumerate(test_sets):
         y_predicted = server.predict_using_global_model(x_test)
-        acc, f1, conf_mat = calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
+        acc, f1, conf_mat = FederationUtils.calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
         att_accs.append(acc)
     all_accs.append(att_accs)
     train_labels.append("freeze, spoof")
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     att_accs = []
     for i, (x_test, y_test) in enumerate(test_sets):
         y_predicted = server.predict_using_global_model(x_test)
-        acc, f1, conf_mat = calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
+        acc, f1, conf_mat = FederationUtils.calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
         att_accs.append(acc)
     all_accs.append(att_accs)
     train_labels.append("repeat, hop")
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     att_accs = []
     for i, (x_test, y_test) in enumerate(test_sets):
         y_predicted = server.predict_using_global_model(x_test)
-        acc, f1, conf_mat = calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
+        acc, f1, conf_mat = FederationUtils.calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
         att_accs.append(acc)
     all_accs.append(att_accs)
     train_labels.append("delay, freeze, noise")

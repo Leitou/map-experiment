@@ -10,7 +10,7 @@ from aggregation import Server
 from custom_types import Behavior, ModelArchitecture, Scaler, RaspberryPi
 from data_handler import DataHandler
 from participants import MLPParticipant
-from utils import calculate_metrics
+from utils import FederationUtils
 
 if __name__ == "__main__":
     torch.random.manual_seed(42)
@@ -79,8 +79,8 @@ if __name__ == "__main__":
             behavior = list(test_devices[i][1].keys())[0]
             device = test_devices[i][0]
 
-            acc, f1, _ = calculate_metrics(tfed[1].flatten(), y_predicted.flatten().numpy())
-            acc_cen, f1_cen, _ = calculate_metrics(tcen[1].flatten(), y_predicted_central.flatten().numpy())
+            acc, f1, _ = FederationUtils.calculate_metrics(tfed[1].flatten(), y_predicted.flatten().numpy())
+            acc_cen, f1_cen, _ = FederationUtils.calculate_metrics(tcen[1].flatten(), y_predicted_central.flatten().numpy())
             device_dict = res_dict[device] if device in res_dict else {}
             device_dict[behavior] = f'{acc * 100:.2f}% ({(acc - acc_cen) * 100:.2f}%)'
 

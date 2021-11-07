@@ -8,8 +8,7 @@ from data_handler import DataHandler
 from aggregation import Server
 from participants import MLPParticipant, BenignLabelFlipAdversary, AttackLabelFlipAdversary, AllLabelFlipAdversary, \
     ModelCancelBCAdversary
-from utils import select_federation_composition, get_sampling_per_device, calculate_metrics, \
-    get_confusion_matrix_vals_in_percent
+from utils import select_federation_composition, get_sampling_per_device, FederationUtils
 
 if __name__ == "__main__":
     torch.random.manual_seed(42)
@@ -96,15 +95,15 @@ if __name__ == "__main__":
         behavior = list(Behavior)[i % len(Behavior)]
         normal = normals[0][0].value if len(normals) == 1 else "normal/normal_v2"
         # federated results
-        acc, _, conf_mat = calculate_metrics(tfed[1].flatten(), y_predicted.flatten().numpy())
-        (tn, fp, fn, tp) = get_confusion_matrix_vals_in_percent(acc, conf_mat, behavior)
+        acc, _, conf_mat = FederationUtils.calculate_metrics(tfed[1].flatten(), y_predicted.flatten().numpy())
+        (tn, fp, fn, tp) = FederationUtils.get_confusion_matrix_vals_in_percent(acc, conf_mat, behavior)
         results.append(
             [test_devices[i][0], normal, behavior.value, f'{acc * 100:.2f}%', f'{tn * 100:.2f}%', f'{fp * 100:.2f}%',
              f'{fn * 100:.2f}%', f'{tp * 100:.2f}%'])
 
         # centralized results
-        acc, _, conf_mat = calculate_metrics(tcen[1].flatten(), y_predicted_central.flatten().numpy())
-        (tn, fp, fn, tp) = get_confusion_matrix_vals_in_percent(acc, conf_mat, behavior)
+        acc, _, conf_mat = FederationUtils.calculate_metrics(tcen[1].flatten(), y_predicted_central.flatten().numpy())
+        (tn, fp, fn, tp) = FederationUtils.get_confusion_matrix_vals_in_percent(acc, conf_mat, behavior)
         central_results.append(
             [test_devices[i][0], normal, behavior.value, f'{acc * 100:.2f}%', f'{tn * 100:.2f}%', f'{fp * 100:.2f}%',
              f'{fn * 100:.2f}%', f'{tp * 100:.2f}%'])
