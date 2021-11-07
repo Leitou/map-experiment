@@ -6,7 +6,7 @@ from data_plotter import DataPlotter
 # TODO: enable once incorporated into report
 if __name__ == "__main__":
     os.chdir("..")
-    if False:
+    if True:
         DataPlotter.plot_as_kde()
     else:
         DataPlotter.plot_behaviors(

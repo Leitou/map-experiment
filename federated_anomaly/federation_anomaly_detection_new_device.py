@@ -59,6 +59,7 @@ if __name__ == "__main__":
         participants = [AutoEncoderParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
                         x_train, y_train, x_valid, y_valid in train_sets_fed]
         server = Server(participants, ModelArchitecture.AUTO_ENCODER)
+        # TODO: debug why it does not work well with more aggregation rounds (15)
         server.train_global_model(aggregation_rounds=5)
 
         x_train_all = np.concatenate(tuple(x_train for x_train, y_train, x_valid, y_valid in train_sets_cen))

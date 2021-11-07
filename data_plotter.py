@@ -59,8 +59,9 @@ class DataPlotter:
                    Behavior.MIMIC.value: "violet", Behavior.NOISE.value: "turquoise",
                    Behavior.REPEAT.value: "black", Behavior.SPOOF.value: "darkred"}
         for i in range(len(cols_to_plot)):
+            axs[i].set_ylim([1e-10, 2])
             sns.kdeplot(data=all_data_parsed, x=cols_to_plot[i], palette=palette, hue="attack",
-                        common_norm=False, common_grid=True, ax=axs[i])
+                        common_norm=False, common_grid=True, ax=axs[i], cut=2, log_scale=(False, True)) #False, True
 
         if plot_name is not None:
             fig.savefig(f'data_plot_{plot_name}.png', dpi=100)
