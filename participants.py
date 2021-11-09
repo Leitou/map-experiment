@@ -170,7 +170,7 @@ class AutoEncoderParticipant(Participant):
                 loss = loss_function(model_out, x)
                 mses.append(loss.item())
         mses = np.array(mses)
-        return mses.mean() + mses.std()
+        return mses.mean() + 3 * mses.std()
 
 
 

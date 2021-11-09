@@ -101,6 +101,7 @@ if __name__ == "__main__":
         {"threshold": server.evaluation_thresholds, "device": [a.value for a, b in test_tuples_thres_plot],
          "device-behavior": [f'{a.value} {b.value}' for a, b in test_tuples_thres_plot]})
     df_pi3 = df[df['device'] == RaspberryPi.PI3_1GB.value]
-    sns.kdeplot(data=df_pi3, x="threshold", hue="device-behavior", log_scale=True, common_norm=True, common_grid=True)
+    sns.kdeplot(data=df_pi3, x="threshold", hue="device-behavior", log_scale=(True, True), common_norm=True,
+                common_grid=True)
     plt.show()
     print(df.groupby("device-behavior").mean())

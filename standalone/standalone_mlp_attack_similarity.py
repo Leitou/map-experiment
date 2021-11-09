@@ -22,9 +22,9 @@ if __name__ == "__main__":
     normals = [Behavior.NORMAL, Behavior.NORMAL_V2]
     attacks = [val for val in Behavior if val not in normals]
     all_accs = []
-    device = RaspberryPi.PI4_2GB_WC
-    test_devices = [(device, {other_attack: 100}) for other_attack in attacks]
-    eval_labels = [other_attack.value for other_attack in attacks]
+    device = RaspberryPi.PI3_1GB
+    test_devices = [(device, {beh: 100}) for beh in Behavior]
+    eval_labels = [beh.value for beh in Behavior]
     train_labels = []
     for attack in attacks:
         train_sets, test_sets = DataHandler.get_all_clients_data(
@@ -102,6 +102,6 @@ if __name__ == "__main__":
     hm = sns.heatmap(np.array(all_accs), xticklabels=eval_labels, yticklabels=train_labels)
     plt.title('Heatmap of Device ' + device.value, fontsize=15)
     plt.xlabel('Predicting', fontsize=12)
-    plt.ylabel('Trained on', fontsize=12)
+    plt.ylabel('Trained on normal vs ', fontsize=12)
     plt.show()
     hm.get_figure().savefig(f"data_plot_class_similarity_{device.value}.png")
