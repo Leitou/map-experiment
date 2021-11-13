@@ -40,7 +40,7 @@ class AdversaryType(Enum):
 
 
 class AggregationMechanism(Enum):
-    FED_AVG = "fed_avg",
+    FED_AVG = "fed_avg"
     TRIMMED_MEAN = "trimmed_mean"
 
 

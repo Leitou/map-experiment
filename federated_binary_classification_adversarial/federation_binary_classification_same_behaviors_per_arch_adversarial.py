@@ -31,7 +31,6 @@ if __name__ == "__main__":
             bdict[behavior] = 80
         test_devices.append((device, bdict))
 
-
         if device == RaspberryPi.PI4_2GB_WC:
             continue
         train_devices += [(device, {Behavior.NORMAL: 300},
@@ -76,9 +75,9 @@ if __name__ == "__main__":
     pos_x = 0
     bar_width = 1.5
     sep = 1
-    colors = ['limegreen', 'gold', 'tab:orange', 'orangered', "red"]
-    colors = ['#87d64b', '#fae243', '#f8961e', '#ff4d36', '#ff0000']
-    text_colors = ['#456e25', '#998a28', '#b06a13', '#b33424', '#ff0000']
+    colors = ['limegreen', 'gold', 'tab:orange', 'orangered', "violet"]
+    colors = ['#87d64b', '#fae243', '#f8961e', '#ff4d36', '#8f00ff']
+    text_colors = ['#456e25', '#998a28', '#b06a13', '#b33424', '#8f00ff']
 
     max_num_adv = 5
     for agg in AggregationMechanism:
@@ -88,10 +87,11 @@ if __name__ == "__main__":
             # train federation
             # TODO: implement first only adversaries of one device type -> rasp3, then maybe multiple device types
             adversaries = [AllLabelFlipAdversary(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
-                            x_train, y_train, x_valid, y_valid in train_sets_fed[:num_adv]]
+                            x_train, y_train, x_valid, y_valid in train_sets_fed[4:4+num_adv]]
 
             participants = [MLPParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
-                            x_train, y_train, x_valid, y_valid in train_sets_fed[num_adv:]]
+                            x_train, y_train, x_valid, y_valid in train_sets_fed[:4]] + [MLPParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
+                            x_train, y_train, x_valid, y_valid in train_sets_fed[4+num_adv:]]
 
 
             server = Server(adversaries + participants, ModelArchitecture.MLP_MONO_CLASS, aggregation_mechanism=agg)
@@ -114,9 +114,6 @@ if __name__ == "__main__":
                 ax.bar(pos_x, height=f1_height, color=color, width=bar_width, lw=0.7,
                        edgecolor='black')  # yerr=[[yerr_down], [yerr_up]], capsize=11
 
-        #         ax.errorbar(x=pos_x, y=mean_f1_bar, yerr=[[yerr_down], [yerr_up]],
-        #                     capsize=6, color='black', elinewidth=0, lw=1.0, solid_capstyle='round')
-        #
             s = ("{:."+repr(0)+"f}").format(f1_height)
             if len(s) == 1:
                 text_x = pos_x - 0.2
@@ -136,41 +133,3 @@ if __name__ == "__main__":
     ax.legend(bbox_to_anchor=(1.12, 0.5), loc='right')
     plt.show()
     fig.savefig('f1_scores_all_label_flip' + '.pdf', bbox_inches='tight')
-
-
-
-
-
-
-
-
-
-    # not needed?
-    # # train central
-    # x_train_all = np.concatenate(tuple(x_train for x_train, y_train, x_valid, y_valid in train_sets_cen))
-    # y_train_all = np.concatenate(tuple(y_train for x_train, y_train, x_valid, y_valid in train_sets_cen))
-    # x_valid_all = np.concatenate(tuple(x_valid for x_train, y_train, x_valid, y_valid in train_sets_cen))
-    # y_valid_all = np.concatenate(tuple(y_valid for x_train, y_train, x_valid, y_valid in train_sets_cen))
-    # central_participant = [
-    #     MLPParticipant(x_train_all, y_train_all, x_valid_all, y_valid_all,
-    #                    batch_size_valid=1)]
-    # central_server = Server(central_participant, ModelArchitecture.MLP_MONO_CLASS)
-    # central_server.train_global_model(aggregation_rounds=1, local_epochs=15)
-    #
-    # for i, (tfed, tcen) in enumerate(zip(test_sets_fed, test_sets_cen)):
-    #     y_predicted = server.predict_using_global_model(tfed[0])
-    #     y_predicted_central = central_server.predict_using_global_model(tcen[0])
-    #     behavior = list(test_devices[i][1].keys())[0]
-    #     device = test_devices[i][0]
-    #
-    #     acc, f1, _ = FederationUtils.calculate_metrics(tfed[1].flatten(), y_predicted.flatten().numpy())
-    #     acc_cen, f1_cen, _ = FederationUtils.calculate_metrics(tcen[1].flatten(), y_predicted_central.flatten().numpy())
-    #     device_dict = res_dict[device] if device in res_dict else {}
-    #     device_dict[behavior] = f'{acc * 100:.2f}% ({(acc - acc_cen) * 100:.2f}%)'
-    #
-    #     res_dict[device] = device_dict
-    #
-    # for behavior in Behavior:
-    #     results.append([behavior.value] + [res_dict[device][behavior] for device in RaspberryPi])
-    #
-    # print(tabulate(results, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="pretty"))
