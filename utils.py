@@ -2,6 +2,7 @@ from typing import Tuple, Any, List, Dict, Union
 
 import numpy as np
 from math import floor
+import matplotlib.pyplot as plt
 from sklearn.metrics import f1_score, confusion_matrix, classification_report
 from custom_types import RaspberryPi, Behavior
 
@@ -43,6 +44,77 @@ class FederationUtils:
               else "only single class predicted, no report generated")
         print(f"Details:\nConfusion matrix \n[(TN, FP),\n(FN, TP)]:\n{cm_fed}")
         print(f"Test Accuracy: {accuracy * 100:.2f}%, F1 score: {f1 * 100:.2f}%")
+
+    @staticmethod
+    def plot_f1_scores():
+        fig, ax = plt.subplots(figsize=(12, 5))
+        #     ax.set_title('Average, min and max F1-Scores under the ' +  attack_str + ' attack')
+        ax.set_ylabel('F1-Score (%)')
+        ax.set_ylim(0, 100.)
+
+        plt.gca().spines['top'].set_visible(False)
+        plt.gca().spines['right'].set_visible(False)
+        #     plt.gca().spines['bottom'].set_visible(False)
+
+        pos_x = 0
+        colors = ['limegreen', 'gold', 'tab:orange', 'orangered']
+        colors = ['#87d64b', '#fae243', '#f8961e', '#ff4d36']
+        text_colors = ['#456e25', '#998a28', '#b06a13', '#b33424']
+
+        aggs = ['avg', 'med', 'tm1', 'tm2', 'tm2-2rs']
+
+        bar_width = 1.5
+        sep = 1
+
+        for agg in aggs:
+            for f in [0, 1, 2, 3]:
+                color = colors[f]
+                text_color = text_colors[f]
+                if f == 0:
+                    results = get_all_results(
+                        'test_results/decentralized_classifier_fedsgd/NO_ATTACK/0,95 5rr 64bs ' + agg + '/')
+                else:
+                    results = get_all_results(base_path + agg + ' vs ' + repr(f) + end_path)
+                mean_f1 = get_mean_score(results) * 100
+                if mean_f1 == 0.0:
+                    mean_f1_bar = 1
+                else:
+                    mean_f1_bar = mean_f1
+                min_f1 = get_min_score(results) * 100
+                max_f1 = get_max_score(results) * 100
+
+                yerr_up = max_f1 - mean_f1
+                yerr_down = mean_f1 - min_f1
+
+                if agg == 'avg':
+                    ax.bar(pos_x, height=mean_f1_bar, color=color, width=bar_width, lw=0.7, edgecolor='black',
+                           label='f=' + repr(f))
+                else:
+                    ax.bar(pos_x, height=mean_f1_bar, color=color, width=bar_width, lw=0.7,
+                           edgecolor='black')  # yerr=[[yerr_down], [yerr_up]], capsize=11
+
+                ax.errorbar(x=pos_x, y=mean_f1_bar, yerr=[[yerr_down], [yerr_up]],
+                            capsize=6, color='black', elinewidth=0, lw=1.0, solid_capstyle='round')
+
+                s = percentage_to_text(mean_f1)
+                if len(s) == 1:
+                    text_x = pos_x - 0.2
+                else:
+                    text_x = pos_x - 0.5
+
+                ax.text(x=text_x, y=mean_f1_bar + 1.2, s=s, fontsize='15.5', color=text_color)
+
+                pos_x += bar_width
+            pos_x += sep
+
+        ticks = [(1.5 * bar_width) + (4 * bar_width + sep) * i for i in range(0, 5)]
+
+        ax.set_xticks(ticks)
+        aggs = [agg.upper() for agg in aggs]
+        ax.set_xticklabels(aggs)
+        ax.legend(bbox_to_anchor=(1.12, 0.5), loc='right')
+        plt.show()
+        fig.savefig('f1_scores_' + '_'.join(attack_str.split(' ')) + '.pdf', bbox_inches='tight')
 
 
 # Assumption we test at most on what we train (attack types)
