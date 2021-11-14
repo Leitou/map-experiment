@@ -40,28 +40,66 @@ class DataPlotter:
             fig.savefig(f'data_plot_{plot_name}.png', dpi=100)
 
     @staticmethod
-    def plot_as_kde():
-        plot_name = "all_pi4_2gb_hist"
-        all_data_parsed = DataHandler.parse_all_files_to_df(raw=False, save_to_file=False)
-        all_data_parsed = all_data_parsed[all_data_parsed.device == RaspberryPi.PI4_2GB_BC.value]
-        cols_to_plot = [col for col in all_data_parsed if col not in ['device', 'attack']]
+    def plot_devices_as_kde():
+        for device in RaspberryPi:
+            plot_name = f"all_device_{device.value}_hist"
+            all_data_parsed = DataHandler.parse_all_files_to_df(raw=False, save_to_file=False)
+            all_data_parsed = all_data_parsed[all_data_parsed.device == device.value]
+            cols_to_plot = [col for col in all_data_parsed if col not in ['device', 'attack']]
 
-        all_data_parsed = all_data_parsed.drop(['device'], axis=1)
-        all_data_parsed = all_data_parsed.reset_index()
-        fig, axs = plt.subplots(nrows=ceil(len(cols_to_plot) / 4), ncols=4)
-        axs = axs.ravel().tolist()
-        fig.suptitle(plot_name)
-        fig.set_figheight(len(cols_to_plot))
-        fig.set_figwidth(50)
-        palette = {Behavior.NORMAL.value: "green", Behavior.NORMAL_V2.value: "lightgreen",
-                   Behavior.DELAY.value: "yellow", Behavior.DISORDER.value: "orange",
-                   Behavior.FREEZE.value: "grey", Behavior.HOP.value: "red",
-                   Behavior.MIMIC.value: "violet", Behavior.NOISE.value: "turquoise",
-                   Behavior.REPEAT.value: "black", Behavior.SPOOF.value: "darkred"}
-        for i in range(len(cols_to_plot)):
-            axs[i].set_ylim([1e-10, 2])
-            sns.kdeplot(data=all_data_parsed, x=cols_to_plot[i], palette=palette, hue="attack",
-                        common_norm=False, common_grid=True, ax=axs[i], cut=2, log_scale=(False, True)) #False, True
+            all_data_parsed = all_data_parsed.drop(['device'], axis=1)
+            all_data_parsed = all_data_parsed.reset_index()
+            fig, axs = plt.subplots(nrows=ceil(len(cols_to_plot) / 4), ncols=4)
+            axs = axs.ravel().tolist()
+            fig.suptitle(plot_name)
+            fig.set_figheight(len(cols_to_plot))
+            fig.set_figwidth(50)
+            palette = {Behavior.NORMAL.value: "green", Behavior.NORMAL_V2.value: "lightgreen",
+                       Behavior.DELAY.value: "yellow", Behavior.DISORDER.value: "orange",
+                       Behavior.FREEZE.value: "grey", Behavior.HOP.value: "red",
+                       Behavior.MIMIC.value: "violet", Behavior.NOISE.value: "turquoise",
+                       Behavior.REPEAT.value: "black", Behavior.SPOOF.value: "darkred"}
+            for i in range(len(cols_to_plot)):
+                axs[i].set_ylim([1e-4, 2])
+                for behav in Behavior:
+                    if all_data_parsed[all_data_parsed.attack == behav.value][cols_to_plot[i]].unique().size == 1:
+                        axs[i].axvline(all_data_parsed[all_data_parsed.attack == behav.value][cols_to_plot[i]].iloc[0],
+                                       ymin=1e-4, ymax=2, color=palette[behav.value])
+                sns.kdeplot(data=all_data_parsed, x=cols_to_plot[i], palette=palette, hue="attack",
+                            common_norm=False, common_grid=True, ax=axs[i], cut=2,
+                            log_scale=(False, True))  # False, True
 
-        if plot_name is not None:
-            fig.savefig(f'data_plot_{plot_name}.png', dpi=100)
+            if plot_name is not None:
+                fig.savefig(f'data_plot_{plot_name}.png', dpi=100)
+
+    @staticmethod
+    def plot_behaviors_as_kde():
+        for behav in Behavior:
+            plot_name = f"all_behavior_{behav.value}_hist"
+            all_data_parsed = DataHandler.parse_all_files_to_df(raw=False, save_to_file=False)
+            all_data_parsed = all_data_parsed[all_data_parsed.attack == behav.value]
+            cols_to_plot = [col for col in all_data_parsed if col not in ['device', 'attack']]
+
+            all_data_parsed = all_data_parsed.drop(['attack'], axis=1)
+            all_data_parsed = all_data_parsed.reset_index()
+            fig, axs = plt.subplots(nrows=ceil(len(cols_to_plot) / 4), ncols=4)
+            axs = axs.ravel().tolist()
+            fig.suptitle(plot_name)
+            fig.set_figheight(len(cols_to_plot))
+            fig.set_figwidth(50)
+            palette = {RaspberryPi.PI3_1GB.value: "green", RaspberryPi.PI4_2GB_WC.value: "blue",
+                       RaspberryPi.PI4_2GB_BC.value: "yellow", RaspberryPi.PI4_4GB.value: "orange"}
+            for i in range(len(cols_to_plot)):
+                axs[i].set_ylim([1e-4, 2])
+                if all_data_parsed[cols_to_plot[i]].unique().size == 1:
+                    continue
+                for device in RaspberryPi:
+                    if all_data_parsed[all_data_parsed.device == device.value][cols_to_plot[i]].unique().size == 1:
+                        axs[i].axvline(all_data_parsed[all_data_parsed.device == device.value][cols_to_plot[i]].iloc[0],
+                                       ymin=1e-4, ymax=2, color=palette[device.value])
+                sns.kdeplot(data=all_data_parsed, x=cols_to_plot[i], palette=palette, hue="device",
+                            common_norm=False, common_grid=True, ax=axs[i], cut=2,
+                            log_scale=(False, True))  # False, True
+
+            if plot_name is not None:
+                fig.savefig(f'data_plot_{plot_name}.png', dpi=100)
