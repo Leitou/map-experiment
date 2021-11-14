@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from copy import deepcopy
 from typing import Dict
 
@@ -16,6 +17,9 @@ if __name__ == "__main__":
     torch.random.manual_seed(42)
     np.random.seed(42)
     os.chdir("..")
+
+    if not Path(f"{Path(__file__).parent}/results_{Path(__file__).stem}/").is_dir():
+        Path(f"{Path(__file__).parent}/results_{Path(__file__).stem}").mkdir()
 
     print("Starting demo experiment: Adversarial Impact on Federations\n")
 
@@ -42,7 +46,6 @@ if __name__ == "__main__":
                           (device, {Behavior.NORMAL: 300, Behavior.NOISE: 300},
                            {Behavior.NORMAL: 30, Behavior.NOISE: 30})]
 
-
     train_sets, test_sets = DataHandler.get_all_clients_data(
         train_devices,
         test_devices)
@@ -58,11 +61,10 @@ if __name__ == "__main__":
     # create global test set -
     # concat all test sets for all devices and behaviors
     test_sets_fed_x = np.concatenate(tuple(x_test for x_test, y_test in
-                         test_sets_fed))
+                                           test_sets_fed))
     test_sets_fed_y = np.concatenate(tuple(y_test for x_test, y_test in
-                         test_sets_fed))
+                                           test_sets_fed))
     global_test_set = [(test_sets_fed_x, test_sets_fed_y)]
-
 
     # train, predict and plot results
     fig, ax = plt.subplots(figsize=(12, 5))
@@ -84,23 +86,32 @@ if __name__ == "__main__":
         for num_adv in range(max_num_adv):
             print(f"Using {num_adv} adversaries")
 
-            # train federation
-            # TODO: implement first only adversaries of one device type -> rasp3, then maybe multiple device types
+            # define adversarial/honest federation composition
             adversaries = [AllLabelFlipAdversary(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
-                            x_train, y_train, x_valid, y_valid in train_sets_fed[4:4+num_adv]]
+                           x_train, y_train, x_valid, y_valid in train_sets_fed[4:4 + num_adv]]
 
             participants = [MLPParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
-                            x_train, y_train, x_valid, y_valid in train_sets_fed[:4]] + [MLPParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
-                            x_train, y_train, x_valid, y_valid in train_sets_fed[4+num_adv:]]
-
+                            x_train, y_train, x_valid, y_valid in train_sets_fed[:4]] + [
+                               MLPParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
+                               x_train, y_train, x_valid, y_valid in train_sets_fed[4 + num_adv:]]
 
             server = Server(adversaries + participants, ModelArchitecture.MLP_MONO_CLASS, aggregation_mechanism=agg)
-            server.train_global_model(aggregation_rounds=15)
+
+            filepath = f"{Path(__file__).parent}/results_{Path(__file__).stem}/model_{agg.value}_{num_adv}_adv.pt"
+            if not Path(filepath).is_file():
+                # train federation
+                # TODO: implement first only adversaries of one device type -> rasp3, then maybe multiple device types
+                server.train_global_model(aggregation_rounds=15)
+                torch.save(server.global_model.state_dict(), filepath)
+
+            else:
+                server.global_model.load_state_dict(torch.load(filepath))
+
 
             # predict on all test data
             y_predicted = server.predict_using_global_model(global_test_set[0][0])
             acc, f1, _ = FederationUtils.calculate_metrics(global_test_set[0][1].flatten(), y_predicted.flatten().numpy())
-            print(f1)
+            print(f"{f1:.2f}")
 
 
             # plotting grouped bar chart
@@ -126,7 +137,6 @@ if __name__ == "__main__":
         pos_x += sep
 
     ticks = [(1.5 * bar_width) + (4 * bar_width + sep) * i for i in range(0, len(AggregationMechanism))]
-
     ax.set_xticks(ticks)
     aggs = [agg.value for agg in AggregationMechanism]
     ax.set_xticklabels(aggs)
