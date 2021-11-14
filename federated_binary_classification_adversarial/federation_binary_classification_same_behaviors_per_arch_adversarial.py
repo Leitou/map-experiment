@@ -30,7 +30,7 @@ if __name__ == "__main__":
     res_dict: Dict[RaspberryPi, Dict[Behavior, str]] = {}
 
     excluded_pi = RaspberryPi.PI4_2GB_WC
-
+    num_participants_per_device = 4
 
     for device in RaspberryPi:
         if device == excluded_pi:
@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
         for behavior in Behavior:
             if behavior == Behavior.NORMAL or behavior == Behavior.NORMAL_V2:
-                bdict[behavior] = 1280 # 80/20 split normal/attack behavior in test set
+                bdict[behavior] = 1280  # 80/20 split normal/attack behavior in test set
             else:
                 bdict[behavior] = 80
         test_devices.append((device, bdict))
@@ -62,7 +62,6 @@ if __name__ == "__main__":
     train_sets_fed, test_sets_fed = deepcopy(train_sets), deepcopy(test_sets)
     train_sets_fed, test_sets_fed = DataHandler.scale(train_sets_fed, test_sets_fed, scaling=Scaler.MINMAX_SCALER)
 
-
     # create global test set including all device types and behaviors
     test_sets_fed_x = np.concatenate(tuple(x_test for x_test, y_test in
                                            test_sets_fed))
@@ -80,8 +79,12 @@ if __name__ == "__main__":
     fig, axs = plt.subplots(4)
     max_num_adv = 5
 
+
     pis = list(RaspberryPi)
-    for i, device in enumerate(pis[0:pis.index(excluded_pi)] + pis[pis.index(excluded_pi)+1:] + ["ALL_DEVICES_ALL_BEHAVIORS"]):
+    pis_excl = pis[0:pis.index(excluded_pi)] + pis[pis.index(excluded_pi) + 1:]
+    attack_device_idx = pis_excl.index(RaspberryPi.PI4_4GB)
+
+    for i, device in enumerate(pis_excl + ["ALL_DEVICES_ALL_BEHAVIORS"]):
 
         pos_x = 0
         title = device.name if i < 3 else device
@@ -89,8 +92,8 @@ if __name__ == "__main__":
         axs[i].set_title(title)
         axs[i].set_ylabel('F1-Score (%)')
         axs[i].set_ylim(0, 100.)
-        #plt.gca().spines['top'].set_visible(False)
-        #plt.gca().spines['right'].set_visible(False)
+        # plt.gca().spines['top'].set_visible(False)
+        # plt.gca().spines['right'].set_visible(False)
         #     plt.gca().spines['bottom'].set_visible(False)
 
         for agg in AggregationMechanism:
@@ -99,12 +102,16 @@ if __name__ == "__main__":
 
                 # define adversarial/honest federation composition
                 adversaries = [AllLabelFlipAdversary(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
-                               x_train, y_train, x_valid, y_valid in train_sets_fed[4:4 + num_adv]]
+                               x_train, y_train, x_valid, y_valid in
+                               train_sets_fed[attack_device_idx * num_participants_per_device:
+                                              attack_device_idx * num_participants_per_device + num_adv]]
 
                 participants = [MLPParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
-                                x_train, y_train, x_valid, y_valid in train_sets_fed[:4]] + [
-                                   MLPParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
-                                   x_train, y_train, x_valid, y_valid in train_sets_fed[4 + num_adv:]]
+                                x_train, y_train, x_valid, y_valid in
+                                train_sets_fed[:attack_device_idx * num_participants_per_device]] + \
+                               [MLPParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
+                                   x_train, y_train, x_valid, y_valid in
+                                train_sets_fed[attack_device_idx * num_participants_per_device + num_adv:]]
 
                 server = Server(adversaries + participants, ModelArchitecture.MLP_MONO_CLASS, aggregation_mechanism=agg)
 
@@ -129,19 +136,18 @@ if __name__ == "__main__":
 
                 print(f"{f1:.2f}")
 
-
                 # plotting grouped bar chart
                 color = colors[num_adv]
                 text_color = text_colors[num_adv]
                 f1_height = f1 * 100
                 if agg == AggregationMechanism.FED_AVG:
                     axs[i].bar(pos_x, height=f1_height, color=color, width=bar_width, lw=0.7, edgecolor='black',
-                            label='f=' + repr(num_adv))
+                               label='f=' + repr(num_adv))
                 else:
                     axs[i].bar(pos_x, height=f1_height, color=color, width=bar_width, lw=0.7,
-                            edgecolor='black')  # yerr=[[yerr_down], [yerr_up]], capsize=11
+                               edgecolor='black')  # yerr=[[yerr_down], [yerr_up]], capsize=11
 
-                s = ("{:."+repr(0)+"f}").format(f1_height)
+                s = ("{:." + repr(0) + "f}").format(f1_height)
                 if len(s) == 1:
                     text_x = pos_x - 0.2
                 else:
