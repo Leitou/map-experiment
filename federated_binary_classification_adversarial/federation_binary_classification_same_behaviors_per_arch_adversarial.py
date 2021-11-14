@@ -17,10 +17,6 @@ if __name__ == "__main__":
     torch.random.manual_seed(42)
     np.random.seed(42)
     os.chdir("..")
-
-    if not Path(f"{Path(__file__).parent}/results_{Path(__file__).stem}/").is_dir():
-        Path(f"{Path(__file__).parent}/results_{Path(__file__).stem}").mkdir()
-
     print("Starting demo experiment: Adversarial Impact on Federations\n")
 
     train_devices = []
@@ -76,13 +72,16 @@ if __name__ == "__main__":
     colors = ['#87d64b', '#fae243', '#f8961e', '#ff4d36', '#8f00ff']
     text_colors = ['#456e25', '#998a28', '#b06a13', '#b33424', '#8f00ff']
 
-    fig, axs = plt.subplots(4)
-    max_num_adv = 5
-
-
+    adv_device = RaspberryPi.PI4_2GB_BC
     pis = list(RaspberryPi)
     pis_excl = pis[0:pis.index(excluded_pi)] + pis[pis.index(excluded_pi) + 1:]
-    attack_device_idx = pis_excl.index(RaspberryPi.PI4_4GB)
+    attack_device_idx = pis_excl.index(adv_device)
+
+    fig, axs = plt.subplots(4)
+    max_num_adv = 5
+    fig.suptitle(f'0-4 Adversarial {adv_device.name}s', fontsize=16)
+    if not Path(f"{Path(__file__).parent}/results_adv_{adv_device.name}_{Path(__file__).stem}/").is_dir():
+        Path(f"{Path(__file__).parent}/results_adv_{adv_device.name}_{Path(__file__).stem}").mkdir()
 
     for i, device in enumerate(pis_excl + ["ALL_DEVICES_ALL_BEHAVIORS"]):
 
@@ -110,12 +109,13 @@ if __name__ == "__main__":
                                 x_train, y_train, x_valid, y_valid in
                                 train_sets_fed[:attack_device_idx * num_participants_per_device]] + \
                                [MLPParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
-                                   x_train, y_train, x_valid, y_valid in
+                                x_train, y_train, x_valid, y_valid in
                                 train_sets_fed[attack_device_idx * num_participants_per_device + num_adv:]]
 
                 server = Server(adversaries + participants, ModelArchitecture.MLP_MONO_CLASS, aggregation_mechanism=agg)
 
-                filepath = f"{Path(__file__).parent}/results_{Path(__file__).stem}/model_{agg.value}_{num_adv}_adv.pt"
+                filepath = f"{Path(__file__).parent}/results_adv_{adv_device.name}_{Path(__file__).stem}" \
+                           f"/model_{agg.value}_{num_adv}_adv.pt"
                 if not Path(filepath).is_file():
                     # train federation
                     # TODO: implement first only adversaries of one device type -> rasp3, then maybe multiple device types
@@ -164,4 +164,5 @@ if __name__ == "__main__":
         axs[i].set_xticklabels(aggs)
         axs[i].legend(bbox_to_anchor=(1.12, 0.5), loc='right')
     plt.show()
-    fig.savefig(f'f1_scores_all_label_flip_per_device_and_global.pdf', bbox_inches='tight')
+    fig.savefig(f'{Path(__file__).parent}/results_adv_{adv_device.name}_{Path(__file__).stem}/'
+                f'f1_scores_all_label_flip_adv_{adv_device.name}.pdf', bbox_inches='tight')
