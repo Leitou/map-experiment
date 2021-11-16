@@ -50,7 +50,12 @@ if __name__ == "__main__":
     adv_device = RaspberryPi.PI4_4GB  # TODO: adapt this device for selecting another device type for the adversaries
     pis = list(RaspberryPi)
     pis_excl = pis[0:pis.index(excluded_pi)] + pis[pis.index(excluded_pi) + 1:]
-    attack_device_idx = pis_excl.index(adv_device)
+
+    train_devices_base = []
+    for i, device in enumerate(RaspberryPi):
+        if device != adv_device:
+            train_devices_base += [(device, {normal: 1350}, {normal: 150})] * num_participants_per_device
+
 
     fig, axs = plt.subplots(4)
     max_num_adv = 4
@@ -58,7 +63,7 @@ if __name__ == "__main__":
     if not Path(f"{Path(__file__).parent}/results_inj_{inj_att_behavior.name}_adv_{adv_device.name}_{Path(__file__).stem}/").is_dir():
         Path(f"{Path(__file__).parent}/results_inj_{inj_att_behavior.name}_adv_{adv_device.name}_{Path(__file__).stem}").mkdir()
 
-    train_devices = []
+
     for i, device in enumerate(pis_excl + ["ALL_DEVICES_ALL_BEHAVIORS"]):
 
         pos_x = 0
@@ -75,13 +80,11 @@ if __name__ == "__main__":
             for num_adv in range(max_num_adv + 1):
                 print(f"Using {num_adv} adversaries")
 
+                train_devices = train_devices_base
                 # inject adversarial participants via data
-                for device in RaspberryPi:
-                    if device != adv_device:
-                        train_devices += [(device, {normal: 1350}, {normal: 150})] * num_participants_per_device
-                    else:
-                        train_devices += [(device, {normal: 1350}, {normal: 150})] * (num_participants_per_device - num_adv)
-                        train_devices += [(device, {inj_att_behavior: 110}, {inj_att_behavior: 11})] * num_adv
+                train_devices += [(device, {normal: 1350}, {normal: 150})] * (num_participants_per_device - num_adv)
+                train_devices += [(device, {inj_att_behavior: 130 / num_adv}, {inj_att_behavior: 13 /num_adv})] * num_adv
+
 
                 train_sets_fed, test_sets = DataHandler.get_all_clients_data(
                     train_devices,
