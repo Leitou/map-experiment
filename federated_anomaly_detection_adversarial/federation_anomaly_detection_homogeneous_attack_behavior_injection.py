@@ -83,8 +83,8 @@ if __name__ == "__main__":
                 train_devices = deepcopy(train_devices_base)
                 # inject adversarial participants via data
                 train_devices += [(adv_device, {normal: 1350}, {normal: 150})] * (num_participants_per_device - num_adv)
-                train_devices += [(adv_device, {inj_att_behavior: 130 // num_adv if num_adv != 0 else 130},
-                                   {inj_att_behavior: 13 // num_adv if num_adv != 0 else 13})] * num_adv
+                train_devices += [(adv_device, {inj_att_behavior: 260 // num_adv if num_adv != 0 else 260},
+                                   {inj_att_behavior: 26 // num_adv if num_adv != 0 else 26})] * num_adv
 
                 train_sets_fed, test_sets = DataHandler.get_all_clients_data(
                     train_devices,
