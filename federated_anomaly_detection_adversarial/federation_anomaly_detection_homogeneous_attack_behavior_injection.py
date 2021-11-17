@@ -47,112 +47,110 @@ if __name__ == "__main__":
 
     num_participants_per_device = 4
     inj_att_behavior = Behavior.DISORDER
-    adv_device = RaspberryPi.PI4_4GB  # TODO: adapt this device for selecting another device type for the adversaries
     pis = list(RaspberryPi)
     pis_excl = pis[0:pis.index(excluded_pi)] + pis[pis.index(excluded_pi) + 1:]
 
-    train_devices_base = []
-    for i, device in enumerate(RaspberryPi):
-        if device != adv_device and device != excluded_pi:
-            train_devices_base += [(device, {normal: 1350}, {normal: 150})] * num_participants_per_device
+    for adv_device in pis_excl:
 
-    fig, axs = plt.subplots(4)
-    max_num_adv = 4
-    fig.suptitle(f'0-4 Adversarial {adv_device.name}s', fontsize=16)
-    if not Path(
-            f"{Path(__file__).parent}/results_inj_{inj_att_behavior.name}_adv_{adv_device.name}_{Path(__file__).stem}/").is_dir():
-        Path(
-            f"{Path(__file__).parent}/results_inj_{inj_att_behavior.name}_adv_{adv_device.name}_{Path(__file__).stem}").mkdir()
+        train_devices_base = []
+        for i, device in enumerate(RaspberryPi):
+            if device != adv_device and device != excluded_pi:
+                train_devices_base += [(device, {normal: 1350}, {normal: 150})] * num_participants_per_device
 
-    for i, device in enumerate(pis_excl + ["ALL_DEVICES_ALL_BEHAVIORS"]):
+        fig, axs = plt.subplots(4)
+        max_num_adv = 4
+        fig.suptitle(f'0-4 Adversarial {adv_device.name}s', fontsize=16)
+        dirpath = f"{Path(__file__).parent}/results_inj_{inj_att_behavior.name}_adv_{adv_device.name}_{Path(__file__).stem}/"
+        if not Path(dirpath).is_dir():
+            Path(dirpath).mkdir()
 
-        pos_x = 0
-        title = device.name if i < 3 else device
+        for i, device in enumerate(pis_excl + ["ALL_DEVICES_ALL_BEHAVIORS"]):
 
-        axs[i].set_title(title)
-        axs[i].set_ylabel('F1-Score (%)')
-        axs[i].set_ylim(0, 100.)
-        # plt.gca().spines['top'].set_visible(False)
-        # plt.gca().spines['right'].set_visible(False)
-        #     plt.gca().spines['bottom'].set_visible(False)
+            pos_x = 0
+            title = device.name if i < 3 else device
 
-        for agg in AggregationMechanism:
-            for num_adv in range(max_num_adv + 1):
-                print(f"Using {num_adv} adversaries")
+            axs[i].set_title(title)
+            axs[i].set_ylabel('F1-Score (%)')
+            axs[i].set_ylim(0, 100.)
+            # plt.gca().spines['top'].set_visible(False)
+            # plt.gca().spines['right'].set_visible(False)
+            #     plt.gca().spines['bottom'].set_visible(False)
 
-                train_devices = deepcopy(train_devices_base)
-                # inject adversarial participants via data
-                train_devices += [(adv_device, {normal: 1350}, {normal: 150})] * (num_participants_per_device - num_adv)
-                train_devices += [(adv_device, {inj_att_behavior: 260 // num_adv if num_adv != 0 else 260},
-                                   {inj_att_behavior: 26 // num_adv if num_adv != 0 else 26})] * num_adv
+            for agg in AggregationMechanism:
+                for num_adv in range(max_num_adv + 1):
+                    print(f"Using {num_adv} adversaries")
 
-                train_sets_fed, test_sets = DataHandler.get_all_clients_data(
-                    train_devices,
-                    test_devices)
+                    train_devices = deepcopy(train_devices_base)
+                    # inject adversarial participants via data
+                    train_devices += [(adv_device, {normal: 1350}, {normal: 150})] * (num_participants_per_device - num_adv)
+                    train_devices += [(adv_device, {inj_att_behavior: 260 // num_adv if num_adv != 0 else 260},
+                                       {inj_att_behavior: 26 // num_adv if num_adv != 0 else 26})] * num_adv
 
-                # copy data for federation and then scale
-                test_sets_fed = deepcopy(test_sets)
-                train_sets_fed, test_sets_fed = DataHandler.scale(train_sets_fed, test_sets_fed,
-                                                                  scaling=Scaler.MINMAX_SCALER)
+                    train_sets_fed, test_sets = DataHandler.get_all_clients_data(
+                        train_devices,
+                        test_devices)
 
-                # participants contains adversaries already
-                participants = [AutoEncoderParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
-                                x_train, y_train, x_valid, y_valid in train_sets_fed]
-                server = Server(participants, ModelArchitecture.AUTO_ENCODER, aggregation_mechanism=agg)
+                    # copy data for federation and then scale
+                    test_sets_fed = deepcopy(test_sets)
+                    train_sets_fed, test_sets_fed = DataHandler.scale(train_sets_fed, test_sets_fed,
+                                                                      scaling=Scaler.MINMAX_SCALER)
 
-                filepath = f"{Path(__file__).parent}/results_inj_{inj_att_behavior.name}_adv_{adv_device.name}_{Path(__file__).stem}" \
-                           f"/model_{agg.value}_{num_adv}_adv.pt"
-                if not Path(filepath).is_file():
-                    # train federation
-                    server.train_global_model(aggregation_rounds=15)
-                    torch.save(server.global_model.state_dict(), filepath)
-                else:
-                    server.global_model.load_state_dict(torch.load(filepath))
-                    server.load_global_model_into_participants()
+                    # participants contains adversaries already
+                    participants = [AutoEncoderParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
+                                    x_train, y_train, x_valid, y_valid in train_sets_fed]
+                    server = Server(participants, ModelArchitecture.AUTO_ENCODER, aggregation_mechanism=agg)
 
-                if i < 3:
-                    y_predicted = server.predict_using_global_model(test_sets_fed[i][0])
-                    acc, f1, _ = FederationUtils.calculate_metrics(test_sets_fed[i][1].flatten(),
-                                                                   y_predicted.flatten().numpy())
-                else:
-                    test_sets_fed_x = np.concatenate(tuple(x_test for x_test, y_test in
-                                                           test_sets_fed))
-                    test_sets_fed_y = np.concatenate(tuple(y_test for x_test, y_test in
-                                                           test_sets_fed))
-                    global_test_set = [(test_sets_fed_x, test_sets_fed_y)]
-                    y_predicted = server.predict_using_global_model(global_test_set[0][0])
-                    acc, f1, _ = FederationUtils.calculate_metrics(global_test_set[0][1].flatten(),
-                                                                   y_predicted.flatten().numpy())
+                    filepath = f"{dirpath}/model_{agg.value}_{num_adv}_adv.pt"
+                    if not Path(filepath).is_file():
+                        # train federation
+                        server.train_global_model(aggregation_rounds=15)
+                        torch.save(server.global_model.state_dict(), filepath)
+                    else:
+                        server.global_model.load_state_dict(torch.load(filepath))
+                        server.load_global_model_into_participants()
 
-                print(f"f1 score: {f1:.2f}")
+                    if i < 3:
+                        y_predicted = server.predict_using_global_model(test_sets_fed[i][0])
+                        acc, f1, _ = FederationUtils.calculate_metrics(test_sets_fed[i][1].flatten(),
+                                                                       y_predicted.flatten().numpy())
+                    else:
+                        test_sets_fed_x = np.concatenate(tuple(x_test for x_test, y_test in
+                                                               test_sets_fed))
+                        test_sets_fed_y = np.concatenate(tuple(y_test for x_test, y_test in
+                                                               test_sets_fed))
+                        global_test_set = [(test_sets_fed_x, test_sets_fed_y)]
+                        y_predicted = server.predict_using_global_model(global_test_set[0][0])
+                        acc, f1, _ = FederationUtils.calculate_metrics(global_test_set[0][1].flatten(),
+                                                                       y_predicted.flatten().numpy())
 
-                # plotting grouped bar chart
-                color = colors[num_adv]
-                text_color = text_colors[num_adv]
-                f1_height = f1 * 100
-                if agg == AggregationMechanism.FED_AVG:
-                    axs[i].bar(pos_x, height=f1_height, color=color, width=bar_width, lw=0.7, edgecolor='black',
-                               label='f=' + repr(num_adv))
-                else:
-                    axs[i].bar(pos_x, height=f1_height, color=color, width=bar_width, lw=0.7,
-                               edgecolor='black')  # yerr=[[yerr_down], [yerr_up]], capsize=11
+                    print(f"f1 score: {f1:.2f}")
 
-                s = ("{:." + repr(0) + "f}").format(f1_height)
-                if len(s) == 1:
-                    text_x = pos_x - 0.2
-                else:
-                    text_x = pos_x - 0.5
+                    # plotting grouped bar chart
+                    color = colors[num_adv]
+                    text_color = text_colors[num_adv]
+                    f1_height = f1 * 100
+                    if agg == AggregationMechanism.FED_AVG:
+                        axs[i].bar(pos_x, height=f1_height, color=color, width=bar_width, lw=0.7, edgecolor='black',
+                                   label='f=' + repr(num_adv))
+                    else:
+                        axs[i].bar(pos_x, height=f1_height, color=color, width=bar_width, lw=0.7,
+                                   edgecolor='black')  # yerr=[[yerr_down], [yerr_up]], capsize=11
 
-                axs[i].text(x=text_x, y=f1_height + 1.2, s=s, fontsize='15.5', color=text_color)
+                    s = ("{:." + repr(0) + "f}").format(f1_height)
+                    if len(s) == 1:
+                        text_x = pos_x - 0.2
+                    else:
+                        text_x = pos_x - 0.5
 
-                pos_x += bar_width
-            pos_x += sep
+                    axs[i].text(x=text_x, y=f1_height + 1.2, s=s, fontsize='15.5', color=text_color)
 
-        ticks = [(1.5 * bar_width) + (4 * bar_width + sep) * i for i in range(0, len(AggregationMechanism))]
-        axs[i].set_xticks(ticks)
-        aggs = [agg.value for agg in AggregationMechanism]
-        axs[i].set_xticklabels(aggs)
-        axs[i].legend(bbox_to_anchor=(1.12, 0.5), loc='right')
-    plt.show()
-    fig.savefig(f'{Path(__file__).parent}/results_adv_{adv_device.name}_{Path(__file__).stem}/'
-                f'f1_scores_inject_{inj_att_behavior.name}_adv_{adv_device.name}.pdf', bbox_inches='tight')
+                    pos_x += bar_width
+                pos_x += sep
+
+            ticks = [(1.5 * bar_width) + (4 * bar_width + sep) * i for i in range(0, len(AggregationMechanism))]
+            axs[i].set_xticks(ticks)
+            aggs = [agg.value for agg in AggregationMechanism]
+            axs[i].set_xticklabels(aggs)
+            axs[i].legend(bbox_to_anchor=(1.12, 0.5), loc='right')
+        plt.show()
+        fig.savefig(f"{dirpath}/f1_scores_inj_{inj_att_behavior.name}_adv_{adv_device.name}.pdf", bbox_inches='tight')
