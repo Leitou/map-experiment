@@ -28,12 +28,8 @@ class Server:
             self.global_model = auto_encoder_model(in_features=68)  # .cuda()
         else:
             raise ValueError("Not yet implemented!")
-        self.global_threshold = nan
-        self.participants_thresholds = []
-        self.evaluation_thresholds = []
 
-    def train_global_model(self, aggregation_rounds: int = 15, local_epochs: int = 5):
-        # initialize model
+        # initialize models on participants
         for p in self.participants:
             if self.model_architecture == ModelArchitecture.MLP_MONO_CLASS:
                 p.set_model(mlp_model(in_features=68, out_classes=1))  # .cuda()
@@ -43,6 +39,12 @@ class Server:
                 p.set_model(auto_encoder_model(in_features=68))
             else:
                 raise ValueError("Not yet implemented!")
+
+        self.global_threshold = nan
+        self.participants_thresholds = []
+        self.evaluation_thresholds = []
+
+    def train_global_model(self, aggregation_rounds: int = 15, local_epochs: int = 5):
         for _ in tqdm(range(aggregation_rounds), unit="fedavg round", leave=False):
             for p in self.participants:
                 p.train(optimizer=torch.optim.SGD(p.get_model().parameters(), lr=0.001, momentum=0.9),
@@ -60,8 +62,12 @@ class Server:
             # TODO add & implement multiple ways of aggregation
 
             self.global_model.load_state_dict(deepcopy(new_weights))
-            for p in self.participants:
-                p.get_model().load_state_dict(deepcopy(new_weights))
+            self.load_global_model_into_participants()
+
+
+    def load_global_model_into_participants(self):
+        for p in self.participants:
+            p.get_model().load_state_dict(deepcopy(self.global_model.state_dict()))
 
     def predict_using_global_model(self, x):
         if self.model_architecture == ModelArchitecture.AUTO_ENCODER and isnan(self.global_threshold):

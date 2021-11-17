@@ -35,7 +35,7 @@ if __name__ == "__main__":
             if behavior == Behavior.NORMAL or behavior == Behavior.NORMAL_V2:
                 bdict[behavior] = 950  # 95/5 split normal/attack behavior in test set
             else:
-                bdict[behavior] = 50 # TODO: adapt this nr to change ratio
+                bdict[behavior] = 50  # TODO: adapt this nr to change ratio
         test_devices.append((device, bdict))
 
     # train, predict and plot results
@@ -53,16 +53,16 @@ if __name__ == "__main__":
 
     train_devices_base = []
     for i, device in enumerate(RaspberryPi):
-        if device != adv_device:
+        if device != adv_device and device != excluded_pi:
             train_devices_base += [(device, {normal: 1350}, {normal: 150})] * num_participants_per_device
-
 
     fig, axs = plt.subplots(4)
     max_num_adv = 4
     fig.suptitle(f'0-4 Adversarial {adv_device.name}s', fontsize=16)
-    if not Path(f"{Path(__file__).parent}/results_inj_{inj_att_behavior.name}_adv_{adv_device.name}_{Path(__file__).stem}/").is_dir():
-        Path(f"{Path(__file__).parent}/results_inj_{inj_att_behavior.name}_adv_{adv_device.name}_{Path(__file__).stem}").mkdir()
-
+    if not Path(
+            f"{Path(__file__).parent}/results_inj_{inj_att_behavior.name}_adv_{adv_device.name}_{Path(__file__).stem}/").is_dir():
+        Path(
+            f"{Path(__file__).parent}/results_inj_{inj_att_behavior.name}_adv_{adv_device.name}_{Path(__file__).stem}").mkdir()
 
     for i, device in enumerate(pis_excl + ["ALL_DEVICES_ALL_BEHAVIORS"]):
 
@@ -80,11 +80,11 @@ if __name__ == "__main__":
             for num_adv in range(max_num_adv + 1):
                 print(f"Using {num_adv} adversaries")
 
-                train_devices = train_devices_base
+                train_devices = deepcopy(train_devices_base)
                 # inject adversarial participants via data
-                train_devices += [(device, {normal: 1350}, {normal: 150})] * (num_participants_per_device - num_adv)
-                train_devices += [(device, {inj_att_behavior: 130 / num_adv}, {inj_att_behavior: 13 /num_adv})] * num_adv
-
+                train_devices += [(adv_device, {normal: 1350}, {normal: 150})] * (num_participants_per_device - num_adv)
+                train_devices += [(adv_device, {inj_att_behavior: 130 // num_adv if num_adv != 0 else 130},
+                                   {inj_att_behavior: 13 // num_adv if num_adv != 0 else 13})] * num_adv
 
                 train_sets_fed, test_sets = DataHandler.get_all_clients_data(
                     train_devices,
@@ -100,7 +100,7 @@ if __name__ == "__main__":
                                 x_train, y_train, x_valid, y_valid in train_sets_fed]
                 server = Server(participants, ModelArchitecture.AUTO_ENCODER, aggregation_mechanism=agg)
 
-                filepath = f"{Path(__file__).parent}/results_inj_{inj_att_behavior}_adv_{adv_device.name}_{Path(__file__).stem}" \
+                filepath = f"{Path(__file__).parent}/results_inj_{inj_att_behavior.name}_adv_{adv_device.name}_{Path(__file__).stem}" \
                            f"/model_{agg.value}_{num_adv}_adv.pt"
                 if not Path(filepath).is_file():
                     # train federation
@@ -108,6 +108,7 @@ if __name__ == "__main__":
                     torch.save(server.global_model.state_dict(), filepath)
                 else:
                     server.global_model.load_state_dict(torch.load(filepath))
+                    server.load_global_model_into_participants()
 
                 if i < 3:
                     y_predicted = server.predict_using_global_model(test_sets_fed[i][0])
