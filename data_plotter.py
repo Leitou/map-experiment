@@ -21,9 +21,10 @@ class DataPlotter:
                 max_number_of_samples = len(df_behavior)
         cols_to_plot = [col for col in all_data_parsed if col not in ['device', 'attack']]
 
-        fig, axs = plt.subplots(len(cols_to_plot))
+        fig, axs = plt.subplots(nrows=ceil(len(cols_to_plot) / 4), ncols=4)
+        axs = axs.ravel().tolist()
         fig.suptitle(plot_name)
-        fig.set_figheight(len(cols_to_plot) * 4)
+        fig.set_figheight(len(cols_to_plot))
         fig.set_figwidth(50)
         for i in range(len(cols_to_plot)):
             for device, behavior, line_color in behaviors:
@@ -32,12 +33,14 @@ class DataPlotter:
                 xes_b = [i for i in range(max_number_of_samples)]
                 ys_actual_b = df_b[cols_to_plot[i]].tolist()
                 ys_upsampled_b = [ys_actual_b[i % len(ys_actual_b)] for i in range(max_number_of_samples)]
+                axs[i].set_yscale('log')
                 axs[i].plot(xes_b, ys_upsampled_b, color=line_color, label=(device.value + " " + behavior.value))
             axs[i].set_title(cols_to_plot[i], fontsize='xx-large')
             axs[i].legend()
 
         if plot_name is not None:
             fig.savefig(f'data_plot_{plot_name}.png', dpi=100)
+            print(f'Saved {plot_name}')
 
     @staticmethod
     def plot_devices_as_kde():
