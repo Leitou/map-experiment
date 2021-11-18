@@ -76,9 +76,14 @@ class Server:
                 # Quick and dirty casting
                 p: AutoEncoderParticipant = p
                 self.participants_thresholds.append(p.determine_threshold())
-            all_thresholds = np.array(self.participants_thresholds)
-            max_filtered_thresh = all_thresholds[abs(stats.zscore(all_thresholds)) <= 1.5].max()
-            self.global_threshold = max_filtered_thresh
+            if len(self.participants_thresholds) == 1:
+                # Central case
+                self.global_threshold = self.participants_thresholds[0]
+            else:
+                # Federated Case
+                all_thresholds = np.array(self.participants_thresholds)
+                max_filtered_thresh = all_thresholds[abs(stats.zscore(all_thresholds)) <= 1.5].max()
+                self.global_threshold = max_filtered_thresh
 
         test_data = torch.utils.data.TensorDataset(
             torch.from_numpy(x).type(torch.float)
