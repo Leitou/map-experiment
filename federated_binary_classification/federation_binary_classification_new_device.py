@@ -39,8 +39,8 @@ if __name__ == "__main__":
                                    {Behavior.NORMAL: 30}),
                                   (device2, {Behavior.NORMAL: 300, Behavior.DELAY: 300},
                                    {Behavior.NORMAL: 30, Behavior.DELAY: 30}),
-                                  (device2, {Behavior.NORMAL: 300, Behavior.FREEZE: 300},
-                                   {Behavior.NORMAL: 30, Behavior.FREEZE: 30}),
+                                  (device2, {Behavior.NORMAL: 300, Behavior.REPEAT: 300},
+                                   {Behavior.NORMAL: 30, Behavior.REPEAT: 30}),
                                   (device2, {Behavior.NORMAL: 300, Behavior.NOISE: 300},
                                    {Behavior.NORMAL: 30, Behavior.NOISE: 30})]
 

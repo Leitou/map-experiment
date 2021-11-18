@@ -23,8 +23,8 @@ if __name__ == "__main__":
     train_devices = [
         (RaspberryPi.PI3_1GB, {Behavior.NORMAL: 300},
          {Behavior.NORMAL: 30}),
-        (RaspberryPi.PI3_1GB, {Behavior.NORMAL: 300, Behavior.FREEZE: 300},
-         {Behavior.NORMAL: 30, Behavior.FREEZE: 30}),
+        (RaspberryPi.PI3_1GB, {Behavior.NORMAL: 300, Behavior.REPEAT: 300},
+         {Behavior.NORMAL: 30, Behavior.REPEAT: 30}),
         (RaspberryPi.PI3_1GB, {Behavior.NORMAL: 300, Behavior.NOISE: 300},
          {Behavior.NORMAL: 30, Behavior.NOISE: 30}),
         (RaspberryPi.PI4_2GB_BC, {Behavior.NORMAL: 300},
@@ -37,8 +37,8 @@ if __name__ == "__main__":
          {Behavior.NORMAL: 30}),
         (RaspberryPi.PI4_4GB, {Behavior.NORMAL: 300, Behavior.DELAY: 300},
          {Behavior.NORMAL: 30, Behavior.DELAY: 30}),
-        (RaspberryPi.PI4_4GB, {Behavior.NORMAL: 300, Behavior.FREEZE: 300},
-         {Behavior.NORMAL: 30, Behavior.FREEZE: 30}),
+        (RaspberryPi.PI4_4GB, {Behavior.NORMAL: 300, Behavior.REPEAT: 300},
+         {Behavior.NORMAL: 30, Behavior.REPEAT: 30}),
     ]
     test_devices = []
 
@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
     for device in RaspberryPi:
         for behavior in Behavior:
-            test_devices.append((device, {behavior: 80}))
+            test_devices.append((device, {behavior: 75}))
 
     train_sets, test_sets = DataHandler.get_all_clients_data(
         train_devices,

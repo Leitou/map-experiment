@@ -28,17 +28,17 @@ if __name__ == "__main__":
 
     for device in RaspberryPi:
         for behavior in Behavior:
-            test_devices.append((device, {behavior: 80}))
+            test_devices.append((device, {behavior: 75}))
         if device == RaspberryPi.PI4_2GB_WC:
             continue
-        train_devices += [(device, {Behavior.NORMAL: 300},
-                           {Behavior.NORMAL: 30}),
-                          (device, {Behavior.NORMAL: 300, Behavior.DELAY: 300},
-                           {Behavior.NORMAL: 30, Behavior.DELAY: 30}),
-                          (device, {Behavior.NORMAL: 300, Behavior.FREEZE: 300},
-                           {Behavior.NORMAL: 30, Behavior.FREEZE: 30}),
-                          (device, {Behavior.NORMAL: 300, Behavior.NOISE: 300},
-                           {Behavior.NORMAL: 30, Behavior.NOISE: 30})]
+        train_devices += [(device, {Behavior.NORMAL: 250},
+                           {Behavior.NORMAL: 25}),
+                          (device, {Behavior.NORMAL: 250, Behavior.DELAY: 250},
+                           {Behavior.NORMAL: 25, Behavior.DELAY: 25}),
+                          (device, {Behavior.NORMAL: 250, Behavior.REPEAT: 250},
+                           {Behavior.NORMAL: 25, Behavior.REPEAT: 25}),
+                          (device, {Behavior.NORMAL: 250, Behavior.NOISE: 250},
+                           {Behavior.NORMAL: 25, Behavior.NOISE: 25})]
 
     train_sets, test_sets = DataHandler.get_all_clients_data(
         train_devices,
@@ -85,4 +85,4 @@ if __name__ == "__main__":
     for behavior in Behavior:
         results.append([behavior.value] + [res_dict[device][behavior] for device in RaspberryPi])
 
-    print(tabulate(results, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="pretty"))
+    print(tabulate(results, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="latex"))
