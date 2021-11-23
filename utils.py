@@ -45,6 +45,10 @@ class FederationUtils:
         print(f"Details:\nConfusion matrix \n[(TN, FP),\n(FN, TP)]:\n{cm_fed}")
         print(f"Test Accuracy: {accuracy * 100:.2f}%, F1 score: {f1 * 100:.2f}%")
 
+    @staticmethod
+    def visualize_adversary_impact():
+        pass
+
 
 # Assumption we test at most on what we train (attack types)
 def select_federation_composition(participants_per_arch: List, normals: List[Tuple[Behavior, int]],
