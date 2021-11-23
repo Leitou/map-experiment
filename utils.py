@@ -46,6 +46,22 @@ class FederationUtils:
         print(f"Test Accuracy: {accuracy * 100:.2f}%, F1 score: {f1 * 100:.2f}%")
 
     @staticmethod
+    def aggregate_train_sets(all_data: List[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]]) -> Tuple[
+        np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        return (
+            np.concatenate(tuple([data[0] for data in all_data])),
+            np.concatenate(tuple([data[1] for data in all_data])),
+            np.concatenate(tuple([data[2] for data in all_data])),
+            np.concatenate(tuple([data[3] for data in all_data])))
+
+    @staticmethod
+    def aggregate_test_sets(all_data: List[Tuple[np.ndarray, np.ndarray]]) -> Tuple[
+        np.ndarray, np.ndarray]:
+        return (
+            np.concatenate(tuple([data[0] for data in all_data])),
+            np.concatenate(tuple([data[1] for data in all_data])))
+
+    @staticmethod
     def visualize_adversary_impact():
         pass
 
