@@ -24,10 +24,12 @@ if __name__ == "__main__":
 
     pi_to_inject = RaspberryPi.PI4_4GB
 
-    attack_devices = [(pi_to_inject, {Behavior.DISORDER: 300}, {Behavior.DISORDER: 30}),
-                      (pi_to_inject, {Behavior.SPOOF: 300}, {Behavior.SPOOF: 30}),
-                      (pi_to_inject, {Behavior.MIMIC: 300}, {Behavior.MIMIC: 30}),
-                      (pi_to_inject, {Behavior.NOISE: 300}, {Behavior.NOISE: 30})]
+    attack_devices = [
+        (pi_to_inject, {Behavior.SPOOF: 300}, {Behavior.SPOOF: 30}),
+        (pi_to_inject, {Behavior.MIMIC: 300}, {Behavior.MIMIC: 30}),
+        (pi_to_inject, {Behavior.DELAY: 300}, {Behavior.DELAY: 30}),
+        (pi_to_inject, {Behavior.DISORDER: 300}, {Behavior.DISORDER: 30})
+    ]
 
     max_adversaries = 4
     participants_per_device_type = max_adversaries
@@ -107,3 +109,4 @@ if __name__ == "__main__":
     fig.legend(handles, labels, bbox_to_anchor=(1, 0.9))
     fig.tight_layout()
     plt.show()
+    fig.savefig(f'result_plot_homogeneous_anomaly_detection_inj_{pi_to_inject}.png', dpi=100)

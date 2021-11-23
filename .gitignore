@@ -6,6 +6,7 @@ venv/
 results
 data/*.csv
 data_plot_*.png
+result_plot_*.png
 *.pdf
 *.pt
 *.pth
