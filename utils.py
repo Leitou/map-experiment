@@ -2,9 +2,13 @@ from typing import Tuple, Any, List, Dict, Union
 
 import numpy as np
 from math import floor
-import matplotlib.pyplot as plt
+import pandas as pd
 from sklearn.metrics import f1_score, confusion_matrix, classification_report
+
+from aggregation import Server
 from custom_types import RaspberryPi, Behavior
+
+from tabulate import tabulate
 
 
 # TODO: add some Reporting Utils. Like
@@ -60,6 +64,25 @@ class FederationUtils:
         return (
             np.concatenate(tuple([data[0] for data in all_data])),
             np.concatenate(tuple([data[1] for data in all_data])))
+
+    @staticmethod
+    def print_thresholds(server: Server, test_devices: List[Tuple[RaspberryPi, Dict[Behavior, int]]]):
+        devices = []
+        behaviors = []
+        for test_dev in test_devices:
+            behavior = list(test_dev[1].keys())[0]
+            devices += [test_dev[0].value] * test_dev[1][behavior]
+            behaviors += [behavior.value] * test_dev[1][behavior]
+        df = pd.DataFrame.from_dict(
+            {"threshold": server.evaluation_thresholds, "device": devices,
+             "behavior": behaviors})
+
+        rows = []
+        for behavior in Behavior:
+            rows.append([behavior.value] + [
+                f"{df[(df.device == dev.value) & (df.behavior == behavior.value)].mean(numeric_only=True)[0]:.2f}" for
+                dev in RaspberryPi])
+        print(tabulate(rows, headers=["Behavior"] + [dev.value for dev in RaspberryPi], tablefmt="pretty"))
 
     @staticmethod
     def visualize_adversary_impact():
