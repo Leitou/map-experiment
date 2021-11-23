@@ -47,6 +47,7 @@ if __name__ == "__main__":
     # central
     train_sets_cen, test_sets_cen = deepcopy(train_sets), deepcopy(test_sets)
     train_sets_cen, test_sets_cen = DataHandler.scale(train_sets_cen, test_sets_cen, scaling=Scaler.MINMAX_SCALER)
+    x_train_all, y_train_all, x_valid_all, y_valid_all = FederationUtils.aggregate_train_sets(train_sets_cen)
 
     # copy data for federation and then scale
     train_sets_fed, test_sets_fed = deepcopy(train_sets), deepcopy(test_sets)
@@ -59,10 +60,6 @@ if __name__ == "__main__":
     server.train_global_model(aggregation_rounds=15)
 
     # train central
-    x_train_all = np.concatenate(tuple(x_train for x_train, y_train, x_valid, y_valid in train_sets_cen))
-    y_train_all = np.concatenate(tuple(y_train for x_train, y_train, x_valid, y_valid in train_sets_cen))
-    x_valid_all = np.concatenate(tuple(x_valid for x_train, y_train, x_valid, y_valid in train_sets_cen))
-    y_valid_all = np.concatenate(tuple(y_valid for x_train, y_train, x_valid, y_valid in train_sets_cen))
     central_participant = [
         AutoEncoderParticipant(x_train_all, y_train_all, x_valid_all, y_valid_all,
                                batch_size_valid=1)]
