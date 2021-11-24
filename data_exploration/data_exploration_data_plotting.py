@@ -1,11 +1,12 @@
 import os
 
+from custom_types import Behavior, RaspberryPi
 from data_plotter import DataPlotter
 
 # TODO: enable once incorporated into report
 if __name__ == "__main__":
     os.chdir("..")
-    if True:
+    if False:
         DataPlotter.plot_behaviors_as_kde()
     else:
         DataPlotter.plot_behaviors(

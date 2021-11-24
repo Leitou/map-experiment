@@ -47,6 +47,7 @@ if __name__ == "__main__":
     # central
     train_sets_cen, test_sets_cen = deepcopy(train_sets), deepcopy(test_sets)
     train_sets_cen, test_sets_cen = DataHandler.scale(train_sets_cen, test_sets_cen, scaling=Scaler.MINMAX_SCALER)
+    x_train_all, y_train_all, x_valid_all, y_valid_all = FederationUtils.aggregate_train_sets(train_sets_cen)
 
     # copy data for federation and then scale
     train_sets_fed, test_sets_fed = deepcopy(train_sets), deepcopy(test_sets)
@@ -59,17 +60,12 @@ if __name__ == "__main__":
     server.train_global_model(aggregation_rounds=15)
 
     # train central
-    x_train_all = np.concatenate(tuple(x_train for x_train, y_train, x_valid, y_valid in train_sets_cen))
-    y_train_all = np.concatenate(tuple(y_train for x_train, y_train, x_valid, y_valid in train_sets_cen))
-    x_valid_all = np.concatenate(tuple(x_valid for x_train, y_train, x_valid, y_valid in train_sets_cen))
-    y_valid_all = np.concatenate(tuple(y_valid for x_train, y_train, x_valid, y_valid in train_sets_cen))
     central_participant = [
         AutoEncoderParticipant(x_train_all, y_train_all, x_valid_all, y_valid_all,
                                batch_size_valid=1)]
     central_server = Server(central_participant, ModelArchitecture.AUTO_ENCODER)
     central_server.train_global_model(aggregation_rounds=1, local_epochs=15)
 
-    test_tuples_thres_plot = []
     for i, (tfed, tcen) in enumerate(zip(test_sets_fed, test_sets_cen)):
         y_predicted = server.predict_using_global_model(tfed[0])
         y_predicted_central = central_server.predict_using_global_model(tcen[0])
@@ -82,26 +78,10 @@ if __name__ == "__main__":
         device_dict[behavior] = f'{acc * 100:.2f}% ({(acc - acc_cen) * 100:.2f}%)'
 
         res_dict[device] = device_dict
-        test_tuples_thres_plot += ([(device, behavior)] * len(tfed[0]))
 
     for behavior in Behavior:
         results.append([behavior.value] + [res_dict[device][behavior] for device in RaspberryPi])
 
     print(tabulate(results, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="pretty"))
 
-    print(f'Thresholds of federation: {server.participants_thresholds}')
-    print(
-        f'First 50 Prediction thresholds: {server.evaluation_thresholds[:50]}, full length: {len(server.evaluation_thresholds)}')
-    print(len(test_tuples_thres_plot), len(server.evaluation_thresholds))
-    import pandas as pd
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-
-    df = pd.DataFrame.from_dict(
-        {"threshold": server.evaluation_thresholds, "device": [a.value for a, b in test_tuples_thres_plot],
-         "device-behavior": [f'{a.value} {b.value}' for a, b in test_tuples_thres_plot]})
-    df_pi3 = df[df['device'] == RaspberryPi.PI3_1GB.value]
-    sns.kdeplot(data=df_pi3, x="threshold", hue="device-behavior", log_scale=(True, True), common_norm=True,
-                common_grid=True)
-    plt.show()
-    print(df.groupby("device-behavior").mean())
+    FederationUtils.print_thresholds(server, test_devices)

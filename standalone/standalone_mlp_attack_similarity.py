@@ -23,13 +23,13 @@ if __name__ == "__main__":
     attacks = [val for val in Behavior if val not in normals]
     all_accs = []
     device = RaspberryPi.PI3_1GB
-    test_devices = [(device, {beh: 100}) for beh in Behavior]
+    test_devices = [(device, {beh: 75}) for beh in Behavior]
     eval_labels = [beh.value for beh in Behavior]
     train_labels = []
     for attack in attacks:
         train_sets, test_sets = DataHandler.get_all_clients_data(
             [(device, {Behavior.NORMAL: 250, attack: 250},
-              {Behavior.NORMAL: 250, attack: 25})],
+              {Behavior.NORMAL: 25, attack: 25})],
             test_devices)
 
         train_sets, test_sets = DataHandler.scale(train_sets, test_sets, scaling=Scaler.MINMAX_SCALER)
@@ -46,8 +46,8 @@ if __name__ == "__main__":
         train_labels.append(attack.value)
 
     train_sets, test_sets = DataHandler.get_all_clients_data(
-        [(device, {Behavior.NORMAL: 500, Behavior.FREEZE: 250, Behavior.SPOOF: 250},
-          {Behavior.NORMAL: 50, Behavior.FREEZE: 25, Behavior.SPOOF: 25})],
+        [(device, {Behavior.NORMAL: 250, Behavior.REPEAT: 125, Behavior.MIMIC: 125},
+          {Behavior.NORMAL: 25, Behavior.REPEAT: 13, Behavior.MIMIC: 12})],
         test_devices)
 
     train_sets, test_sets = DataHandler.scale(train_sets, test_sets, scaling=Scaler.MINMAX_SCALER)
@@ -61,11 +61,11 @@ if __name__ == "__main__":
         acc, f1, conf_mat = FederationUtils.calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
         att_accs.append(acc)
     all_accs.append(att_accs)
-    train_labels.append("freeze, spoof")
+    train_labels.append("repeat, mimic")
 
     train_sets, test_sets = DataHandler.get_all_clients_data(
-        [(device, {Behavior.NORMAL: 500, Behavior.REPEAT: 250, Behavior.HOP: 250},
-          {Behavior.NORMAL: 50, Behavior.REPEAT: 25, Behavior.HOP: 25})],
+        [(device, {Behavior.NORMAL: 250, Behavior.FREEZE: 125, Behavior.MIMIC: 125},
+          {Behavior.NORMAL: 25, Behavior.FREEZE: 13, Behavior.MIMIC: 12})],
         test_devices)
 
     train_sets, test_sets = DataHandler.scale(train_sets, test_sets, scaling=Scaler.MINMAX_SCALER)
@@ -79,11 +79,11 @@ if __name__ == "__main__":
         acc, f1, conf_mat = FederationUtils.calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
         att_accs.append(acc)
     all_accs.append(att_accs)
-    train_labels.append("repeat, hop")
+    train_labels.append("freeze, mimic")
 
     train_sets, test_sets = DataHandler.get_all_clients_data(
-        [(device, {Behavior.NORMAL: 500, Behavior.DELAY: 166, Behavior.FREEZE: 166, Behavior.NOISE: 166},
-          {Behavior.NORMAL: 50, Behavior.DELAY: 17, Behavior.FREEZE: 17, Behavior.NOISE: 17})],
+        [(device, {Behavior.NORMAL: 250, Behavior.DELAY: 84, Behavior.REPEAT: 83, Behavior.NOISE: 83},
+          {Behavior.NORMAL: 25, Behavior.DELAY: 9, Behavior.REPEAT: 8, Behavior.NOISE: 8})],
         test_devices)
 
     train_sets, test_sets = DataHandler.scale(train_sets, test_sets, scaling=Scaler.MINMAX_SCALER)
@@ -97,7 +97,7 @@ if __name__ == "__main__":
         acc, f1, conf_mat = FederationUtils.calculate_metrics(y_test.flatten(), y_predicted.flatten().numpy())
         att_accs.append(acc)
     all_accs.append(att_accs)
-    train_labels.append("delay, freeze, noise")
+    train_labels.append("delay, repeat, noise")
 
     hm = sns.heatmap(np.array(all_accs), xticklabels=eval_labels, yticklabels=train_labels)
     plt.title('Heatmap of Device ' + device.value, fontsize=15)

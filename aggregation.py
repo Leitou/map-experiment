@@ -4,7 +4,8 @@ from copy import deepcopy
 from math import nan, isnan
 import torch
 from torch.utils.data import DataLoader
-
+import numpy as np
+from scipy import stats
 from custom_types import ModelArchitecture, AggregationMechanism
 from models import mlp_model, auto_encoder_model
 from participants import Participant, AutoEncoderParticipant
@@ -75,7 +76,14 @@ class Server:
                 # Quick and dirty casting
                 p: AutoEncoderParticipant = p
                 self.participants_thresholds.append(p.determine_threshold())
-            self.global_threshold = max(self.participants_thresholds)
+            if len(self.participants_thresholds) == 1:
+                # Central case
+                self.global_threshold = self.participants_thresholds[0]
+            else:
+                # Federated Case
+                all_thresholds = np.array(self.participants_thresholds)
+                max_filtered_thresh = all_thresholds[abs(stats.zscore(all_thresholds)) <= 1.5].max()
+                self.global_threshold = max_filtered_thresh
 
         test_data = torch.utils.data.TensorDataset(
             torch.from_numpy(x).type(torch.float)
