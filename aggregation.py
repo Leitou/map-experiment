@@ -124,9 +124,8 @@ class Server:
     def fed_avg(self):
         w_avg = deepcopy(self.participants[0].get_model().state_dict())
         for key in w_avg.keys():
-            for p in self.participants[1:]:
-                w_avg[key] += p.get_model().state_dict()[key]
-            w_avg[key] = torch.div(w_avg[key], len(self.participants))
+            w_avg[key] = torch.stack([part.get_model().state_dict()[key] for part in self.participants]).mean(
+                dim=0, dtype=torch.float)
         return w_avg
 
     def coordinate_wise_median(self):
