@@ -42,6 +42,8 @@ class AdversaryType(Enum):
 class AggregationMechanism(Enum):
     FED_AVG = "fed_avg"
     TRIMMED_MEAN = "trimmed_mean"
+    TRIMMED_MEAN_2 = "trimmed_mean_2"
+    COORDINATE_WISE_MEDIAN = "coordinate_wise_median"
 
 
 class Scaler(Enum):

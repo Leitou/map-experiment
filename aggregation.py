@@ -58,13 +58,15 @@ class Server:
 
             if self.aggregation_mechanism == AggregationMechanism.TRIMMED_MEAN:
                 new_weights = self.trimmed_mean_1()
+            elif self.aggregation_mechanism == AggregationMechanism.TRIMMED_MEAN_2:
+                new_weights = self.trimmed_mean_2()
+            elif self.aggregation_mechanism == AggregationMechanism.COORDINATE_WISE_MEDIAN:
+                new_weights = self.coordinate_wise_median()
             else:
-                new_weights = self.fedavg()
-            # TODO add & implement multiple ways of aggregation
+                new_weights = self.fed_avg()
 
             self.global_model.load_state_dict(deepcopy(new_weights))
             self.load_global_model_into_participants()
-
 
     def load_global_model_into_participants(self):
         for p in self.participants:
@@ -119,13 +121,20 @@ class Server:
 
         return all_predictions.flatten()
 
-    def fedavg(self):
+    def fed_avg(self):
         w_avg = deepcopy(self.participants[0].get_model().state_dict())
         for key in w_avg.keys():
             for p in self.participants[1:]:
                 w_avg[key] += p.get_model().state_dict()[key]
             w_avg[key] = torch.div(w_avg[key], len(self.participants))
         return w_avg
+
+    def coordinate_wise_median(self):
+        w_new = deepcopy(self.participants[0].get_model().state_dict())
+        for key in w_new.keys():
+            w_new[key] = torch.stack([part.get_model().state_dict()[key] for part in self.participants]).median(
+                dim=0).values
+        return w_new
 
     def trimmed_mean_1(self):
         return self.__trimmed_mean(1)
