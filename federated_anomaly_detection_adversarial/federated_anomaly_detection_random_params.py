@@ -23,7 +23,7 @@ if __name__ == "__main__":
           " to normal samples? Which attacks are hardest to detect?\n")
     print("Starting demo experiment: Adversarial Impact on Federated Anomaly Detection")
 
-    max_adversaries = 6
+    max_adversaries = 8
 
     test_devices = []
 

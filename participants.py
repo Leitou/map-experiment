@@ -188,7 +188,7 @@ class RandomWeightAdversary(AutoEncoderParticipant):
         # (which is much considering MinMax scaling)
         # It is doubled because the pi3 shows ~8 (sqrt(64)) in the homogeneous federation
         # To be validated if it makes sense (basically combines threshold overstatement and random params)
-        return random.uniform(0, 1e+6)
+        return random.uniform(0, 1e+9)
 
 
 # Approx thresholds ranges of non-attacked device types:
