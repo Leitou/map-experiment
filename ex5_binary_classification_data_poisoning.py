@@ -21,10 +21,10 @@ if __name__ == "__main__":
     # define collective experiment config:
     # TODO: remove centralized stuff
     participants_per_arch = [2, 2, 0, 2]
-    adversaries_per_arch = [2, 0, 0, 0]
+    adversaries_per_arch = [0, 2, 0, 0]
     n_malicious = sum(adversaries_per_arch)
     n_honest = sum(participants_per_arch) - n_malicious
-    adversary_type = AdversaryType.ALL_LABEL_FLIP
+    adversary_type = AdversaryType.MODEL_CANCEL_BC
     aggregation_mechanism = AggregationMechanism.FED_AVG
     normals = [(Behavior.NORMAL, 500)]
     # attacks = [val for val in Behavior if val not in [Behavior.NORMAL, Behavior.NORMAL_V2]]

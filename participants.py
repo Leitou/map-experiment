@@ -126,7 +126,7 @@ class ModelCancelBCAdversary(MLPParticipant):
         old_global_model = deepcopy(self.get_model())
         super().train(optimizer, loss_function, num_local_epochs)
 
-        factor = - self.n_honest / self.n_malicious
+        factor = - 0.3 * self.n_honest / self.n_malicious
         with torch.no_grad():
             new_weights = {}
             for key, original_param in old_global_model.state_dict().items():
