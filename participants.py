@@ -1,8 +1,9 @@
 from copy import deepcopy
-from math import nan
+from math import nan, sqrt
 from abc import abstractmethod, ABCMeta
 
 import numpy as np
+import random
 import torch
 from torch.utils.data import DataLoader
 
@@ -124,7 +125,7 @@ class ModelCancelBCAdversary(MLPParticipant):
         # before local training, the participant model corresponds to the old global model / except initialization
         old_global_model = deepcopy(self.get_model())
 
-        factor = - 0.3 * self.n_honest / self.n_malicious
+        factor = - 1. * self.n_honest / self.n_malicious
         with torch.no_grad():
             new_weights = {}
             for key, original_param in old_global_model.state_dict().items():
@@ -172,11 +173,22 @@ class AutoEncoderParticipant(Participant):
 # a model with 100% malicious participants still recognizes some behaviors with 100% accuracy without attacking the threshold
 class RandomWeightAdversary(AutoEncoderParticipant):
     def train(self, optimizer, loss_function, num_local_epochs: int = 5):
-        state_dict = self.model.state_dict()
-        new_dict = deepcopy(state_dict)
-        for key in state_dict.keys():
-            new_dict[key] = torch.rand(state_dict[key].size())
-        self.model.load_state_dict(new_dict)
+        with torch.no_grad():
+            state_dict = self.model.state_dict()
+            new_dict = deepcopy(state_dict)
+            for key in state_dict.keys():
+                new_dict[key] = torch.randn(state_dict[key].size()) * 3
+                if "running_" in key:
+                    new_dict[key] = torch.abs(new_dict[key])
+            self.model.load_state_dict(new_dict)
+
+    def determine_threshold(self) -> float:
+        # 68 is the number of features
+        # so a MSE of sqrt(68) would be being 1 off per feature
+        # (which is much considering MinMax scaling)
+        # It is doubled because the pi3 shows ~8 (sqrt(64)) in the homogeneous federation
+        # To be validated if it makes sense
+        return random.uniform(0, 2 * sqrt(68))
 
 
 # Approx thresholds ranges of non-attacked device types:
