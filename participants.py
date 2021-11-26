@@ -187,8 +187,8 @@ class RandomWeightAdversary(AutoEncoderParticipant):
         # so a MSE of sqrt(68) would be being 1 off per feature
         # (which is much considering MinMax scaling)
         # It is doubled because the pi3 shows ~8 (sqrt(64)) in the homogeneous federation
-        # To be validated if it makes sense
-        return random.uniform(0, 2 * sqrt(68))
+        # To be validated if it makes sense (basically combines threshold overstatement and random params)
+        return random.uniform(0, 1e+6)
 
 
 # Approx thresholds ranges of non-attacked device types:
