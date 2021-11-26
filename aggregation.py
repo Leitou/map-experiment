@@ -46,7 +46,7 @@ class Server:
         self.evaluation_thresholds = []
 
     def train_global_model(self, aggregation_rounds: int = 15, local_epochs: int = 5):
-        for _ in tqdm(range(aggregation_rounds), unit="fedavg round", leave=False):
+        for _ in tqdm(range(aggregation_rounds), unit="aggregation round", leave=False):
             for p in self.participants:
                 p.train(optimizer=torch.optim.SGD(p.get_model().parameters(), lr=0.001, momentum=0.9),
                         loss_function=torch.nn.BCEWithLogitsLoss(reduction='sum') if
@@ -124,15 +124,15 @@ class Server:
     def fed_avg(self):
         w_avg = deepcopy(self.participants[0].get_model().state_dict())
         for key in w_avg.keys():
-            w_avg[key] = torch.stack([part.get_model().state_dict()[key] for part in self.participants]).mean(
-                dim=0, dtype=torch.float)
+            w_avg[key] = torch.stack([part.get_model().state_dict()[key] for part in self.participants])\
+                .type(torch.float).mean(dim=0, dtype=torch.float)
         return w_avg
 
     def coordinate_wise_median(self):
         w_new = deepcopy(self.participants[0].get_model().state_dict())
         for key in w_new.keys():
-            w_new[key] = torch.stack([part.get_model().state_dict()[key] for part in self.participants]).median(
-                dim=0).values
+            w_new[key] = torch.stack([part.get_model().state_dict()[key] for part in self.participants])\
+                .type(torch.float).median(dim=0).values
         return w_new
 
     def trimmed_mean_1(self):
@@ -153,6 +153,6 @@ class Server:
                     torch.stack([model.state_dict()[key] for model in [p.get_model() for p in self.participants]],
                                 dim=-1),
                     dim=-1)
-                trimmed_tensor = torch.narrow(sorted_tensor, -1, n_trim, n_remaining).type(torch.FloatTensor)
+                trimmed_tensor = torch.narrow(sorted_tensor, -1, n_trim, n_remaining).type(torch.float)
                 state_dict[key] = trimmed_tensor.mean(dim=-1)
         return state_dict

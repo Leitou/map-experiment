@@ -121,20 +121,15 @@ class ModelCancelBCAdversary(MLPParticipant):
         self.n_malicious = n_malicious
 
     def train(self, optimizer, loss_function, num_local_epochs: int = 5):
-
         # before local training, the participant model corresponds to the old global model / except initialization
         old_global_model = deepcopy(self.get_model())
-        super().train(optimizer, loss_function, num_local_epochs)
 
         factor = - 0.3 * self.n_honest / self.n_malicious
         with torch.no_grad():
             new_weights = {}
             for key, original_param in old_global_model.state_dict().items():
-                new_weights.update({key: original_param * factor})
+                new_weights.update({key: original_param * (factor if "running_" not in key else 1)})
             self.model.load_state_dict(new_weights)
-
-
-
 
 
 # TODO: check
@@ -163,7 +158,7 @@ class AutoEncoderParticipant(Participant):
         mses = []
         self.model.eval()
         with torch.no_grad():
-            loss_function = torch.nn.MSELoss(reduction='sum')
+            loss_function = torch.nn.MSELoss(reduction='mean')
             for batch_idx, (x, _) in enumerate(self.valid_loader):
                 x = x  # x.cuda()
                 model_out = self.model(x)
@@ -171,7 +166,6 @@ class AutoEncoderParticipant(Participant):
                 mses.append(loss.item())
         mses = np.array(mses)
         return mses.mean() + 3 * mses.std()
-
 
 
 # if threshold is selected like in the normal AutoEnc. Participant sending random weights is not an efficient attack
@@ -198,7 +192,7 @@ class ExaggerateThresholdAdversary(AutoEncoderParticipant):
         mses = []
         self.model.eval()
         with torch.no_grad():
-            loss_function = torch.nn.MSELoss(reduction='sum')
+            loss_function = torch.nn.MSELoss(reduction='mean')
             for batch_idx, (x, _) in enumerate(self.valid_loader):
                 x = x  # x.cuda()
                 model_out = self.model(x)
@@ -216,7 +210,7 @@ class UnderstateThresholdAdversary(AutoEncoderParticipant):
         mses = []
         self.model.eval()
         with torch.no_grad():
-            loss_function = torch.nn.MSELoss(reduction='sum')
+            loss_function = torch.nn.MSELoss(reduction='mean')
             for batch_idx, (x, _) in enumerate(self.valid_loader):
                 x = x  # x.cuda()
                 model_out = self.model(x)
