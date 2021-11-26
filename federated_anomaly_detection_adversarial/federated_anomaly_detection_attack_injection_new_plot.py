@@ -112,7 +112,7 @@ if __name__ == "__main__":
         for agg in AggregationMechanism:
             df_loop = df[(df.injected == pi_to_inject.value) & (df.aggregation == agg.value)].drop(['injected', 'aggregation'], axis=1)
             sns.barplot(
-                data=df, ci=None,
+                data=df_loop, ci=None,
                 x="device", y="f1", hue="num_adversaries",
                 alpha=.6, ax=axs[agg_idx]
             )
