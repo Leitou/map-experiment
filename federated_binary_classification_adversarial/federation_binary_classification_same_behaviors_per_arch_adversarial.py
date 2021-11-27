@@ -1,167 +1,155 @@
 import os
-from pathlib import Path
-from copy import deepcopy
-from typing import Dict
 
 import numpy as np
+import pandas as pd
+import seaborn as sns
 import torch
 import matplotlib.pyplot as plt
 
 from aggregation import Server
-from custom_types import Behavior, ModelArchitecture, Scaler, RaspberryPi, AggregationMechanism
+from custom_types import Behavior, RaspberryPi, Scaler, ModelArchitecture, AggregationMechanism
 from data_handler import DataHandler
 from participants import MLPParticipant, AllLabelFlipAdversary
 from utils import FederationUtils
 
-# TODO: implement adversaries from multiple device types
 if __name__ == "__main__":
     torch.random.manual_seed(42)
     np.random.seed(42)
+    cwd = os.getcwd()
     os.chdir("..")
-    print("Starting demo experiment: Adversarial Impact on Federated Binary Classification\n")
 
-    train_devices = []
+    print("Use case federated Anomaly/Zero Day Detection\n"
+          "Is the federated model able to detect attacks as anomalies,\nie. recognize the difference from attacks"
+          " to normal samples? Which attacks are hardest to detect?\n")
+    print("Starting demo experiment: Adversarial Impact on Federated Anomaly Detection")
+
+    pis_to_inject = [pi for pi in RaspberryPi if pi != RaspberryPi.PI4_2GB_WC]
+
+    max_adversaries = 4
+    participants_per_device_type = max_adversaries
+
     test_devices = []
 
-    results, results_central = [], []
-    res_dict: Dict[RaspberryPi, Dict[Behavior, str]] = {}
-
-    excluded_pi = RaspberryPi.PI4_2GB_WC
-    num_participants_per_device = 4
-
     for device in RaspberryPi:
-        if device == excluded_pi:
-            continue
-        bdict = {}
+        test_devices.append((device, {beh: 100 for beh in Behavior}))
 
-        for behavior in Behavior:
-            if behavior == Behavior.NORMAL or behavior == Behavior.NORMAL_V2:
-                bdict[behavior] = 1280  # 80/20 split normal/attack behavior in test set
-            else:
-                bdict[behavior] = 80 # TODO: reduce this number for higher splits
-        test_devices.append((device, bdict))
+    test_set_result_dict = {"device": [], "num_adversaries": [], "f1": [], "aggregation": [], "injected": []}
 
-        train_devices += [(device, {Behavior.NORMAL: 300},
-                           {Behavior.NORMAL: 30}),
-                          (device, {Behavior.NORMAL: 300, Behavior.DELAY: 300},
-                           {Behavior.NORMAL: 30, Behavior.DELAY: 30}),
-                          (device, {Behavior.NORMAL: 300, Behavior.FREEZE: 300},
-                           {Behavior.NORMAL: 30, Behavior.FREEZE: 30}),
-                          (device, {Behavior.NORMAL: 300, Behavior.NOISE: 300},
-                           {Behavior.NORMAL: 30, Behavior.NOISE: 30})]
+    csv_result_path = cwd + os.sep + "binary_classification_label_flipping.csv"
+    if os.path.isfile(csv_result_path):
+        df = pd.read_csv(csv_result_path)
+    else:
+        for pi_to_inject in pis_to_inject:
+            # Ordered ASC by threshold
+            normal_devices = [(pi_to_inject, {Behavior.NORMAL: 250},
+                               {Behavior.NORMAL: 25}),
+                              (pi_to_inject, {Behavior.NORMAL: 250, Behavior.REPEAT: 250},
+                               {Behavior.NORMAL: 25, Behavior.REPEAT: 25}),
+                              (pi_to_inject, {Behavior.NORMAL: 250, Behavior.NOISE: 250},
+                               {Behavior.NORMAL: 25, Behavior.NOISE: 25}),
+                              (pi_to_inject, {Behavior.NORMAL: 250, Behavior.DELAY: 250},
+                               {Behavior.NORMAL: 25, Behavior.DELAY: 25})]
+            # Ordered DESC by threshold
+            attack_devices = [
+                (pi_to_inject, {Behavior.NORMAL: 250, Behavior.SPOOF: 250}, {Behavior.NORMAL: 25, Behavior.SPOOF: 25}),
+                (pi_to_inject, {Behavior.NORMAL: 250, Behavior.MIMIC: 250}, {Behavior.NORMAL: 25, Behavior.MIMIC: 25}),
+                (pi_to_inject, {Behavior.NORMAL: 250, Behavior.DELAY: 250}, {Behavior.NORMAL: 25, Behavior.DELAY: 25}),
+                (pi_to_inject, {Behavior.NORMAL: 250, Behavior.DISORDER: 250},
+                 {Behavior.NORMAL: 25, Behavior.DISORDER: 25})
+            ]
+            # Aggregation loop
+            for agg in AggregationMechanism:
+                # Adversary Loop -> here is the training
+                for i in range(0, max_adversaries + 1):
+                    cp_filename = f'{cwd}{os.sep}label_flipping_{pi_to_inject.value}_{agg.value}_{str(i)}.pt'
+                    train_devices = []
+                    for device in RaspberryPi:
+                        if device == RaspberryPi.PI4_2GB_WC:
+                            continue
+                        elif device == pi_to_inject:
+                            train_devices += attack_devices[:i]
+                            train_devices += normal_devices[i:]
+                        else:
+                            train_devices += [(device, {Behavior.NORMAL: 250},
+                                               {Behavior.NORMAL: 25}),
+                                              (device, {Behavior.NORMAL: 250, Behavior.REPEAT: 250},
+                                               {Behavior.NORMAL: 25, Behavior.REPEAT: 25}),
+                                              (device, {Behavior.NORMAL: 250, Behavior.NOISE: 250},
+                                               {Behavior.NORMAL: 25, Behavior.NOISE: 25}),
+                                              (device, {Behavior.NORMAL: 250, Behavior.DELAY: 250},
+                                               {Behavior.NORMAL: 25, Behavior.DELAY: 25})]
+                    train_sets, test_sets = DataHandler.get_all_clients_data(
+                        train_devices,
+                        test_devices)
 
-    train_sets, test_sets = DataHandler.get_all_clients_data(
-        train_devices,
-        test_devices)
+                    train_sets, test_sets = DataHandler.scale(train_sets, test_sets,
+                                                              scaling=Scaler.MINMAX_SCALER)
 
-    # copy data for federation and then scale
-    # independent of label flips
-    train_sets_fed, test_sets_fed = deepcopy(train_sets), deepcopy(test_sets)
-    train_sets_fed, test_sets_fed = DataHandler.scale(train_sets_fed, test_sets_fed, scaling=Scaler.MINMAX_SCALER)
+                    inj_index = [dev[0] for dev in train_devices].index(pi_to_inject)
+                    inj_indices = list(range(inj_index, inj_index + i))
+                    participants = [(AllLabelFlipAdversary(x_train, y_train, x_valid, y_valid,
+                                                   batch_size_valid=1) if loop_i in inj_indices else MLPParticipant(
+                        x_train, y_train, x_valid, y_valid, batch_size_valid=1))
+                                    for loop_i, (x_train, y_train, x_valid, y_valid) in enumerate(train_sets)]
+                    server = Server(participants, ModelArchitecture.MLP_MONO_CLASS,
+                                    aggregation_mechanism=agg)
+                    if not os.path.isfile(cp_filename):
+                        server.train_global_model(aggregation_rounds=15)
+                        torch.save(server.global_model.state_dict(), cp_filename)
+                    else:
+                        server.global_model.load_state_dict(torch.load(cp_filename))
+                        server.load_global_model_into_participants()
+                        print(f'Loaded model for device {pi_to_inject.value} and {str(i)} attackers and {agg.value}')
 
-    # create global test set including all device types and behaviors
-    test_sets_fed_x = np.concatenate(tuple(x_test for x_test, y_test in
-                                           test_sets_fed))
-    test_sets_fed_y = np.concatenate(tuple(y_test for x_test, y_test in
-                                           test_sets_fed))
-    global_test_set = [(test_sets_fed_x, test_sets_fed_y)]
+                    for j, (tset) in enumerate(test_sets):
+                        y_predicted = server.predict_using_global_model(tset[0])
+                        device = test_devices[j][0]
+                        acc, f1, _ = FederationUtils.calculate_metrics(tset[1].flatten(), y_predicted.flatten().numpy())
+                        test_set_result_dict['device'].append(device.value)
+                        test_set_result_dict['num_adversaries'].append(i)
+                        test_set_result_dict['f1'].append(f1 * 100)
+                        test_set_result_dict['aggregation'].append(agg.value)
+                        test_set_result_dict['injected'].append(pi_to_inject.value)
 
-    # train, predict and plot results
-    bar_width = 1.5
-    sep = 1
-    colors = ['limegreen', 'gold', 'tab:orange', 'orangered', "violet"]
-    colors = ['#87d64b', '#fae243', '#f8961e', '#ff4d36', '#8f00ff']
-    text_colors = ['#456e25', '#998a28', '#b06a13', '#b33424', '#8f00ff']
+                    all_train, all_test = FederationUtils.aggregate_test_sets(test_sets)
+                    y_predicted = server.predict_using_global_model(all_train)
+                    acc, f1, _ = FederationUtils.calculate_metrics(all_test.flatten(), y_predicted.flatten().numpy())
+                    test_set_result_dict['device'].append('All')
+                    test_set_result_dict['num_adversaries'].append(i)
+                    test_set_result_dict['f1'].append(f1 * 100)
+                    test_set_result_dict['aggregation'].append(agg.value)
+                    test_set_result_dict['injected'].append(pi_to_inject.value)
+        df = pd.DataFrame.from_dict(test_set_result_dict)
+        df.to_csv(csv_result_path, index=False)
 
-    adv_device = RaspberryPi.PI4_4GB # TODO: adapt this device for selecting another device type for the adversaries
-    pis = list(RaspberryPi)
-    pis_excl = pis[0:pis.index(excluded_pi)] + pis[pis.index(excluded_pi) + 1:]
-    attack_device_idx = pis_excl.index(adv_device)
+    # TODO move to Utils
+    fig, axs = plt.subplots(nrows=len(pis_to_inject), ncols=len(list(AggregationMechanism)), figsize=(19.2, 19.2))
+    axs = axs.ravel().tolist()
+    agg_idx = 0
 
-    fig, axs = plt.subplots(4)
-    max_num_adv = 4
-    fig.suptitle(f'0-4 Adversarial {adv_device.name}s', fontsize=16)
-    if not Path(f"{Path(__file__).parent}/results_adv_{adv_device.name}_{Path(__file__).stem}/").is_dir():
-        Path(f"{Path(__file__).parent}/results_adv_{adv_device.name}_{Path(__file__).stem}").mkdir()
-
-    for i, device in enumerate(pis_excl + ["ALL_DEVICES_ALL_BEHAVIORS"]):
-
-        pos_x = 0
-        title = device.name if i < 3 else device
-
-        axs[i].set_title(title)
-        axs[i].set_ylabel('F1-Score (%)')
-        axs[i].set_ylim(0, 100.)
-        # plt.gca().spines['top'].set_visible(False)
-        # plt.gca().spines['right'].set_visible(False)
-        #     plt.gca().spines['bottom'].set_visible(False)
-
+    for pi_to_inject in pis_to_inject:
         for agg in AggregationMechanism:
-            for num_adv in range(max_num_adv + 1):
-                print(f"Using {num_adv} adversaries")
+            df_loop = df[(df.injected == pi_to_inject.value) & (df.aggregation == agg.value)].drop(
+                ['injected', 'aggregation'], axis=1)
+            sns.barplot(
+                data=df_loop, ci=None,
+                x="device", y="f1", hue="num_adversaries",
+                alpha=.6, ax=axs[agg_idx]
+            )
+            axs[agg_idx].set_ylim(0, 100)
+            axs[agg_idx].set_title(f'{agg.value}')
+            axs[agg_idx].get_legend().remove()
 
-                # define adversarial/honest federation composition
-                adversaries = [AllLabelFlipAdversary(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
-                               x_train, y_train, x_valid, y_valid in
-                               train_sets_fed[attack_device_idx * num_participants_per_device:
-                                              attack_device_idx * num_participants_per_device + num_adv]]
+            axs[agg_idx].set_ylabel('Device')
+            if agg_idx == 0:
+                axs[agg_idx].set_ylabel('F1 Score (%)')
+            else:
+                axs[agg_idx].set_ylabel(None)
+            agg_idx += 1
 
-                participants = [MLPParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
-                                x_train, y_train, x_valid, y_valid in
-                                train_sets_fed[:attack_device_idx * num_participants_per_device]] + \
-                               [MLPParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
-                                x_train, y_train, x_valid, y_valid in
-                                train_sets_fed[attack_device_idx * num_participants_per_device + num_adv:]]
-
-                server = Server(adversaries + participants, ModelArchitecture.MLP_MONO_CLASS, aggregation_mechanism=agg)
-
-                filepath = f"{Path(__file__).parent}/results_adv_{adv_device.name}_{Path(__file__).stem}" \
-                           f"/model_{agg.value}_{num_adv}_adv.pt"
-                if not Path(filepath).is_file():
-                    # train federation
-                    server.train_global_model(aggregation_rounds=15)
-                    torch.save(server.global_model.state_dict(), filepath)
-                else:
-                    server.global_model.load_state_dict(torch.load(filepath))
-
-                if i < 3:
-                    y_predicted = server.predict_using_global_model(test_sets_fed[i][0])
-                    acc, f1, _ = FederationUtils.calculate_metrics(test_sets_fed[i][1].flatten(),
-                                                                   y_predicted.flatten().numpy())
-                else:
-                    y_predicted = server.predict_using_global_model(global_test_set[0][0])
-                    acc, f1, _ = FederationUtils.calculate_metrics(global_test_set[0][1].flatten(),
-                                                                   y_predicted.flatten().numpy())
-
-                print(f"f1 score: {f1:.2f}")
-
-                # plotting grouped bar chart
-                color = colors[num_adv]
-                text_color = text_colors[num_adv]
-                f1_height = f1 * 100
-                if agg == AggregationMechanism.FED_AVG:
-                    axs[i].bar(pos_x, height=f1_height, color=color, width=bar_width, lw=0.7, edgecolor='black',
-                               label='f=' + repr(num_adv))
-                else:
-                    axs[i].bar(pos_x, height=f1_height, color=color, width=bar_width, lw=0.7,
-                               edgecolor='black')  # yerr=[[yerr_down], [yerr_up]], capsize=11
-
-                s = ("{:." + repr(0) + "f}").format(f1_height)
-                if len(s) == 1:
-                    text_x = pos_x - 0.2
-                else:
-                    text_x = pos_x - 0.5
-
-                axs[i].text(x=text_x, y=f1_height + 1.2, s=s, fontsize='15.5', color=text_color)
-
-                pos_x += bar_width
-            pos_x += sep
-
-        ticks = [(1.5 * bar_width) + (4 * bar_width + sep) * i for i in range(0, len(AggregationMechanism))]
-        axs[i].set_xticks(ticks)
-        aggs = [agg.value for agg in AggregationMechanism]
-        axs[i].set_xticklabels(aggs)
-        axs[i].legend(bbox_to_anchor=(1.12, 0.5), loc='right')
+    # add legend
+    handles, labels = axs[len(list(AggregationMechanism)) - 1].get_legend_handles_labels()
+    fig.legend(handles, labels, bbox_to_anchor=(1, 0.95), title="# of Adversaries")
+    plt.tight_layout()
     plt.show()
-    fig.savefig(f'{Path(__file__).parent}/results_adv_{adv_device.name}_{Path(__file__).stem}/'
-                f'f1_scores_all_label_flip_adv_{adv_device.name}.pdf', bbox_inches='tight')
+    fig.savefig(f'result_plot_binary_classification_label_flipping_all.png', dpi=100)

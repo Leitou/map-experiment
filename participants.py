@@ -106,7 +106,6 @@ class AllLabelFlipAdversary(MLPParticipant):
     def __init__(self, train_x: np.ndarray, train_y: np.ndarray,
                  valid_x: np.ndarray, valid_y: np.ndarray,
                  batch_size: int = 64, batch_size_valid=64, y_type: torch.dtype = torch.float):
-        # TODO flip all 0 labels to 1
         train_y = (train_y != 1).astype(float)
         valid_y = (valid_y != 1).astype(float)
         super().__init__(train_x, train_y, valid_x, valid_y, batch_size, batch_size_valid, y_type)
