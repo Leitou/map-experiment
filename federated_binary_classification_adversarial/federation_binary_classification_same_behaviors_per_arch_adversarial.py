@@ -141,7 +141,7 @@ if __name__ == "__main__":
             axs[agg_idx].get_legend().remove()
 
             axs[agg_idx].set_ylabel('Device')
-            if agg_idx == 0:
+            if agg_idx % len(list(AggregationMechanism)) == 0:
                 axs[agg_idx].set_ylabel('F1 Score (%)')
             else:
                 axs[agg_idx].set_ylabel(None)
@@ -149,7 +149,7 @@ if __name__ == "__main__":
 
     # add legend
     handles, labels = axs[len(list(AggregationMechanism)) - 1].get_legend_handles_labels()
-    fig.legend(handles, labels, bbox_to_anchor=(1, 0.95), title="# of Adversaries")
+    fig.legend(handles, labels, bbox_to_anchor=(1, 0.99), title="# of Adversaries")
     plt.tight_layout()
     plt.show()
     fig.savefig(f'result_plot_binary_classification_label_flipping_all.png', dpi=100)
