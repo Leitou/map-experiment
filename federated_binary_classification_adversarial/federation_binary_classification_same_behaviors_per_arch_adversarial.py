@@ -5,6 +5,7 @@ import pandas as pd
 import seaborn as sns
 import torch
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpecFromSubplotSpec
 
 from aggregation import Server
 from custom_types import Behavior, RaspberryPi, Scaler, ModelArchitecture, AggregationMechanism
@@ -88,7 +89,7 @@ if __name__ == "__main__":
                     inj_index = [dev[0] for dev in train_devices].index(pi_to_inject)
                     inj_indices = list(range(inj_index, inj_index + i))
                     participants = [(AllLabelFlipAdversary(x_train, y_train, x_valid, y_valid,
-                                                   batch_size_valid=1) if loop_i in inj_indices else MLPParticipant(
+                                                           batch_size_valid=1) if loop_i in inj_indices else MLPParticipant(
                         x_train, y_train, x_valid, y_valid, batch_size_valid=1))
                                     for loop_i, (x_train, y_train, x_valid, y_valid) in enumerate(train_sets)]
                     server = Server(participants, ModelArchitecture.MLP_MONO_CLASS,
@@ -122,34 +123,46 @@ if __name__ == "__main__":
         df = pd.DataFrame.from_dict(test_set_result_dict)
         df.to_csv(csv_result_path, index=False)
 
-    # TODO move to Utils
-    fig, axs = plt.subplots(nrows=len(pis_to_inject), ncols=len(list(AggregationMechanism)), figsize=(19.2, 19.2))
-    axs = axs.ravel().tolist()
-    agg_idx = 0
+    # TODO move to Utils, see https://stackoverflow.com/questions/27426668/row-titles-for-matplotlib-subplot
+    fig = plt.figure(figsize=(19.2, 19.2))
+    grid = plt.GridSpec(len(pis_to_inject), 1)
 
     for pi_to_inject in pis_to_inject:
+        # create fake subplot just to title set of subplots
+        fake = fig.add_subplot(grid[pis_to_inject.index(pi_to_inject)])
+        # '\n' is important
+        fake.set_title(f'Injecting device {pi_to_inject.value}\n', fontweight='semibold', size=14)
+        fake.set_axis_off()
+
+        # create subgrid for two subplots without space between them
+        # <https://matplotlib.org/2.0.2/users/gridspec.html>
+        gs = GridSpecFromSubplotSpec(1, len(list(AggregationMechanism)), subplot_spec=grid[pis_to_inject.index(pi_to_inject)])
+
+        agg_idx = 0
         for agg in AggregationMechanism:
+            ax = fig.add_subplot(gs[agg_idx])
             df_loop = df[(df.injected == pi_to_inject.value) & (df.aggregation == agg.value)].drop(
                 ['injected', 'aggregation'], axis=1)
             sns.barplot(
                 data=df_loop, ci=None,
                 x="device", y="f1", hue="num_adversaries",
-                alpha=.6, ax=axs[agg_idx]
+                alpha=.6, ax=ax
             )
-            axs[agg_idx].set_ylim(0, 100)
-            axs[agg_idx].set_title(f'{agg.value}')
-            axs[agg_idx].get_legend().remove()
+            ax.set_ylim(0, 100)
+            ax.set_title(f'{agg.value}')
+            ax.get_legend().remove()
 
-            axs[agg_idx].set_ylabel('Device')
-            if agg_idx % len(list(AggregationMechanism)) == 0:
-                axs[agg_idx].set_ylabel('F1 Score (%)')
+            ax.set_ylabel('Device')
+            if agg_idx == 0:
+                ax.set_ylabel('F1 Score (%)')
             else:
-                axs[agg_idx].set_ylabel(None)
+                ax.set_ylabel(None)
             agg_idx += 1
 
     # add legend
-    handles, labels = axs[len(list(AggregationMechanism)) - 1].get_legend_handles_labels()
-    fig.legend(handles, labels, bbox_to_anchor=(1, 0.99), title="# of Adversaries")
-    plt.tight_layout()
+    handles, labels = fig.axes[len(fig.axes) - 1].get_legend_handles_labels()
+    fig.legend(handles, labels, bbox_to_anchor=(1, 0.94), title="# of Adversaries")
+    fig.tight_layout()
+    fig.suptitle('Label Flipping Binary MLP\n', fontweight='bold', size=16)
     plt.show()
     fig.savefig(f'result_plot_binary_classification_label_flipping_all.png', dpi=100)
