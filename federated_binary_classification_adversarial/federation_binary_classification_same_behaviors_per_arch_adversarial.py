@@ -31,7 +31,7 @@ if __name__ == "__main__":
     test_devices = []
 
     for device in RaspberryPi:
-        test_devices.append((device, {beh: 100 for beh in Behavior}))
+        test_devices.append((device, {beh: 75 for beh in Behavior}))
 
     test_set_result_dict = {"device": [], "num_adversaries": [], "f1": [], "aggregation": [], "injected": []}
 
@@ -53,9 +53,9 @@ if __name__ == "__main__":
             attack_devices = [
                 (pi_to_inject, {Behavior.NORMAL: 250, Behavior.SPOOF: 250}, {Behavior.NORMAL: 25, Behavior.SPOOF: 25}),
                 (pi_to_inject, {Behavior.NORMAL: 250, Behavior.MIMIC: 250}, {Behavior.NORMAL: 25, Behavior.MIMIC: 25}),
-                (pi_to_inject, {Behavior.NORMAL: 250, Behavior.DELAY: 250}, {Behavior.NORMAL: 25, Behavior.DELAY: 25}),
-                (pi_to_inject, {Behavior.NORMAL: 250, Behavior.DISORDER: 250},
-                 {Behavior.NORMAL: 25, Behavior.DISORDER: 25})
+                (pi_to_inject, {Behavior.NORMAL: 250, Behavior.NOISE: 250}, {Behavior.NORMAL: 25, Behavior.NOISE: 25}),
+                (pi_to_inject, {Behavior.NORMAL: 250, Behavior.DELAY: 250},
+                 {Behavior.NORMAL: 25, Behavior.DELAY: 25})
             ]
             # Aggregation loop
             for agg in AggregationMechanism:
