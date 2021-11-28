@@ -190,6 +190,7 @@ class DataHandler:
 
         all_data = DataHandler.parse_all_files_to_df()
         all_data_test = DataHandler.parse_all_files_to_df(filter_outliers=False)
+        all_outliers = pd.concat([all_data, all_data_test]).drop_duplicates(keep=False)
 
         # Dictionaries that hold total request: e. g. we want 500 train data for a pi3 and delay
         # but may only have 100 -> oversample and prevent overlaps
@@ -212,7 +213,9 @@ class DataHandler:
             all_data_test, test_x, test_y, picked = DataHandler.__pick_from_all_data(all_data_test, device,
                                                                                      test_attacks, label_dict,
                                                                                      defaultdict(lambda: 1))
-            all_data = pd.concat([picked, all_data]).drop_duplicates(keep=False)
+            picked_outliers = pd.concat([picked, all_outliers]).drop_duplicates(keep=False)
+            picked_non_outliers = pd.concat([picked, picked_outliers]).drop_duplicates(keep=False)
+            all_data = pd.concat([all_data, picked_non_outliers]).drop_duplicates(keep=False)
             test_sets.append((test_x, test_y))
 
         # pick validation sets: same as test sets -> in refactoring can be merged
