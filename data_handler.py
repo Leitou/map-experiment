@@ -137,7 +137,7 @@ class DataHandler:
                     # special case: here the pi4 wc has entered some significantly different "normal behavior"
                     # (some features peak significantly, adding variance)
                     if device == RaspberryPi.PI4_2GB_WC and attack == Behavior.NORMAL:
-                        df = df.drop(df.index[6300:7300])
+                        df = df.drop(df.index[6300:7500])
                     # drop first and last measurement due to the influence of logging in, respectively out of the server
                     df = df.iloc[1:-1]
                     # filter for measurements where the device was connected
