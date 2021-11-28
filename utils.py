@@ -1,12 +1,15 @@
-from typing import Tuple, Any, List, Dict, Union
+from typing import Tuple, Any, List, Dict, Union, Callable
 
 import numpy as np
 from math import floor
 import pandas as pd
+from matplotlib.gridspec import GridSpecFromSubplotSpec
 from sklearn.metrics import f1_score, confusion_matrix, classification_report
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 from aggregation import Server
-from custom_types import RaspberryPi, Behavior
+from custom_types import RaspberryPi, Behavior, AggregationMechanism
 
 from tabulate import tabulate
 
@@ -85,8 +88,52 @@ class FederationUtils:
         print(tabulate(rows, headers=["Behavior"] + [dev.value for dev in RaspberryPi], tablefmt="pretty"))
 
     @staticmethod
-    def visualize_adversary_impact():
-        pass
+    def visualize_adversaries_multi_devices(df: pd.DataFrame, injected_pis: List[RaspberryPi],
+                                            title: str, row_title: Callable[[RaspberryPi], str],
+                                            save_dir: str):
+        fig = plt.figure(figsize=(19.2, 19.2))
+        grid = plt.GridSpec(len(injected_pis), 1)
+
+        for pi_to_inject in injected_pis:
+            # create fake subplot just to title set of subplots
+            fake = fig.add_subplot(grid[injected_pis.index(pi_to_inject)])
+            # '\n' is important
+            fake.set_title(row_title(pi_to_inject), fontweight='semibold', size=14)
+            fake.set_axis_off()
+
+            # create subgrid for two subplots without space between them
+            # <https://matplotlib.org/2.0.2/users/gridspec.html>
+            gs = GridSpecFromSubplotSpec(1, len(list(AggregationMechanism)),
+                                         subplot_spec=grid[injected_pis.index(pi_to_inject)])
+
+            agg_idx = 0
+            for agg in AggregationMechanism:
+                ax = fig.add_subplot(gs[agg_idx])
+                df_loop = df[(df.injected == pi_to_inject.value) & (df.aggregation == agg.value)].drop(
+                    ['injected', 'aggregation'], axis=1)
+                sns.barplot(
+                    data=df_loop, ci=None,
+                    x="device", y="f1", hue="num_adversaries",
+                    alpha=.6, ax=ax
+                )
+                ax.set_ylim(0, 100)
+                ax.set_title(f'{agg.value}')
+                ax.get_legend().remove()
+
+                ax.set_ylabel('Device')
+                if agg_idx == 0:
+                    ax.set_ylabel('F1 Score (%)')
+                else:
+                    ax.set_ylabel(None)
+                agg_idx += 1
+
+        # add legend
+        handles, labels = fig.axes[len(fig.axes) - 1].get_legend_handles_labels()
+        fig.legend(handles, labels, bbox_to_anchor=(1, 0.94), title="# of Adversaries")
+        fig.tight_layout()
+        fig.suptitle(title, fontweight='bold', size=16)
+        plt.show()
+        fig.savefig(save_dir, dpi=100)
 
 
 # Assumption we test at most on what we train (attack types)

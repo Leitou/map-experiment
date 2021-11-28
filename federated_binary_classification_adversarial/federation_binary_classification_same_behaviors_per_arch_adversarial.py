@@ -114,46 +114,7 @@ if __name__ == "__main__":
         df = pd.DataFrame.from_dict(test_set_result_dict)
         df.to_csv(csv_result_path, index=False)
 
-    # TODO move to Utils, see https://stackoverflow.com/questions/27426668/row-titles-for-matplotlib-subplot
-    fig = plt.figure(figsize=(19.2, 19.2))
-    grid = plt.GridSpec(len(pis_to_inject), 1)
-
-    for pi_to_inject in pis_to_inject:
-        # create fake subplot just to title set of subplots
-        fake = fig.add_subplot(grid[pis_to_inject.index(pi_to_inject)])
-        # '\n' is important
-        fake.set_title(f'Injecting device {pi_to_inject.value}\n', fontweight='semibold', size=14)
-        fake.set_axis_off()
-
-        # create subgrid for two subplots without space between them
-        # <https://matplotlib.org/2.0.2/users/gridspec.html>
-        gs = GridSpecFromSubplotSpec(1, len(list(AggregationMechanism)), subplot_spec=grid[pis_to_inject.index(pi_to_inject)])
-
-        agg_idx = 0
-        for agg in AggregationMechanism:
-            ax = fig.add_subplot(gs[agg_idx])
-            df_loop = df[(df.injected == pi_to_inject.value) & (df.aggregation == agg.value)].drop(
-                ['injected', 'aggregation'], axis=1)
-            sns.barplot(
-                data=df_loop, ci=None,
-                x="device", y="f1", hue="num_adversaries",
-                alpha=.6, ax=ax
-            )
-            ax.set_ylim(0, 100)
-            ax.set_title(f'{agg.value}')
-            ax.get_legend().remove()
-
-            ax.set_ylabel('Device')
-            if agg_idx == 0:
-                ax.set_ylabel('F1 Score (%)')
-            else:
-                ax.set_ylabel(None)
-            agg_idx += 1
-
-    # add legend
-    handles, labels = fig.axes[len(fig.axes) - 1].get_legend_handles_labels()
-    fig.legend(handles, labels, bbox_to_anchor=(1, 0.94), title="# of Adversaries")
-    fig.tight_layout()
-    fig.suptitle('Label Flipping Binary MLP\n', fontweight='bold', size=16)
-    plt.show()
-    fig.savefig(f'result_plot_binary_classification_label_flipping_all.png', dpi=100)
+    FederationUtils.visualize_adversaries_multi_devices(df, pis_to_inject,
+                                                        title='Label Flipping Binary MLP\n',
+                                                        row_title=lambda x: f'Flipping Labels of Device {x.value}\n',
+                                                        save_dir='result_plot_binary_classification_label_flipping_all.png')

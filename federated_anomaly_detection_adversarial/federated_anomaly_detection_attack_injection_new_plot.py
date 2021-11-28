@@ -103,33 +103,7 @@ if __name__ == "__main__":
         df = pd.DataFrame.from_dict(test_set_result_dict)
         df.to_csv(csv_result_path, index=False)
 
-    # TODO move to Utils
-    fig, axs = plt.subplots(nrows=len(pis_to_inject), ncols=len(list(AggregationMechanism)), figsize=(19.2, 19.2))
-    axs = axs.ravel().tolist()
-    agg_idx = 0
-
-    for pi_to_inject in pis_to_inject:
-        for agg in AggregationMechanism:
-            df_loop = df[(df.injected == pi_to_inject.value) & (df.aggregation == agg.value)].drop(['injected', 'aggregation'], axis=1)
-            sns.barplot(
-                data=df_loop, ci=None,
-                x="device", y="f1", hue="num_adversaries",
-                alpha=.6, ax=axs[agg_idx]
-            )
-            axs[agg_idx].set_ylim(0, 100)
-            axs[agg_idx].set_title(f'{agg.value}')
-            axs[agg_idx].get_legend().remove()
-
-            axs[agg_idx].set_ylabel('Device')
-            if agg_idx == 0:
-                axs[agg_idx].set_ylabel('F1 Score (%)')
-            else:
-                axs[agg_idx].set_ylabel(None)
-            agg_idx += 1
-
-    # add legend
-    handles, labels = axs[len(list(AggregationMechanism)) - 1].get_legend_handles_labels()
-    fig.legend(handles, labels, bbox_to_anchor=(1, 0.95), title="# of Adversaries")
-    plt.tight_layout()
-    plt.show()
-    fig.savefig(f'result_plot_homogeneous_anomaly_detection_inj_all.png', dpi=100)
+    FederationUtils.visualize_adversaries_multi_devices(df, pis_to_inject,
+                                                        title='Attack Injection in Anomaly Detection\n',
+                                                        row_title=lambda x: f'Inecting Attack to Device {x.value}\n',
+                                                        save_dir='result_plot_homogeneous_anomaly_detection_inj_all.png')
