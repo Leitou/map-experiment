@@ -109,8 +109,7 @@ class FederationUtils:
             agg_idx = 0
             for agg in AggregationMechanism:
                 ax = fig.add_subplot(gs[agg_idx])
-                df_loop = df[(df.injected == pi_to_inject.value) & (df.aggregation == agg.value)].drop(
-                    ['injected', 'aggregation'], axis=1)
+                df_loop = df[(df.injected == pi_to_inject.value) & (df.aggregation == agg.value)]
                 sns.barplot(
                     data=df_loop, ci=None,
                     x="device", y="f1", hue="num_adversaries",

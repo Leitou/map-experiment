@@ -1,9 +1,9 @@
-from copy import deepcopy
-from math import nan, sqrt
+import random
 from abc import abstractmethod, ABCMeta
+from copy import deepcopy
+from math import nan
 
 import numpy as np
-import random
 import torch
 from torch.utils.data import DataLoader
 
@@ -106,8 +106,8 @@ class AllLabelFlipAdversary(MLPParticipant):
     def __init__(self, train_x: np.ndarray, train_y: np.ndarray,
                  valid_x: np.ndarray, valid_y: np.ndarray,
                  batch_size: int = 64, batch_size_valid=64, y_type: torch.dtype = torch.float):
-        train_y = (train_y != 1).astype(float)
-        valid_y = (valid_y != 1).astype(float)
+        train_y = (train_y != 1).astype(np.longlong)
+        valid_y = (valid_y != 1).astype(np.longlong)
         super().__init__(train_x, train_y, valid_x, valid_y, batch_size, batch_size_valid, y_type)
 
 
@@ -132,8 +132,7 @@ class ModelCancelBCAdversary(MLPParticipant):
             self.model.load_state_dict(new_weights)
 
 
-# TODO: check
-#  robust AE methods for adversarial part: https://ieeexplore.ieee.org/document/9099561
+# robust AE methods for adversarial part: https://ieeexplore.ieee.org/document/9099561
 class AutoEncoderParticipant(Participant):
 
     def train(self, optimizer, loss_function, num_local_epochs: int = 5):

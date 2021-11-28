@@ -2,10 +2,7 @@ import os
 
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import torch
-import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpecFromSubplotSpec
 
 from aggregation import Server
 from custom_types import Behavior, RaspberryPi, Scaler, ModelArchitecture, AggregationMechanism
@@ -34,22 +31,14 @@ if __name__ == "__main__":
     for device in RaspberryPi:
         test_devices.append((device, {beh: 75 for beh in Behavior}))
 
-    test_set_result_dict = {"device": [], "num_adversaries": [], "f1": [], "aggregation": [], "injected": []}
+    test_set_result_dict = {"device": [], "num_adversaries": [], "f1": [], "tp": [], "fp": [], "tn": [], "fn": [],
+                            "aggregation": [], "injected": []}
 
     csv_result_path = cwd + os.sep + "label_flipping.csv"
     if os.path.isfile(csv_result_path):
         df = pd.read_csv(csv_result_path)
     else:
         for pi_to_inject in pis_to_inject:
-            # Ordered ASC by threshold
-            normal_devices = [(pi_to_inject, {Behavior.NORMAL: 250},
-                               {Behavior.NORMAL: 25}),
-                              (pi_to_inject, {Behavior.NORMAL: 250, Behavior.REPEAT: 250},
-                               {Behavior.NORMAL: 25, Behavior.REPEAT: 25}),
-                              (pi_to_inject, {Behavior.NORMAL: 250, Behavior.NOISE: 250},
-                               {Behavior.NORMAL: 25, Behavior.NOISE: 25}),
-                              (pi_to_inject, {Behavior.NORMAL: 250, Behavior.DELAY: 250},
-                               {Behavior.NORMAL: 25, Behavior.DELAY: 25})]
             # Aggregation loop
             for agg in AggregationMechanism:
                 # Adversary Loop -> here is the training
@@ -59,8 +48,6 @@ if __name__ == "__main__":
                     for device in RaspberryPi:
                         if device == RaspberryPi.PI4_2GB_WC:
                             continue
-                        elif device == pi_to_inject:
-                            train_devices += normal_devices
                         else:
                             train_devices += [(device, {Behavior.NORMAL: 250},
                                                {Behavior.NORMAL: 25}),
@@ -96,19 +83,30 @@ if __name__ == "__main__":
                     for j, (tset) in enumerate(test_sets):
                         y_predicted = server.predict_using_global_model(tset[0])
                         device = test_devices[j][0]
-                        acc, f1, _ = FederationUtils.calculate_metrics(tset[1].flatten(), y_predicted.flatten().numpy())
+                        acc, f1, conf_mat = FederationUtils.calculate_metrics(tset[1].flatten(),
+                                                                              y_predicted.flatten().numpy())
+                        (tn, fp, fn, tp) = conf_mat.ravel()
                         test_set_result_dict['device'].append(device.value)
                         test_set_result_dict['num_adversaries'].append(i)
                         test_set_result_dict['f1'].append(f1 * 100)
+                        test_set_result_dict['tp'].append(tp)
+                        test_set_result_dict['tn'].append(tn)
+                        test_set_result_dict['fp'].append(fp)
+                        test_set_result_dict['fn'].append(fn)
                         test_set_result_dict['aggregation'].append(agg.value)
                         test_set_result_dict['injected'].append(pi_to_inject.value)
 
                     all_train, all_test = FederationUtils.aggregate_test_sets(test_sets)
                     y_predicted = server.predict_using_global_model(all_train)
-                    acc, f1, _ = FederationUtils.calculate_metrics(all_test.flatten(), y_predicted.flatten().numpy())
+                    acc, f1, conf_mat = FederationUtils.calculate_metrics(all_test.flatten(), y_predicted.flatten().numpy())
+                    (tn, fp, fn, tp) = conf_mat.ravel()
                     test_set_result_dict['device'].append('All')
                     test_set_result_dict['num_adversaries'].append(i)
                     test_set_result_dict['f1'].append(f1 * 100)
+                    test_set_result_dict['tp'].append(tp)
+                    test_set_result_dict['tn'].append(tn)
+                    test_set_result_dict['fp'].append(fp)
+                    test_set_result_dict['fn'].append(fn)
                     test_set_result_dict['aggregation'].append(agg.value)
                     test_set_result_dict['injected'].append(pi_to_inject.value)
         df = pd.DataFrame.from_dict(test_set_result_dict)
