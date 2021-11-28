@@ -89,24 +89,28 @@ class DataHandler:
     @staticmethod
     def __pick_from_all_data(all_data: pd.DataFrame, device: RaspberryPi, attacks: Dict[Behavior, int],
                              label_dict: Dict[Behavior, int], pick_ratios: Dict[str, float]) -> \
-            Tuple[pd.DataFrame, np.ndarray, np.ndarray]:
+            Tuple[pd.DataFrame, np.ndarray, np.ndarray, pd.DataFrame]:
         data_x, data_y = None, None
+        picked_all = None
         for attack in attacks:
             df = all_data.loc[(all_data['attack'] == attack.value) & (all_data['device'] == device.value)]
             key = device.value + "-" + attack.value
             if pick_ratios[key] < 1.:
-                sampled = df.sample(n=floor(pick_ratios[key] * attacks[attack]))
-                all_data = pd.concat([sampled, all_data]).drop_duplicates(keep=False)
-                sampled = sampled.sample(n=attacks[attack], replace=True)
+                picked = df.sample(n=floor(pick_ratios[key] * attacks[attack]))
+                all_data = pd.concat([picked, all_data]).drop_duplicates(keep=False)
+                sampled = picked.sample(n=attacks[attack], replace=True)
             else:
                 # creates a ValueError in case the experiment takes more validation and testing data than available
-                sampled = df.sample(n=attacks[attack])
-                all_data = pd.concat([sampled, all_data]).drop_duplicates(keep=False)
+                picked = df.sample(n=attacks[attack])
+                sampled = picked
+                all_data = pd.concat([picked, all_data]).drop_duplicates(keep=False)
 
             if data_x is None:
                 data_x = sampled.drop(['attack', 'device'], axis=1).to_numpy()
+                picked_all = picked
             else:
                 data_x = np.concatenate((data_x, sampled.drop(['attack', 'device'], axis=1).to_numpy()))
+                picked_all = pd.concat([picked, picked_all]).drop_duplicates(keep=False)
 
             sampled_y = np.array([label_dict[attack]] * attacks[attack])
             if data_y is None:
@@ -114,42 +118,49 @@ class DataHandler:
             else:
                 data_y = np.concatenate((data_y, sampled_y))
         data_y = data_y.reshape((len(data_y), 1))
-        return all_data, data_x, data_y
+        return all_data, data_x, data_y, picked_all
 
     @staticmethod
-    def parse_all_files_to_df(raw: bool = False, save_to_file: bool = True) -> pd.DataFrame:
-        if os.path.isfile(f'./data/all{"_raw" if raw else ""}.csv'):
-            return pd.read_csv(f'./data/all{"_raw" if raw else ""}.csv')
+    def parse_all_files_to_df(filter_suspected_external_events=True,
+                              filter_constant_columns=True,
+                              filter_outliers=True) -> pd.DataFrame:
+        file_name = f'./data/all_external_{str(filter_suspected_external_events)}' \
+                    f'_constant_{str(filter_constant_columns)}_outliers_{str(filter_outliers)}.csv'
+        if os.path.isfile(file_name):
+            return pd.read_csv(file_name)
         full_df = pd.DataFrame()
         for device in data_file_paths:
             for attack in data_file_paths[device]:
                 df = pd.read_csv(data_file_paths[device][attack])
-                if not raw:
+
+                if filter_suspected_external_events:
                     # special case: here the pi4 wc has entered some significantly different "normal behavior"
                     # (some features peak significantly, adding variance)
                     if device == RaspberryPi.PI4_2GB_WC and attack == Behavior.NORMAL:
                         df = df.drop(df.index[6300:7300])
                     # drop first and last measurement due to the influence of logging in, respectively out of the server
                     df = df.iloc[1:-1]
-                # filter for measurements where the device was connected
-                df = df[df['connectivity'] == 1]
+                    # filter for measurements where the device was connected
+                    df = df[df['connectivity'] == 1]
+
                 # remove model-irrelevant columns
                 df = df.drop(time_status_columns, axis=1)
-                if not raw:
-                    # remove all-zero columns (was determiend based on full_df)
-                    df = df.drop(all_zero_columns, axis=1)
+                if filter_outliers:
                     # drop outliers per measurement, indicated by (absolute z score) > 3
                     df = df[(np.nan_to_num(np.abs(stats.zscore(df))) < 3).all(axis=1)]
+
+                if filter_constant_columns:
+                    df = df.drop(all_zero_columns, axis=1)
+
                 df['device'] = device.value
                 df['attack'] = attack.value
                 full_df = pd.concat([full_df, df])
-        if save_to_file:
-            full_df.to_csv(f'./data/all{"_raw" if raw else ""}.csv', index_label=False)
+        full_df.to_csv(file_name, index_label=False)
         return full_df
 
     @staticmethod
     def show_data_availability(raw=False):
-        all_data = DataHandler.parse_all_files_to_df(raw=raw)
+        all_data = DataHandler.parse_all_files_to_df(filter_outliers=not raw, filter_suspected_external_events=not raw)
         print(f'Total data points: {len(all_data)}')
         drop_cols = [col for col in list(all_data) if col not in ['device', 'attack', 'block:block_bio_backmerge']]
         grouped = all_data.drop(drop_cols, axis=1).rename(columns={'block:block_bio_backmerge': 'count'}).groupby(
@@ -178,6 +189,7 @@ class DataHandler:
             test_devices) > 0, "Need to provide at least one train and one test device!"
 
         all_data = DataHandler.parse_all_files_to_df()
+        all_data_test = DataHandler.parse_all_files_to_df(filter_outliers=False)
 
         # Dictionaries that hold total request: e. g. we want 500 train data for a pi3 and delay
         # but may only have 100 -> oversample and prevent overlaps
@@ -197,14 +209,16 @@ class DataHandler:
 
         # pick test sets
         for device, test_attacks in test_devices:
-            all_data, test_x, test_y = DataHandler.__pick_from_all_data(all_data, device, test_attacks, label_dict,
-                                                                        defaultdict(lambda: 1))
+            all_data_test, test_x, test_y, picked = DataHandler.__pick_from_all_data(all_data_test, device,
+                                                                                     test_attacks, label_dict,
+                                                                                     defaultdict(lambda: 1))
+            all_data = pd.concat([picked, all_data]).drop_duplicates(keep=False)
             test_sets.append((test_x, test_y))
 
         # pick validation sets: same as test sets -> in refactoring can be merged
         for device, _, val_attacks in train_devices:
-            all_data, val_x, val_y = DataHandler.__pick_from_all_data(all_data, device, val_attacks, label_dict,
-                                                                      defaultdict(lambda: 1))
+            all_data, val_x, val_y, _ = DataHandler.__pick_from_all_data(all_data, device, val_attacks, label_dict,
+                                                                         defaultdict(lambda: 1))
             validation_sets.append((val_x, val_y))
 
         for __i, row in all_data.groupby(['device', 'attack']).count().iterrows():
@@ -216,8 +230,8 @@ class DataHandler:
 
         # pick and sample train sets
         for device, attacks, _ in train_devices:
-            all_data, train_x, train_y = DataHandler.__pick_from_all_data(all_data, device, attacks, label_dict,
-                                                                          train_ratio_dict)
+            all_data, train_x, train_y, _ = DataHandler.__pick_from_all_data(all_data, device, attacks, label_dict,
+                                                                             train_ratio_dict)
             train_sets.append((train_x, train_y))
 
         return [(x, y, validation_sets[idx][0], validation_sets[idx][1]) for

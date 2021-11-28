@@ -157,7 +157,7 @@ class AutoEncoderParticipant(Participant):
         mses = []
         self.model.eval()
         with torch.no_grad():
-            loss_function = torch.nn.MSELoss(reduction='mean')
+            loss_function = torch.nn.MSELoss(reduction='sum')
             for batch_idx, (x, _) in enumerate(self.valid_loader):
                 x = x  # x.cuda()
                 model_out = self.model(x)
@@ -202,7 +202,7 @@ class ExaggerateThresholdAdversary(AutoEncoderParticipant):
         mses = []
         self.model.eval()
         with torch.no_grad():
-            loss_function = torch.nn.MSELoss(reduction='mean')
+            loss_function = torch.nn.MSELoss(reduction='sum')
             for batch_idx, (x, _) in enumerate(self.valid_loader):
                 x = x  # x.cuda()
                 model_out = self.model(x)
@@ -220,7 +220,7 @@ class UnderstateThresholdAdversary(AutoEncoderParticipant):
         mses = []
         self.model.eval()
         with torch.no_grad():
-            loss_function = torch.nn.MSELoss(reduction='mean')
+            loss_function = torch.nn.MSELoss(reduction='sum')
             for batch_idx, (x, _) in enumerate(self.valid_loader):
                 x = x  # x.cuda()
                 model_out = self.model(x)
