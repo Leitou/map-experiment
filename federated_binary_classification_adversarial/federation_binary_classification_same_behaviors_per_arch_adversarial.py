@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     test_set_result_dict = {"device": [], "num_adversaries": [], "f1": [], "aggregation": [], "injected": []}
 
-    csv_result_path = cwd + os.sep + "binary_classification_label_flipping.csv"
+    csv_result_path = cwd + os.sep + "label_flipping.csv"
     if os.path.isfile(csv_result_path):
         df = pd.read_csv(csv_result_path)
     else:
@@ -50,14 +50,6 @@ if __name__ == "__main__":
                                {Behavior.NORMAL: 25, Behavior.NOISE: 25}),
                               (pi_to_inject, {Behavior.NORMAL: 250, Behavior.DELAY: 250},
                                {Behavior.NORMAL: 25, Behavior.DELAY: 25})]
-            # Ordered DESC by threshold
-            attack_devices = [
-                (pi_to_inject, {Behavior.NORMAL: 250, Behavior.SPOOF: 250}, {Behavior.NORMAL: 25, Behavior.SPOOF: 25}),
-                (pi_to_inject, {Behavior.NORMAL: 250, Behavior.MIMIC: 250}, {Behavior.NORMAL: 25, Behavior.MIMIC: 25}),
-                (pi_to_inject, {Behavior.NORMAL: 250, Behavior.NOISE: 250}, {Behavior.NORMAL: 25, Behavior.NOISE: 25}),
-                (pi_to_inject, {Behavior.NORMAL: 250, Behavior.DELAY: 250},
-                 {Behavior.NORMAL: 25, Behavior.DELAY: 25})
-            ]
             # Aggregation loop
             for agg in AggregationMechanism:
                 # Adversary Loop -> here is the training
@@ -68,8 +60,7 @@ if __name__ == "__main__":
                         if device == RaspberryPi.PI4_2GB_WC:
                             continue
                         elif device == pi_to_inject:
-                            train_devices += attack_devices[:i]
-                            train_devices += normal_devices[i:]
+                            train_devices += normal_devices
                         else:
                             train_devices += [(device, {Behavior.NORMAL: 250},
                                                {Behavior.NORMAL: 25}),

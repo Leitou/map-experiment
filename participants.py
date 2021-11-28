@@ -182,10 +182,10 @@ class RandomWeightAdversary(AutoEncoderParticipant):
             self.model.load_state_dict(new_dict)
 
     def determine_threshold(self) -> float:
-        # 68 is the number of features
         # so a MSE of sqrt(68) would be being 1 off per feature
         # (which is much considering MinMax scaling)
-        # It is doubled because the pi3 shows ~8 (sqrt(64)) in the homogeneous federation
+        # However anomalies have proven to be way more off (due to the scaling).
+        # Therefore this participant also overstates the threshold randomly
         # To be validated if it makes sense (basically combines threshold overstatement and random params)
         return random.uniform(0, 1e+9)
 

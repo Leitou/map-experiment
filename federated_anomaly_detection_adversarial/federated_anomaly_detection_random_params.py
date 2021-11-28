@@ -58,7 +58,6 @@ if __name__ == "__main__":
                 participants = [AutoEncoderParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
                                 x_train, y_train, x_valid, y_valid in
                                 train_sets]
-                n_honest = 12
                 participants += [
                     RandomWeightAdversary(np.ndarray([1]), np.ndarray([1]), np.ndarray([1]), np.ndarray([1])) for _ in
                     range(i)]
@@ -121,7 +120,7 @@ if __name__ == "__main__":
 
     # add legend
     handles, labels = axs[
-        len(list([AggregationMechanism.FED_AVG, AggregationMechanism.TRIMMED_MEAN])) - 1].get_legend_handles_labels()
+        len(list(AggregationMechanism)) - 1].get_legend_handles_labels()
     fig.legend(handles, labels, bbox_to_anchor=(1, 0.95), title="# of Adversaries")
     plt.tight_layout()
     plt.show()
