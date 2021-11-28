@@ -94,34 +94,5 @@ if __name__ == "__main__":
         df = pd.DataFrame.from_dict(test_set_result_dict)
         df.to_csv(csv_result_path, index=False)
 
-    # TODO move to Utils
-    fig, axs = plt.subplots(nrows=1, ncols=len(list(AggregationMechanism)), figsize=(19.2, 6.4))
-    axs = axs.ravel().tolist()
-    agg_idx = 0
-
-    for agg in AggregationMechanism:
-        df_loop = df[(df.aggregation == agg.value)].drop(
-            ['aggregation'], axis=1)
-        sns.barplot(
-            data=df_loop, ci=None,
-            x="device", y="f1", hue="num_adversaries",
-            alpha=.6, ax=axs[agg_idx]
-        )
-        axs[agg_idx].set_ylim(0, 100)
-        axs[agg_idx].set_title(f'{agg.value}')
-        axs[agg_idx].get_legend().remove()
-
-        axs[agg_idx].set_ylabel('Device')
-        if agg_idx == 0:
-            axs[agg_idx].set_ylabel('F1 Score (%)')
-        else:
-            axs[agg_idx].set_ylabel(None)
-        agg_idx += 1
-
-    # add legend
-    handles, labels = axs[
-        len(list(AggregationMechanism)) - 1].get_legend_handles_labels()
-    fig.legend(handles, labels, bbox_to_anchor=(1, 0.95), title="# of Adversaries")
-    plt.tight_layout()
-    plt.show()
-    fig.savefig(f'result_plot_anomaly_detection_random.png', dpi=100)
+    FederationUtils.visualize_adversaries_model_poisoning(df, title="Random Parameters Attack on Anomaly Detection",
+                                                          save_dir='result_plot_anomaly_detection_random.png')

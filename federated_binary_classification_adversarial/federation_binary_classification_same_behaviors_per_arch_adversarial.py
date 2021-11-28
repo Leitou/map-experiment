@@ -114,7 +114,7 @@ if __name__ == "__main__":
         df = pd.DataFrame.from_dict(test_set_result_dict)
         df.to_csv(csv_result_path, index=False)
 
-    FederationUtils.visualize_adversaries_multi_devices(df, pis_to_inject,
-                                                        title='Label Flipping Binary MLP\n',
-                                                        row_title=lambda x: f'Flipping Labels of Device {x.value}\n',
-                                                        save_dir='result_plot_binary_classification_label_flipping_all.png')
+    FederationUtils.visualize_adversaries_data_poisoning(df, pis_to_inject,
+                                                         title='Label Flipping Binary MLP\n',
+                                                         row_title=lambda x: f'Flipping Labels of Device {x.value}\n',
+                                                         save_dir='result_plot_binary_classification_label_flipping_all.png')

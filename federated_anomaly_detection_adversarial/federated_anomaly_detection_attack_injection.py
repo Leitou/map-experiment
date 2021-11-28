@@ -2,9 +2,7 @@ import os
 
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import torch
-import matplotlib.pyplot as plt
 
 from aggregation import Server
 from custom_types import Behavior, RaspberryPi, Scaler, ModelArchitecture, AggregationMechanism
@@ -103,7 +101,7 @@ if __name__ == "__main__":
         df = pd.DataFrame.from_dict(test_set_result_dict)
         df.to_csv(csv_result_path, index=False)
 
-    FederationUtils.visualize_adversaries_multi_devices(df, pis_to_inject,
-                                                        title='Attack Injection in Anomaly Detection\n',
-                                                        row_title=lambda x: f'Inecting Attack to Device {x.value}\n',
-                                                        save_dir='result_plot_homogeneous_anomaly_detection_inj_all.png')
+    FederationUtils.visualize_adversaries_data_poisoning(df, pis_to_inject,
+                                                         title='Attack Injection in Anomaly Detection\n',
+                                                         row_title=lambda x: f'Inecting Attack to Device {x.value}\n',
+                                                         save_dir='result_plot_homogeneous_anomaly_detection_inj_all.png')

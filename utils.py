@@ -1,17 +1,16 @@
+from math import floor
 from typing import Tuple, Any, List, Dict, Union, Callable
 
+import matplotlib.pyplot as plt
 import numpy as np
-from math import floor
 import pandas as pd
+import seaborn as sns
 from matplotlib.gridspec import GridSpecFromSubplotSpec
 from sklearn.metrics import f1_score, confusion_matrix, classification_report
-import seaborn as sns
-import matplotlib.pyplot as plt
+from tabulate import tabulate
 
 from aggregation import Server
 from custom_types import RaspberryPi, Behavior, AggregationMechanism
-
-from tabulate import tabulate
 
 
 # TODO: add some Reporting Utils. Like
@@ -88,9 +87,10 @@ class FederationUtils:
         print(tabulate(rows, headers=["Behavior"] + [dev.value for dev in RaspberryPi], tablefmt="pretty"))
 
     @staticmethod
-    def visualize_adversaries_multi_devices(df: pd.DataFrame, injected_pis: List[RaspberryPi],
-                                            title: str, row_title: Callable[[RaspberryPi], str],
-                                            save_dir: str):
+    def visualize_adversaries_data_poisoning(df: pd.DataFrame, injected_pis: List[RaspberryPi],
+                                             title: str, row_title: Callable[[RaspberryPi], str],
+                                             save_dir: str):
+        # see https://stackoverflow.com/questions/27426668/row-titles-for-matplotlib-subplot
         fig = plt.figure(figsize=(19.2, 19.2))
         grid = plt.GridSpec(len(injected_pis), 1)
 
@@ -132,6 +132,42 @@ class FederationUtils:
         fig.legend(handles, labels, bbox_to_anchor=(1, 0.94), title="# of Adversaries")
         fig.tight_layout()
         fig.suptitle(title, fontweight='bold', size=16)
+        plt.show()
+        fig.savefig(save_dir, dpi=100)
+
+    @staticmethod
+    def visualize_adversaries_model_poisoning(df: pd.DataFrame,
+                                              title: str, save_dir: str):
+        fig, axs = plt.subplots(nrows=1, ncols=len(list(AggregationMechanism)), figsize=(19.2, 6.4))
+        axs = axs.ravel().tolist()
+        agg_idx = 0
+
+        for agg in AggregationMechanism:
+            df_loop = df[(df.aggregation == agg.value)].drop(
+                ['aggregation'], axis=1)
+            sns.barplot(
+                data=df_loop, ci=None,
+                x="device", y="f1", hue="num_adversaries",
+                alpha=.6, ax=axs[agg_idx]
+            )
+            axs[agg_idx].set_ylim(0, 100)
+            axs[agg_idx].set_title(f'{agg.value}')
+            axs[agg_idx].get_legend().remove()
+
+            axs[agg_idx].set_ylabel('Device')
+            if agg_idx == 0:
+                axs[agg_idx].set_ylabel('F1 Score (%)')
+            else:
+                axs[agg_idx].set_ylabel(None)
+            agg_idx += 1
+
+        # add legend
+        handles, labels = axs[
+            len(list(
+                [AggregationMechanism.FED_AVG, AggregationMechanism.TRIMMED_MEAN])) - 1].get_legend_handles_labels()
+        fig.legend(handles, labels, bbox_to_anchor=(1, 0.95), title="# of Adversaries")
+        fig.suptitle(title, fontweight='bold', size=16)
+        plt.tight_layout()
         plt.show()
         fig.savefig(save_dir, dpi=100)
 
