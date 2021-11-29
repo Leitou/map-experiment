@@ -33,7 +33,7 @@ if __name__ == "__main__":
     test_set_result_dict = {"device": [], "num_adversaries": [], "f1": [], "tp": [], "fp": [], "tn": [], "fn": [],
                             "aggregation": []}
 
-    csv_result_path = cwd + os.sep + "binary_class_random.csv"
+    csv_result_path = cwd + os.sep + "random_params.csv"
     if os.path.isfile(csv_result_path):
         df = pd.read_csv(csv_result_path)
     else:
@@ -41,7 +41,7 @@ if __name__ == "__main__":
         for agg in AggregationMechanism:
             # Adversary Loop -> here is the training
             for i in range(0, max_adversaries + 1):
-                cp_filename = f'{cwd}{os.sep}binary_class_random_{agg.value}_{str(i)}.pt'
+                cp_filename = f'{cwd}{os.sep}random_params_{agg.value}_{str(i)}.pt'
                 train_devices = []
                 for device in RaspberryPi:
                     if device == RaspberryPi.PI4_2GB_WC:
