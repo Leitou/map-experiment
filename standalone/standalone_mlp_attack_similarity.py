@@ -22,7 +22,7 @@ if __name__ == "__main__":
     normals = [Behavior.NORMAL, Behavior.NORMAL_V2]
     attacks = [val for val in Behavior if val not in normals]
     all_accs = []
-    device = RaspberryPi.PI4_4GB
+    device = RaspberryPi.PI3_1GB
     test_devices = [(device, {beh: 75}) for beh in Behavior]
     eval_labels = [beh.value for beh in Behavior]
     train_labels = []

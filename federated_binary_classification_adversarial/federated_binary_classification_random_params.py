@@ -30,7 +30,8 @@ if __name__ == "__main__":
     for device in RaspberryPi:
         test_devices.append((device, {beh: 100 for beh in Behavior}))
 
-    test_set_result_dict = {"device": [], "num_adversaries": [], "f1": [], "aggregation": []}
+    test_set_result_dict = {"device": [], "num_adversaries": [], "f1": [], "tp": [], "fp": [], "tn": [], "fn": [],
+                            "aggregation": []}
 
     csv_result_path = cwd + os.sep + "binary_class_random.csv"
     if os.path.isfile(csv_result_path):
@@ -84,20 +85,29 @@ if __name__ == "__main__":
                 for j, (tset) in enumerate(test_sets):
                     y_predicted = server.predict_using_global_model(tset[0])
                     device = test_devices[j][0]
-                    acc, f1, _ = FederationUtils.calculate_metrics(tset[1].flatten(),
-                                                                   y_predicted.flatten().numpy())
+                    acc, f1, conf_mat = FederationUtils.calculate_metrics(tset[1].flatten(),
+                                                                          y_predicted.flatten().numpy())
+                    (tn, fp, fn, tp) = conf_mat.ravel()
                     test_set_result_dict['device'].append(device.value)
                     test_set_result_dict['num_adversaries'].append(i)
                     test_set_result_dict['f1'].append(f1 * 100)
+                    test_set_result_dict['tp'].append(tp)
+                    test_set_result_dict['tn'].append(tn)
+                    test_set_result_dict['fp'].append(fp)
+                    test_set_result_dict['fn'].append(fn)
                     test_set_result_dict['aggregation'].append(agg.value)
 
                 all_train, all_test = FederationUtils.aggregate_test_sets(test_sets)
                 y_predicted = server.predict_using_global_model(all_train)
-                acc, f1, _ = FederationUtils.calculate_metrics(all_test.flatten(),
-                                                               y_predicted.flatten().numpy())
+                acc, f1, conf_mat = FederationUtils.calculate_metrics(all_test.flatten(), y_predicted.flatten().numpy())
+                (tn, fp, fn, tp) = conf_mat.ravel()
                 test_set_result_dict['device'].append('All')
                 test_set_result_dict['num_adversaries'].append(i)
                 test_set_result_dict['f1'].append(f1 * 100)
+                test_set_result_dict['tp'].append(tp)
+                test_set_result_dict['tn'].append(tn)
+                test_set_result_dict['fp'].append(fp)
+                test_set_result_dict['fn'].append(fn)
                 test_set_result_dict['aggregation'].append(agg.value)
         df = pd.DataFrame.from_dict(test_set_result_dict)
         df.to_csv(csv_result_path, index=False)

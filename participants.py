@@ -186,7 +186,7 @@ class RandomWeightAdversary(AutoEncoderParticipant):
         # However anomalies have proven to be way more off (due to the scaling).
         # Therefore this participant also overstates the threshold randomly
         # To be validated if it makes sense (basically combines threshold overstatement and random params)
-        return random.uniform(0, 1e+9)
+        return random.uniform(0, 1e+8)
 
 
 # Approx thresholds ranges of non-attacked device types:
