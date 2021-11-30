@@ -3,12 +3,15 @@ import os
 from custom_types import Behavior, RaspberryPi
 from data_plotter import DataPlotter
 
-# TODO: enable once incorporated into report
+plot_kde = True
+plot_timeline = True
+
 if __name__ == "__main__":
     os.chdir("..")
-    if False:
+    if plot_kde:
         DataPlotter.plot_behaviors_as_kde()
-    else:
+        DataPlotter.plot_devices_as_kde()
+    if plot_timeline:
         DataPlotter.plot_behaviors(
             [(RaspberryPi.PI4_2GB_WC, Behavior.HOP, "darkred"),
              (RaspberryPi.PI4_2GB_WC, Behavior.NOISE, "red"),
@@ -45,7 +48,13 @@ if __name__ == "__main__":
             [(RaspberryPi.PI3_1GB, Behavior.NORMAL, "red"),
              (RaspberryPi.PI4_2GB_WC, Behavior.NORMAL, "blue"),
              (RaspberryPi.PI4_2GB_BC, Behavior.NORMAL, "orange"),
-             (RaspberryPi.PI4_4GB, Behavior.NORMAL, "yellow")], plot_name="normal_behavior_device_comparison")
+             (RaspberryPi.PI4_4GB, Behavior.NORMAL, "green")], plot_name="normal_behavior_device_comparison")
+
+        DataPlotter.plot_behaviors(
+            [(RaspberryPi.PI3_1GB, Behavior.NORMAL_V2, "red"),
+             (RaspberryPi.PI4_2GB_WC, Behavior.NORMAL_V2, "blue"),
+             (RaspberryPi.PI4_2GB_BC, Behavior.NORMAL_V2, "orange"),
+             (RaspberryPi.PI4_4GB, Behavior.NORMAL_V2, "green")], plot_name="normal_behavior_v2_device_comparison")
 
         DataPlotter.plot_behaviors(
             [(RaspberryPi.PI3_1GB, Behavior.SPOOF, "red"),

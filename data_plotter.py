@@ -12,7 +12,7 @@ class DataPlotter:
     @staticmethod
     def plot_behaviors(behaviors: List[Tuple[RaspberryPi, Behavior, str]], plot_name: Union[str, None] = None):
         # first find max number of samples
-        all_data_parsed = DataHandler.parse_all_files_to_df(raw=True, save_to_file=False)
+        all_data_parsed = DataHandler.parse_all_files_to_df(filter_outliers=False)
         max_number_of_samples = 0
         for behavior in behaviors:
             df_behavior = all_data_parsed.loc[
@@ -46,7 +46,7 @@ class DataPlotter:
     def plot_devices_as_kde():
         for device in RaspberryPi:
             plot_name = f"all_device_{device.value}_hist"
-            all_data_parsed = DataHandler.parse_all_files_to_df(raw=False, save_to_file=False)
+            all_data_parsed = DataHandler.parse_all_files_to_df(filter_outliers=True)
             all_data_parsed = all_data_parsed[all_data_parsed.device == device.value]
             cols_to_plot = [col for col in all_data_parsed if col not in ['device', 'attack']]
 
@@ -79,7 +79,7 @@ class DataPlotter:
     def plot_behaviors_as_kde():
         for behav in Behavior:
             plot_name = f"all_behavior_{behav.value}_hist"
-            all_data_parsed = DataHandler.parse_all_files_to_df(raw=False, save_to_file=False)
+            all_data_parsed = DataHandler.parse_all_files_to_df(filter_outliers=True)
             all_data_parsed = all_data_parsed[all_data_parsed.attack == behav.value]
             cols_to_plot = [col for col in all_data_parsed if col not in ['device', 'attack']]
 
@@ -90,8 +90,8 @@ class DataPlotter:
             fig.suptitle(plot_name)
             fig.set_figheight(len(cols_to_plot))
             fig.set_figwidth(50)
-            palette = {RaspberryPi.PI3_1GB.value: "green", RaspberryPi.PI4_2GB_WC.value: "blue",
-                       RaspberryPi.PI4_2GB_BC.value: "yellow", RaspberryPi.PI4_4GB.value: "orange"}
+            palette = {RaspberryPi.PI3_1GB.value: "red", RaspberryPi.PI4_2GB_WC.value: "blue",
+                       RaspberryPi.PI4_2GB_BC.value: "orange", RaspberryPi.PI4_4GB.value: "green"}
             for i in range(len(cols_to_plot)):
                 axs[i].set_ylim([1e-4, 2])
                 if all_data_parsed[cols_to_plot[i]].unique().size == 1:
