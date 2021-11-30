@@ -1,15 +1,13 @@
 import os
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import torch
 
 from aggregation import Server
 from custom_types import Behavior, RaspberryPi, Scaler, ModelArchitecture, AggregationMechanism
 from data_handler import DataHandler
-from participants import ModelCancelBCAdversary, MLPParticipant
+from participants import ModelCancelAdversary, MLPParticipant
 from utils import FederationUtils
 
 if __name__ == "__main__":
@@ -68,8 +66,8 @@ if __name__ == "__main__":
                                 train_sets]
                 n_honest = 12
                 participants += [
-                    ModelCancelBCAdversary(np.ndarray([1]), np.ndarray([1]), np.ndarray([1]), np.ndarray([1]), n_honest,
-                                           i) for _ in range(i)]
+                    ModelCancelAdversary(np.ndarray([1]), np.ndarray([1]), np.ndarray([1]), np.ndarray([1]), n_honest,
+                                         i) for _ in range(i)]
 
                 server = Server(participants, ModelArchitecture.MLP_MONO_CLASS,
                                 aggregation_mechanism=agg)

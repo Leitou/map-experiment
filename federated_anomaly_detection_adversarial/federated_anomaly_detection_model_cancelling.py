@@ -7,7 +7,7 @@ import torch
 from aggregation import Server
 from custom_types import Behavior, RaspberryPi, Scaler, ModelArchitecture, AggregationMechanism
 from data_handler import DataHandler
-from participants import MLPParticipant, RandomWeightAdversary
+from participants import AutoEncoderParticipant, ModelCancelAdversary
 from utils import FederationUtils
 
 if __name__ == "__main__":
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     test_set_result_dict = {"device": [], "num_adversaries": [], "f1": [], "tp": [], "fp": [], "tn": [], "fn": [],
                             "aggregation": []}
 
-    csv_result_path = cwd + os.sep + "random_params.csv"
+    csv_result_path = cwd + os.sep + "model_cancelling.csv"
     if os.path.isfile(csv_result_path):
         df = pd.read_csv(csv_result_path)
     else:
@@ -39,20 +39,13 @@ if __name__ == "__main__":
         for agg in AggregationMechanism:
             # Adversary Loop -> here is the training
             for i in range(0, max_adversaries + 1):
-                cp_filename = f'{cwd}{os.sep}random_params_{agg.value}_{str(i)}.pt'
+                cp_filename = f'{cwd}{os.sep}model_cancelling_{agg.value}_{str(i)}.pt'
                 train_devices = []
                 for device in RaspberryPi:
                     if device == RaspberryPi.PI4_2GB_WC:
                         continue
                     else:
-                        train_devices += [(device, {Behavior.NORMAL: 300},
-                                           {Behavior.NORMAL: 30}),
-                                          (device, {Behavior.NORMAL: 300, Behavior.DELAY: 300},
-                                           {Behavior.NORMAL: 30, Behavior.DELAY: 30}),
-                                          (device, {Behavior.NORMAL: 300, Behavior.REPEAT: 300},
-                                           {Behavior.NORMAL: 30, Behavior.REPEAT: 30}),
-                                          (device, {Behavior.NORMAL: 300, Behavior.NOISE: 300},
-                                           {Behavior.NORMAL: 30, Behavior.NOISE: 30})]
+                        train_devices += [(device, {Behavior.NORMAL: 1500}, {Behavior.NORMAL: 150})] * 4
                 train_sets, test_sets = DataHandler.get_all_clients_data(
                     train_devices,
                     test_devices)
@@ -61,15 +54,14 @@ if __name__ == "__main__":
                                                           scaling=Scaler.MINMAX_SCALER)
 
                 # participants contains adversaries already
-                participants = [MLPParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
+                participants = [AutoEncoderParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) for
                                 x_train, y_train, x_valid, y_valid in
                                 train_sets]
-                n_honest = 12
                 participants += [
-                    RandomWeightAdversary(np.ndarray([1]), np.ndarray([1]), np.ndarray([1]), np.ndarray([1])) for _ in
-                    range(i)]
+                    ModelCancelAdversary(np.ndarray([1]), np.ndarray([1]), np.ndarray([1]), np.ndarray([1]), 12,
+                                         i) for _ in range(i)]
 
-                server = Server(participants, ModelArchitecture.MLP_MONO_CLASS,
+                server = Server(participants, ModelArchitecture.AUTO_ENCODER,
                                 aggregation_mechanism=agg)
                 if not os.path.isfile(cp_filename):
                     server.train_global_model(aggregation_rounds=15)
@@ -110,5 +102,5 @@ if __name__ == "__main__":
         df = pd.DataFrame.from_dict(test_set_result_dict)
         df.to_csv(csv_result_path, index=False)
 
-    FederationUtils.visualize_adversaries_model_poisoning(df, title="Random Parameter Attack on MLP",
-                                                          save_dir='result_plot_binary_classification_random.png')
+    FederationUtils.visualize_adversaries_model_poisoning(df, title="Random Parameters Attack on Anomaly Detection",
+                                                          save_dir='result_plot_anomaly_detection_random.png')

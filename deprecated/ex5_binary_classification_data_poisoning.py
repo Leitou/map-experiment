@@ -7,7 +7,7 @@ from custom_types import Behavior, ModelArchitecture, AdversaryType, Aggregation
 from data_handler import DataHandler
 from aggregation import Server
 from participants import MLPParticipant, BenignLabelFlipAdversary, AttackLabelFlipAdversary, AllLabelFlipAdversary, \
-    ModelCancelBCAdversary
+    ModelCancelAdversary
 from utils import select_federation_composition, get_sampling_per_device, FederationUtils
 import os
 
@@ -70,7 +70,7 @@ if __name__ == "__main__":
                                                   y_valid) if adversary_type == AdversaryType.ATTACK_LABEL_FLIP
                     else AllLabelFlipAdversary(x_train, y_train, x_valid,
                                                y_valid) if adversary_type == AdversaryType.ALL_LABEL_FLIP
-                    else ModelCancelBCAdversary(x_train, y_train, x_valid, y_valid, n_honest, n_malicious)
+                    else ModelCancelAdversary(x_train, y_train, x_valid, y_valid, n_honest, n_malicious)
                     for (x_train, y_train, x_valid, y_valid), is_adv in zip(train_sets_fed, adversaries)]
 
     server = Server(participants, ModelArchitecture.MLP_MONO_CLASS, aggregation_mechanism=aggregation_mechanism)

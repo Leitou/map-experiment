@@ -111,27 +111,6 @@ class AllLabelFlipAdversary(MLPParticipant):
         super().__init__(train_x, train_y, valid_x, valid_y, batch_size, batch_size_valid, y_type)
 
 
-# TODO: check whether this makes sense -> does require further normalization of the global model
-class ModelCancelBCAdversary(MLPParticipant):
-    def __init__(self, train_x: np.ndarray, train_y: np.ndarray,
-                 valid_x: np.ndarray, valid_y: np.ndarray, n_honest: int, n_malicious: int,
-                 batch_size: int = 64, batch_size_valid=64, y_type: torch.dtype = torch.float):
-        super().__init__(train_x, train_y, valid_x, valid_y, batch_size, batch_size_valid, y_type)
-        self.n_honest = n_honest
-        self.n_malicious = n_malicious
-
-    def train(self, optimizer, loss_function, num_local_epochs: int = 5):
-        # before local training, the participant model corresponds to the old global model / except initialization
-        old_global_model = deepcopy(self.get_model())
-
-        factor = - 1. * self.n_honest / self.n_malicious
-        with torch.no_grad():
-            new_weights = {}
-            for key, original_param in old_global_model.state_dict().items():
-                new_weights.update({key: original_param * (factor if "running_" not in key else 1)})
-            self.model.load_state_dict(new_weights)
-
-
 # robust AE methods for adversarial part: https://ieeexplore.ieee.org/document/9099561
 class AutoEncoderParticipant(Participant):
 
@@ -166,6 +145,28 @@ class AutoEncoderParticipant(Participant):
         mses = np.array(mses)
         return mses.mean() + 3 * mses.std()
 
+
+class ModelCancelAdversary(AutoEncoderParticipant):
+    def __init__(self, train_x: np.ndarray, train_y: np.ndarray,
+                 valid_x: np.ndarray, valid_y: np.ndarray, n_honest: int, n_malicious: int,
+                 batch_size: int = 64, batch_size_valid=64, y_type: torch.dtype = torch.float):
+        super().__init__(train_x, train_y, valid_x, valid_y, batch_size, batch_size_valid, y_type)
+        self.n_honest = n_honest
+        self.n_malicious = n_malicious
+
+    def train(self, optimizer, loss_function, num_local_epochs: int = 5):
+        # before local training, the participant model corresponds to the old global model / except initialization
+        old_global_model = deepcopy(self.get_model())
+
+        factor = - 1. * self.n_honest / self.n_malicious
+        with torch.no_grad():
+            new_weights = {}
+            for key, original_param in old_global_model.state_dict().items():
+                new_weights.update({key: original_param * (factor if "running_" not in key else 1)})
+            self.model.load_state_dict(new_weights)
+
+    def determine_threshold(self) -> float:
+        return random.uniform(0, 1e+8)
 
 # if threshold is selected like in the normal AutoEnc. Participant sending random weights is not an efficient attack
 # a model with 100% malicious participants still recognizes some behaviors with 100% accuracy without attacking the threshold

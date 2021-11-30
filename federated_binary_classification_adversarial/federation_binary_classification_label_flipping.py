@@ -98,7 +98,8 @@ if __name__ == "__main__":
 
                     all_train, all_test = FederationUtils.aggregate_test_sets(test_sets)
                     y_predicted = server.predict_using_global_model(all_train)
-                    acc, f1, conf_mat = FederationUtils.calculate_metrics(all_test.flatten(), y_predicted.flatten().numpy())
+                    acc, f1, conf_mat = FederationUtils.calculate_metrics(all_test.flatten(),
+                                                                          y_predicted.flatten().numpy())
                     (tn, fp, fn, tp) = conf_mat.ravel()
                     test_set_result_dict['device'].append('All')
                     test_set_result_dict['num_adversaries'].append(i)
