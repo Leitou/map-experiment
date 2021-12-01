@@ -16,10 +16,7 @@ if __name__ == "__main__":
     cwd = os.getcwd()
     os.chdir("..")
 
-    print("Use case federated Anomaly/Zero Day Detection\n"
-          "Is the federated model able to detect attacks as anomalies,\nie. recognize the difference from attacks"
-          " to normal samples? Which attacks are hardest to detect?\n")
-    print("Starting demo experiment: Adversarial Impact on Federated Anomaly Detection")
+    print("Starting demo experiment: Adversarial Impact (Random Uploads) on Federated Binary Classification")
 
     max_adversaries = 6
 
@@ -110,5 +107,7 @@ if __name__ == "__main__":
         df = pd.DataFrame.from_dict(test_set_result_dict)
         df.to_csv(csv_result_path, index=False)
 
-    FederationUtils.visualize_adversaries_model_poisoning(df, title="Random Parameter Attack on MLP",
-                                                          save_dir='result_plot_binary_classification_random.png')
+    FederationUtils.visualize_adversaries_model_poisoning(df,
+                                                          #title="Random Parameter Attack on MLP",
+                                                          title="",
+                                                          save_dir='result_plot_binary_classification_random.pdf')

@@ -18,7 +18,8 @@ if __name__ == "__main__":
     os.chdir("..")
 
     print("Starting demo experiment: Federated vs Centralized Binary Classification\n"
-          "Training on a range of attacks and testing for each attack how well the joint model performs.\n")
+          "Training on a range of attacks and testing for each attack how well the joint model performs. Homogeneous"
+          " contribution per device type\n")
 
     train_devices = []
     test_devices = []

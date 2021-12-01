@@ -16,10 +16,7 @@ if __name__ == "__main__":
     cwd = os.getcwd()
     os.chdir("..")
 
-    print("Use case federated Anomaly/Zero Day Detection\n"
-          "Is the federated model able to detect attacks as anomalies,\nie. recognize the difference from attacks"
-          " to normal samples? Which attacks are hardest to detect?\n")
-    print("Starting demo experiment: Adversarial Impact on Federated Anomaly Detection")
+    print("Starting demo experiment: Adversarial Impact (Attack Injection) on Federated Anomaly Detection")
 
     pis_to_inject = [pi for pi in RaspberryPi if pi != RaspberryPi.PI4_2GB_WC]
 
@@ -115,6 +112,7 @@ if __name__ == "__main__":
         df.to_csv(csv_result_path, index=False)
 
     FederationUtils.visualize_adversaries_data_poisoning(df, pis_to_inject,
-                                                         title='Attack Injection in Anomaly Detection\n',
+                                                         #title='Attack Injection in Anomaly Detection\n',
+                                                         title='',
                                                          row_title=lambda x: f'Inecting Attack to Device {x.value}\n',
-                                                         save_dir='result_plot_homogeneous_anomaly_detection_inj_all.png')
+                                                         save_dir='result_plot_homogeneous_anomaly_detection_inj_all.pdf')

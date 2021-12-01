@@ -18,7 +18,8 @@ if __name__ == "__main__":
     os.chdir("..")
 
     print("Starting demo experiment: Federated vs Centralized Binary Classification\n"
-          "Training on a range of attacks and testing for each attack how well the joint model performs.\n")
+          "Training on a range of attacks and testing for each attack how well the joint model performs"
+          " for a new device type unseen during training.\n")
 
     results, results_central = [], []
     res_dict: Dict[RaspberryPi, Dict[Behavior, str]] = {}
