@@ -11,8 +11,6 @@ from participants import AutoEncoderParticipant
 from utils import FederationUtils
 
 if __name__ == "__main__":
-    torch.random.manual_seed(42)
-    np.random.seed(42)
     cwd = os.getcwd()
     os.chdir("..")
 
@@ -46,6 +44,7 @@ if __name__ == "__main__":
             for agg in AggregationMechanism:
                 # Adversary Loop -> here is the training
                 for i in range(0, max_adversaries + 1):
+                    FederationUtils.seed_random()
                     cp_filename = f'{cwd}{os.sep}attack_injection_{pi_to_inject.value}_{agg.value}_{str(i)}.pt'
                     train_devices = []
                     for device in RaspberryPi:

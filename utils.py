@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import torch
 from matplotlib.gridspec import GridSpecFromSubplotSpec
 from sklearn.metrics import f1_score, confusion_matrix, classification_report
 from tabulate import tabulate
@@ -169,6 +170,11 @@ class FederationUtils:
         plt.tight_layout()
         plt.show()
         fig.savefig(save_dir, dpi=100)
+
+    @staticmethod
+    def seed_random():
+        torch.random.manual_seed(42)
+        np.random.seed(42)
 
 
 # Assumption we test at most on what we train (attack types)
