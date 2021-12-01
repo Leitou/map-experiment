@@ -82,7 +82,7 @@ class FederationUtils:
         rows = []
         for behavior in Behavior:
             rows.append([behavior.value] + [
-                f"{df[(df.device == dev.value) & (df.behavior == behavior.value)].mean(numeric_only=True)[0]:.2f}" for
+                f"{df[(df.device == dev.value) & (df.behavior == behavior.value)].median(numeric_only=True)[0]:.2f}" for
                 dev in RaspberryPi])
         print(tabulate(rows, headers=["Behavior"] + [dev.value for dev in RaspberryPi], tablefmt="pretty"))
 
