@@ -84,8 +84,21 @@ class Server:
             else:
                 # Federated Case
                 all_thresholds = np.array(self.participants_thresholds)
-                max_filtered_thresh = all_thresholds[abs(stats.zscore(all_thresholds)) <= 1.5].max()
-                self.global_threshold = max_filtered_thresh
+                # apply secure aggregation functions here
+                if self.aggregation_mechanism == AggregationMechanism.TRIMMED_MEAN:
+                    all_thresholds = np.sort(all_thresholds)[1:-1]
+                elif self.aggregation_mechanism == AggregationMechanism.TRIMMED_MEAN_2:
+                    all_thresholds = np.sort(all_thresholds)[2:-2]
+                elif self.aggregation_mechanism == AggregationMechanism.COORDINATE_WISE_MEDIAN:
+                    all_thresholds = np.median(all_thresholds)
+                else:
+                    pass
+
+                if all_thresholds.size == 1:
+                    self.global_threshold = all_thresholds
+                else:
+                    max_filtered_thresh = all_thresholds[abs(stats.zscore(all_thresholds)) <= 1.5].max()
+                    self.global_threshold = max_filtered_thresh
 
         test_data = torch.utils.data.TensorDataset(
             torch.from_numpy(x).type(torch.float)

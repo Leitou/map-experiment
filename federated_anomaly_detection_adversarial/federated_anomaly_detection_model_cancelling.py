@@ -36,6 +36,7 @@ if __name__ == "__main__":
         for agg in AggregationMechanism:
             # Adversary Loop -> here is the training
             for i in range(0, max_adversaries + 1):
+                FederationUtils.seed_random()
                 cp_filename = f'{cwd}{os.sep}model_cancelling_{agg.value}_{str(i)}.pt'
                 train_devices = []
                 for device in RaspberryPi:

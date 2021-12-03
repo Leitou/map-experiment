@@ -9,7 +9,7 @@ from custom_types import Behavior, ModelArchitecture, AdversaryType, Aggregation
 from data_handler import DataHandler
 from aggregation import Server
 from participants import AutoEncoderParticipant, RandomWeightAdversary, ExaggerateThresholdAdversary, \
-    UnderstateThresholdAdversary
+    UnderstateThresholdAdversary, ModelCancelAdversary
 from utils import select_federation_composition, get_sampling_per_device, FederationUtils
 
 # TODO exchange centralized comparison to normal federation
@@ -24,8 +24,8 @@ if __name__ == "__main__":
 
     # define federation composition and data contribution
     participants_per_arch = [2, 2, 2, 2]
-    adversaries_per_arch = [2, 0, 0, 0]
-    adversary_type = AdversaryType.UNDERSTATE_TRESHOLD
+    adversaries_per_arch = [2, 2, 0, 0]
+    adversary_type = AdversaryType.MODEL_CANCEL_BC
     aggregation_mechanism = AggregationMechanism.FED_AVG
     normals = [(Behavior.NORMAL, 3000)]
     attacks = [val for val in Behavior if val not in [Behavior.NORMAL, Behavior.NORMAL_V2]]
@@ -66,6 +66,10 @@ if __name__ == "__main__":
     participants = [AutoEncoderParticipant(x_train, y_train, x_valid, y_valid, batch_size_valid=1) if not is_adv else
                     RandomWeightAdversary(x_train, y_train, x_valid,
                                           y_valid) if adversary_type == AdversaryType.RANDOM_WEIGHT
+                    else ModelCancelAdversary(x_train, y_train, x_valid,
+                                              y_valid, n_honest=sum(participants_per_arch) - sum(adversaries_per_arch),
+                                              n_malicious=sum(
+                                                  adversaries_per_arch)) if adversary_type == AdversaryType.MODEL_CANCEL_BC
                     else ExaggerateThresholdAdversary(x_train, y_train, x_valid,
                                                       y_valid) if adversary_type == AdversaryType.EXAGGERATE_TRESHOLD
                     else UnderstateThresholdAdversary(x_train, y_train, x_valid, y_valid)
