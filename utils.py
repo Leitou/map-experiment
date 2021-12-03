@@ -176,6 +176,17 @@ class FederationUtils:
         torch.random.manual_seed(42)
         np.random.seed(42)
 
+    @staticmethod
+    def print_participants(participants: List[Tuple[RaspberryPi, Dict[Behavior, int], Dict[Behavior, int]]]):
+        headers = ['Participant ID', 'Device ID'] + [beh.value for beh in Behavior]
+        values = []
+        for idx, (p) in enumerate(participants):
+            row = [idx + 1, p[0].value]
+            for beh in Behavior:
+                row += [f'{p[1][beh] if beh in p[1] else 0} ({p[2][beh] if beh in p[2] else 0})']
+            values.append(row)
+        print(tabulate(values, headers=headers, tablefmt="pretty"))
+
 
 # Assumption we test at most on what we train (attack types)
 def select_federation_composition(participants_per_arch: List, normals: List[Tuple[Behavior, int]],

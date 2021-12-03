@@ -41,6 +41,8 @@ if __name__ == "__main__":
                           (device, {Behavior.NORMAL: 250, Behavior.NOISE: 250},
                            {Behavior.NORMAL: 25, Behavior.NOISE: 25})]
 
+    FederationUtils.print_participants(train_devices)
+
     train_sets, test_sets = DataHandler.get_all_clients_data(
         train_devices,
         test_devices)
