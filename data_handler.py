@@ -123,9 +123,15 @@ class DataHandler:
     @staticmethod
     def parse_all_files_to_df(filter_suspected_external_events=True,
                               filter_constant_columns=True,
-                              filter_outliers=True) -> pd.DataFrame:
+                              filter_outliers=True,
+                              keep_status_columns=False) -> pd.DataFrame:
         file_name = f'./data/all_external_{str(filter_suspected_external_events)}' \
-                    f'_constant_{str(filter_constant_columns)}_outliers_{str(filter_outliers)}.csv'
+                    f'_constant_{str(filter_constant_columns)}_outliers_{str(filter_outliers)}'
+
+        if keep_status_columns:
+            file_name += '_keepstatus'
+        file_name += f'.csv'
+
         if os.path.isfile(file_name):
             return pd.read_csv(file_name)
         full_df = pd.DataFrame()
@@ -144,7 +150,8 @@ class DataHandler:
                     df = df[df['connectivity'] == 1]
 
                 # remove model-irrelevant columns
-                df = df.drop(time_status_columns, axis=1)
+                if not keep_status_columns:
+                    df = df.drop(time_status_columns, axis=1)
                 if filter_outliers:
                     # drop outliers per measurement, indicated by (absolute z score) > 3
                     df = df[(np.nan_to_num(np.abs(stats.zscore(df))) < 3).all(axis=1)]
