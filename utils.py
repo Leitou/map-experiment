@@ -1,6 +1,7 @@
 from math import floor
 from typing import Tuple, Any, List, Dict, Union, Callable
 
+import random
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -173,6 +174,7 @@ class FederationUtils:
 
     @staticmethod
     def seed_random():
+        random.seed(42)
         torch.random.manual_seed(42)
         np.random.seed(42)
 

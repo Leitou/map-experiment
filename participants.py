@@ -165,8 +165,9 @@ class ModelCancelAdversary(AutoEncoderParticipant):
                 new_weights.update({key: original_param * (factor if "running_" not in key else 1)})
             self.model.load_state_dict(new_weights)
 
+    # simple overstatement
     def determine_threshold(self) -> float:
-        return random.uniform(0, 1e+8)
+        return random.uniform(1e6, 1e+9)
 
 # if threshold is selected like in the normal AutoEnc. Participant sending random weights is not an efficient attack
 # a model with 100% malicious participants still recognizes some behaviors with 100% accuracy without attacking the threshold
@@ -187,7 +188,7 @@ class RandomWeightAdversary(AutoEncoderParticipant):
         # However anomalies have proven to be way more off (due to the scaling).
         # Therefore this participant also overstates the threshold randomly
         # To be validated if it makes sense (basically combines threshold overstatement and random params)
-        return random.uniform(0, 1e+8)
+        return random.uniform(1e6, 1e+9)
 
 
 # Approx thresholds ranges of non-attacked device types:
