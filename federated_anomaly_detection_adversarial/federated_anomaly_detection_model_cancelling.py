@@ -11,8 +11,6 @@ from participants import AutoEncoderParticipant, ModelCancelAdversary
 from utils import FederationUtils
 
 if __name__ == "__main__":
-    torch.random.manual_seed(42)
-    np.random.seed(42)
     cwd = os.getcwd()
     os.chdir("..")
 

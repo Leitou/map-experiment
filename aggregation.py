@@ -82,9 +82,8 @@ class Server:
                 # Central case
                 self.global_threshold = self.participants_thresholds[0]
             else:
-                # Federated Case
+                # Federated case
                 all_thresholds = np.array(self.participants_thresholds)
-                # apply secure aggregation functions here
                 if self.aggregation_mechanism == AggregationMechanism.TRIMMED_MEAN:
                     all_thresholds = np.sort(all_thresholds)[1:-1]
                 elif self.aggregation_mechanism == AggregationMechanism.TRIMMED_MEAN_2:
@@ -97,6 +96,7 @@ class Server:
                 if all_thresholds.size == 1:
                     self.global_threshold = all_thresholds
                 else:
+                    # general threshold filter to account for heterogeneity
                     max_filtered_thresh = all_thresholds[abs(stats.zscore(all_thresholds)) <= 1.5].max()
                     self.global_threshold = max_filtered_thresh
 
