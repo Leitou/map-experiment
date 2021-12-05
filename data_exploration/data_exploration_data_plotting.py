@@ -14,6 +14,12 @@ if __name__ == "__main__":
         DataPlotter.plot_devices_as_kde()
     if plot_timeline:
         DataPlotter.plot_behaviors(
+            [(RaspberryPi.PI3_1GB, Behavior.NORMAL, "red"),
+             (RaspberryPi.PI4_2GB_WC, Behavior.NORMAL, "blue"),
+             (RaspberryPi.PI4_2GB_BC, Behavior.NORMAL, "orange"),
+             (RaspberryPi.PI4_4GB, Behavior.NORMAL, "green")], plot_name="normal_behavior_device_comparison")
+
+        DataPlotter.plot_behaviors(
             [(RaspberryPi.PI4_2GB_WC, Behavior.HOP, "darkred"),
              (RaspberryPi.PI4_2GB_WC, Behavior.NOISE, "red"),
              (RaspberryPi.PI4_2GB_WC, Behavior.SPOOF, "yellow"),
@@ -24,6 +30,7 @@ if __name__ == "__main__":
              (RaspberryPi.PI4_2GB_WC, Behavior.MIMIC, "fuchsia"),
              (RaspberryPi.PI4_2GB_WC, Behavior.NORMAL, "lightgreen"),
              (RaspberryPi.PI4_2GB_WC, Behavior.NORMAL_V2, "darkgreen")], plot_name="all_pi4_2gb_hist")
+
         DataPlotter.plot_behaviors(
             [(RaspberryPi.PI4_2GB_WC, Behavior.DELAY, "goldenrod"),
              (RaspberryPi.PI4_2GB_WC, Behavior.DISORDER, "cyan"),
@@ -44,12 +51,6 @@ if __name__ == "__main__":
              (RaspberryPi.PI4_2GB_WC, Behavior.REPEAT, "blue"),
              (RaspberryPi.PI4_2GB_WC, Behavior.NORMAL, "lightgreen"),
              (RaspberryPi.PI4_2GB_WC, Behavior.NORMAL_V2, "darkgreen")], plot_name="freeze_repeat_pi4_2gb")
-
-        DataPlotter.plot_behaviors(
-            [(RaspberryPi.PI3_1GB, Behavior.NORMAL, "red"),
-             (RaspberryPi.PI4_2GB_WC, Behavior.NORMAL, "blue"),
-             (RaspberryPi.PI4_2GB_BC, Behavior.NORMAL, "orange"),
-             (RaspberryPi.PI4_4GB, Behavior.NORMAL, "green")], plot_name="normal_behavior_device_comparison")
 
         DataPlotter.plot_behaviors(
             [(RaspberryPi.PI3_1GB, Behavior.NORMAL_V2, "red"),
