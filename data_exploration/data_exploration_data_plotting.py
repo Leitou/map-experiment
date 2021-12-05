@@ -9,6 +9,7 @@ plot_timeline = True
 if __name__ == "__main__":
     os.chdir("..")
     if plot_kde:
+        DataPlotter.plot_delay_and_normal_as_kde()
         DataPlotter.plot_behaviors_as_kde()
         DataPlotter.plot_devices_as_kde()
     if plot_timeline:

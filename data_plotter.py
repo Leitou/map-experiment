@@ -58,7 +58,7 @@ class DataPlotter:
             fig.set_figheight(len(cols_to_plot))
             fig.set_figwidth(50)
             palette = {Behavior.NORMAL.value: "green", Behavior.NORMAL_V2.value: "lightgreen",
-                       Behavior.DELAY.value: "yellow", Behavior.DISORDER.value: "orange",
+                       Behavior.DELAY.value: "darkblue", Behavior.DISORDER.value: "orange",
                        Behavior.FREEZE.value: "grey", Behavior.HOP.value: "red",
                        Behavior.MIMIC.value: "violet", Behavior.NOISE.value: "turquoise",
                        Behavior.REPEAT.value: "black", Behavior.SPOOF.value: "darkred"}
@@ -106,3 +106,39 @@ class DataPlotter:
 
             if plot_name is not None:
                 fig.savefig(f'data_plot_{plot_name}.png', dpi=100)
+
+    @staticmethod
+    def plot_delay_and_normal_as_kde():
+        plot_name = f"delay_normal_all_devices_hist"
+        all_data_parsed = DataHandler.parse_all_files_to_df(filter_outliers=True)
+        all_data_parsed = all_data_parsed[
+            (all_data_parsed.attack == Behavior.DELAY.value) | (all_data_parsed.attack == Behavior.NORMAL.value)]
+        cols_to_plot = [col for col in all_data_parsed if col not in ['device', 'attack']]
+        all_data_parsed['Monitoring'] = all_data_parsed.apply(lambda row: f'{row.device} {row.attack}', axis=1)
+
+        all_data_parsed = all_data_parsed.drop(['attack', 'device'], axis=1)
+        all_data_parsed = all_data_parsed.reset_index()
+        fig, axs = plt.subplots(nrows=ceil(len(cols_to_plot) / 4), ncols=4)
+        axs = axs.ravel().tolist()
+        fig.suptitle(plot_name)
+        fig.set_figheight(len(cols_to_plot))
+        fig.set_figwidth(50)
+        palette = {f'{RaspberryPi.PI3_1GB.value} {Behavior.NORMAL.value}': "red",
+                   f'{RaspberryPi.PI4_2GB_WC.value} {Behavior.NORMAL.value}': "blue",
+                   f'{RaspberryPi.PI4_2GB_BC.value} {Behavior.NORMAL.value}': "orange",
+                   f'{RaspberryPi.PI4_4GB.value} {Behavior.NORMAL.value}': "green",
+                   f'{RaspberryPi.PI3_1GB.value} {Behavior.DELAY.value}': "slategrey",
+                   f'{RaspberryPi.PI4_2GB_WC.value} {Behavior.DELAY.value}': "black",
+                   f'{RaspberryPi.PI4_2GB_BC.value} {Behavior.DELAY.value}': "lime",
+                   f'{RaspberryPi.PI4_4GB.value} {Behavior.DELAY.value}': "fuchsia"}
+        for i in range(len(cols_to_plot)):
+            axs[i].set_ylim([1e-4, 2])
+            if all_data_parsed[cols_to_plot[i]].unique().size == 1:
+                continue
+            sns.kdeplot(data=all_data_parsed, x=cols_to_plot[i], palette=palette, hue="Monitoring",
+                        common_norm=False, common_grid=True, ax=axs[i], cut=2,
+                        log_scale=(False, True))  # False, True
+
+        if plot_name is not None:
+            fig.savefig(f'data_plot_{plot_name}.png', dpi=100)
+
