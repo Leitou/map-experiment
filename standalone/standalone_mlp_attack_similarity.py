@@ -3,7 +3,6 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-import torch
 
 from aggregation import Server
 from custom_types import Behavior, RaspberryPi, ModelArchitecture, Scaler
@@ -12,8 +11,7 @@ from participants import MLPParticipant
 from utils import FederationUtils
 
 if __name__ == "__main__":
-    torch.random.manual_seed(42)
-    np.random.seed(42)
+    FederationUtils.seed_random()
     os.chdir("..")
 
     print("Similarity of attacks:\n"
@@ -22,7 +20,7 @@ if __name__ == "__main__":
     normals = [Behavior.NORMAL, Behavior.NORMAL_V2]
     attacks = [val for val in Behavior if val not in normals]
     all_accs = []
-    device = RaspberryPi.PI3_1GB
+    device = RaspberryPi.PI4_4GB
     test_devices = [(device, {beh: 75}) for beh in Behavior]
     eval_labels = [beh.value for beh in Behavior]
     train_labels = []
@@ -100,8 +98,8 @@ if __name__ == "__main__":
     train_labels.append("delay, repeat, noise")
 
     hm = sns.heatmap(np.array(all_accs), xticklabels=eval_labels, yticklabels=train_labels)
-    plt.title('Heatmap of Device ' + device.value, fontsize=15)
+    # plt.title('Heatmap of Device ' + device.value, fontsize=15)
     plt.xlabel('Predicting', fontsize=12)
     plt.ylabel('Trained on normal vs ', fontsize=12)
     plt.show()
-    hm.get_figure().savefig(f"data_plot_class_similarity_{device.value}.png")
+    hm.get_figure().savefig(f"data_plot_class_similarity_{device.value}.pdf")
