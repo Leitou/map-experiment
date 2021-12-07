@@ -1,6 +1,5 @@
 import os
 
-import numpy as np
 import pandas as pd
 import torch
 
@@ -45,14 +44,7 @@ if __name__ == "__main__":
                         if device == RaspberryPi.PI4_2GB_WC:
                             continue
                         else:
-                            train_devices += [(device, {Behavior.NORMAL: 250},
-                                               {Behavior.NORMAL: 25}),
-                                              (device, {Behavior.NORMAL: 250, Behavior.REPEAT: 250},
-                                               {Behavior.NORMAL: 25, Behavior.REPEAT: 25}),
-                                              (device, {Behavior.NORMAL: 250, Behavior.NOISE: 250},
-                                               {Behavior.NORMAL: 25, Behavior.NOISE: 25}),
-                                              (device, {Behavior.NORMAL: 250, Behavior.DELAY: 250},
-                                               {Behavior.NORMAL: 25, Behavior.DELAY: 25})]
+                            train_devices += FederationUtils.get_balanced_behavior_mlp_train_devices(device)
                     train_sets, test_sets = DataHandler.get_all_clients_data(
                         train_devices,
                         test_devices)
@@ -110,7 +102,7 @@ if __name__ == "__main__":
         df.to_csv(csv_result_path, index=False)
 
     FederationUtils.visualize_adversaries_data_poisoning(df, pis_to_inject,
-                                                         #title='Label Flipping Binary MLP\n',
+                                                         # title='Label Flipping Binary MLP\n',
                                                          title="",
                                                          row_title=lambda x: f'Flipping Labels of Device {x.value}\n',
                                                          save_dir='result_plot_binary_classification_label_flipping_all.pdf')

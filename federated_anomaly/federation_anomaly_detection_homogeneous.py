@@ -2,8 +2,6 @@ import os
 from copy import deepcopy
 from typing import Dict
 
-import numpy as np
-import torch
 from tabulate import tabulate
 
 from aggregation import Server
@@ -13,8 +11,7 @@ from participants import AutoEncoderParticipant
 from utils import FederationUtils
 
 if __name__ == "__main__":
-    torch.random.manual_seed(42)
-    np.random.seed(42)
+    FederationUtils.seed_random()
     os.chdir("..")
 
     print("Use case federated Anomaly/Zero Day Detection\n"
@@ -35,7 +32,7 @@ if __name__ == "__main__":
     }
 
     for device in participants_per_device_type:
-        train_devices += [(device, {normal: 1350}, {normal: 150})] * participants_per_device_type[device]
+        train_devices += [(device, {normal: 1500}, {normal: 150})] * participants_per_device_type[device]
     for device in RaspberryPi:
         for behavior in Behavior:
             test_devices.append((device, {behavior: 150}))
@@ -84,6 +81,6 @@ if __name__ == "__main__":
     for behavior in Behavior:
         results.append([behavior.value] + [res_dict[device][behavior] for device in RaspberryPi])
 
-    print(tabulate(results, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="pretty"))
+    print(tabulate(results, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="latex"))
 
     FederationUtils.print_thresholds(server, test_devices)

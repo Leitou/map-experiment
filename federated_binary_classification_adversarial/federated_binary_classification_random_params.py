@@ -21,7 +21,7 @@ if __name__ == "__main__":
     test_devices = []
 
     for device in RaspberryPi:
-        test_devices.append((device, {beh: 100 for beh in Behavior}))
+        test_devices.append((device, {beh: 75 for beh in Behavior}))
 
     test_set_result_dict = {"device": [], "num_adversaries": [], "f1": [], "tp": [], "fp": [], "tn": [], "fn": [],
                             "aggregation": []}
@@ -41,14 +41,7 @@ if __name__ == "__main__":
                     if device == RaspberryPi.PI4_2GB_WC:
                         continue
                     else:
-                        train_devices += [(device, {Behavior.NORMAL: 300},
-                                           {Behavior.NORMAL: 30}),
-                                          (device, {Behavior.NORMAL: 300, Behavior.DELAY: 300},
-                                           {Behavior.NORMAL: 30, Behavior.DELAY: 30}),
-                                          (device, {Behavior.NORMAL: 300, Behavior.REPEAT: 300},
-                                           {Behavior.NORMAL: 30, Behavior.REPEAT: 30}),
-                                          (device, {Behavior.NORMAL: 300, Behavior.NOISE: 300},
-                                           {Behavior.NORMAL: 30, Behavior.NOISE: 30})]
+                        train_devices += FederationUtils.get_balanced_behavior_mlp_train_devices(device)
                 train_sets, test_sets = DataHandler.get_all_clients_data(
                     train_devices,
                     test_devices)

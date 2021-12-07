@@ -3,7 +3,6 @@ from copy import deepcopy
 from typing import Dict
 
 import numpy as np
-import torch
 from tabulate import tabulate
 
 from aggregation import Server
@@ -13,35 +12,22 @@ from participants import MLPParticipant
 from utils import FederationUtils
 
 if __name__ == "__main__":
-    torch.random.manual_seed(42)
-    np.random.seed(42)
+    FederationUtils.seed_random()
     os.chdir("..")
 
     print("Starting demo experiment: Federated vs Centralized Binary Classification\n"
           "Training on a range of attacks and testing for each attack how well the joint model performs. Heterogeneous"
           " contribution per device type\n")
 
-    train_devices = [
-        (RaspberryPi.PI3_1GB, {Behavior.NORMAL: 300},
-         {Behavior.NORMAL: 30}),
-        (RaspberryPi.PI3_1GB, {Behavior.NORMAL: 300, Behavior.REPEAT: 300},
-         {Behavior.NORMAL: 30, Behavior.REPEAT: 30}),
-        (RaspberryPi.PI3_1GB, {Behavior.NORMAL: 300, Behavior.NOISE: 300},
-         {Behavior.NORMAL: 30, Behavior.NOISE: 30}),
-        (RaspberryPi.PI4_2GB_BC, {Behavior.NORMAL: 300},
-         {Behavior.NORMAL: 30}),
-        (RaspberryPi.PI4_2GB_BC, {Behavior.NORMAL: 300, Behavior.DELAY: 300},
-         {Behavior.NORMAL: 30, Behavior.DELAY: 30}),
-        (RaspberryPi.PI4_2GB_BC, {Behavior.NORMAL: 300, Behavior.NOISE: 300},
-         {Behavior.NORMAL: 30, Behavior.NOISE: 30}),
-        (RaspberryPi.PI4_4GB, {Behavior.NORMAL: 300},
-         {Behavior.NORMAL: 30}),
-        (RaspberryPi.PI4_4GB, {Behavior.NORMAL: 300, Behavior.DELAY: 300},
-         {Behavior.NORMAL: 30, Behavior.DELAY: 30}),
-        (RaspberryPi.PI4_4GB, {Behavior.NORMAL: 300, Behavior.REPEAT: 300},
-         {Behavior.NORMAL: 30, Behavior.REPEAT: 30}),
-    ]
+    train_devices = []
+    train_devices += FederationUtils.get_balanced_behavior_mlp_train_devices(RaspberryPi.PI3_1GB)[:1]
+    train_devices += FederationUtils.get_balanced_behavior_mlp_train_devices(RaspberryPi.PI3_1GB)[2:]
+    train_devices += FederationUtils.get_balanced_behavior_mlp_train_devices(RaspberryPi.PI4_2GB_BC)[:2]
+    train_devices += FederationUtils.get_balanced_behavior_mlp_train_devices(RaspberryPi.PI4_2GB_BC)[3:]
+    train_devices += FederationUtils.get_balanced_behavior_mlp_train_devices(RaspberryPi.PI4_4GB)[:3]
     test_devices = []
+
+    FederationUtils.print_participants(train_devices)
 
     results, results_central = [], []
     res_dict: Dict[RaspberryPi, Dict[Behavior, str]] = {}
@@ -95,4 +81,4 @@ if __name__ == "__main__":
     for behavior in Behavior:
         results.append([behavior.value] + [res_dict[device][behavior] for device in RaspberryPi])
 
-    print(tabulate(results, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="pretty"))
+    print(tabulate(results, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="latex"))

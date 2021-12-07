@@ -3,7 +3,6 @@ from copy import deepcopy
 from typing import Dict
 
 import numpy as np
-import torch
 from tabulate import tabulate
 
 from aggregation import Server
@@ -13,8 +12,6 @@ from participants import MLPParticipant
 from utils import FederationUtils
 
 if __name__ == "__main__":
-    torch.random.manual_seed(42)
-    np.random.seed(42)
     os.chdir("..")
 
     print("Starting demo experiment: Federated vs Centralized Binary Classification\n"
@@ -25,25 +22,19 @@ if __name__ == "__main__":
     res_dict: Dict[RaspberryPi, Dict[Behavior, str]] = {}
 
     for device in RaspberryPi:
+        FederationUtils.seed_random()
         if device == RaspberryPi.PI4_2GB_WC:
             continue
         train_devices, test_devices = [], []
         for behavior in Behavior:
-            test_devices.append((device, {behavior: 80}))
+            test_devices.append((device, {behavior: 75}))
         if device == RaspberryPi.PI4_2GB_BC:
             for behavior in Behavior:
-                test_devices.append((RaspberryPi.PI4_2GB_WC, {behavior: 80}))
+                test_devices.append((RaspberryPi.PI4_2GB_WC, {behavior: 75}))
 
         for device2 in RaspberryPi:
             if device2 != device and not (device == RaspberryPi.PI4_2GB_BC and device2 == RaspberryPi.PI4_2GB_WC):
-                train_devices += [(device2, {Behavior.NORMAL: 300},
-                                   {Behavior.NORMAL: 30}),
-                                  (device2, {Behavior.NORMAL: 300, Behavior.DELAY: 300},
-                                   {Behavior.NORMAL: 30, Behavior.DELAY: 30}),
-                                  (device2, {Behavior.NORMAL: 300, Behavior.REPEAT: 300},
-                                   {Behavior.NORMAL: 30, Behavior.REPEAT: 30}),
-                                  (device2, {Behavior.NORMAL: 300, Behavior.NOISE: 300},
-                                   {Behavior.NORMAL: 30, Behavior.NOISE: 30})]
+                train_devices += FederationUtils.get_balanced_behavior_mlp_train_devices(device2)
 
         train_sets, test_sets = DataHandler.get_all_clients_data(
             train_devices,
@@ -81,14 +72,14 @@ if __name__ == "__main__":
             device = test_devices[i][0]
 
             acc, f1, _ = FederationUtils.calculate_metrics(tfed[1].flatten(), y_predicted.flatten().numpy())
-            acc_cen, f1_cen, _ = FederationUtils.calculate_metrics(tcen[1].flatten(), y_predicted_central.flatten().numpy())
+            acc_cen, f1_cen, _ = FederationUtils.calculate_metrics(tcen[1].flatten(),
+                                                                   y_predicted_central.flatten().numpy())
             device_dict = res_dict[device] if device in res_dict else {}
             device_dict[behavior] = f'{acc * 100:.2f}% ({(acc - acc_cen) * 100:.2f}%)'
 
             res_dict[device] = device_dict
 
-
     for behavior in Behavior:
         results.append([behavior.value] + [res_dict[device][behavior] for device in RaspberryPi])
 
-    print(tabulate(results, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="pretty"))
+    print(tabulate(results, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="latex"))

@@ -1,22 +1,17 @@
+import os
 from copy import deepcopy
 from typing import Dict
 
 import numpy as np
-import torch
 from tabulate import tabulate
 
 from aggregation import Server
 from custom_types import Behavior, RaspberryPi, ModelArchitecture, Scaler
 from data_handler import DataHandler
 from participants import AutoEncoderParticipant
-import os
-
 from utils import FederationUtils
 
 if __name__ == "__main__":
-    torch.random.manual_seed(42)
-    np.random.seed(42)
-
     os.chdir("..")
 
     print("Use case federated Anomaly/Zero Day Detection\n"
@@ -28,6 +23,7 @@ if __name__ == "__main__":
                                                             RaspberryPi.PI4_4GB: 4}
 
     for device in RaspberryPi:
+        FederationUtils.seed_random()
         device_dict: Dict[Behavior, str] = {}
         train_devices = []
         if device == RaspberryPi.PI4_2GB_WC:
@@ -35,7 +31,7 @@ if __name__ == "__main__":
 
         for device2 in participants_per_device_type:
             if device2 != device and not (device == RaspberryPi.PI4_2GB_BC and device2 == RaspberryPi.PI4_2GB_WC):
-                train_devices += [(device2, {Behavior.NORMAL: 1350}, {Behavior.NORMAL: 150})] * \
+                train_devices += [(device2, {Behavior.NORMAL: 1500}, {Behavior.NORMAL: 150})] * \
                                  participants_per_device_type[device2]
         test_devices = []
         for behavior in Behavior:
@@ -79,7 +75,8 @@ if __name__ == "__main__":
             device = test_devices[i][0]
 
             acc, f1, _ = FederationUtils.calculate_metrics(tfed[1].flatten(), y_predicted.flatten().numpy())
-            acc_cen, f1_cen, _ = FederationUtils.calculate_metrics(tcen[1].flatten(), y_predicted_central.flatten().numpy())
+            acc_cen, f1_cen, _ = FederationUtils.calculate_metrics(tcen[1].flatten(),
+                                                                   y_predicted_central.flatten().numpy())
             device_dict = res_dict[device] if device in res_dict else {}
             device_dict[behavior] = f'{acc * 100:.2f}% ({(acc - acc_cen) * 100:.2f}%)'
 
@@ -87,4 +84,4 @@ if __name__ == "__main__":
     for behavior in Behavior:
         results.append([behavior.value] + [res_dict[device][behavior] for device in RaspberryPi])
 
-    print(tabulate(results, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="pretty"))
+    print(tabulate(results, headers=["Behavior"] + [pi.value for pi in RaspberryPi], tablefmt="latex"))

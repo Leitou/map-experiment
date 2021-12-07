@@ -3,7 +3,6 @@ from copy import deepcopy
 from typing import Dict
 
 import numpy as np
-import torch
 from tabulate import tabulate
 
 from aggregation import Server
@@ -13,9 +12,8 @@ from participants import MLPParticipant
 from utils import FederationUtils
 
 if __name__ == "__main__":
-    torch.random.manual_seed(42)
-    np.random.seed(42)
     os.chdir("..")
+    FederationUtils.seed_random()
 
     print("Starting demo experiment: Federated vs Centralized Binary Classification\n"
           "Training on a range of attacks and testing for each attack how well the joint model performs. Homogeneous"
@@ -32,14 +30,7 @@ if __name__ == "__main__":
             test_devices.append((device, {behavior: 75}))
         if device == RaspberryPi.PI4_2GB_WC:
             continue
-        train_devices += [(device, {Behavior.NORMAL: 250},
-                           {Behavior.NORMAL: 25}),
-                          (device, {Behavior.NORMAL: 250, Behavior.DELAY: 250},
-                           {Behavior.NORMAL: 25, Behavior.DELAY: 25}),
-                          (device, {Behavior.NORMAL: 250, Behavior.REPEAT: 250},
-                           {Behavior.NORMAL: 25, Behavior.REPEAT: 25}),
-                          (device, {Behavior.NORMAL: 250, Behavior.NOISE: 250},
-                           {Behavior.NORMAL: 25, Behavior.NOISE: 25})]
+        train_devices += FederationUtils.get_balanced_behavior_mlp_train_devices(device)
 
     FederationUtils.print_participants(train_devices)
 

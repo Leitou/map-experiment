@@ -1,7 +1,7 @@
+import random
 from math import floor
 from typing import Tuple, Any, List, Dict, Union, Callable
 
-import random
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -86,7 +86,7 @@ class FederationUtils:
             rows.append([behavior.value] + [
                 f"{df[(df.device == dev.value) & (df.behavior == behavior.value)].median(numeric_only=True)[0]:.2f}" for
                 dev in RaspberryPi])
-        print(tabulate(rows, headers=["Behavior"] + [dev.value for dev in RaspberryPi], tablefmt="pretty"))
+        print(tabulate(rows, headers=["Behavior"] + [dev.value for dev in RaspberryPi], tablefmt="latex"))
 
     @staticmethod
     def visualize_adversaries_data_poisoning(df: pd.DataFrame, injected_pis: List[RaspberryPi],
@@ -180,15 +180,27 @@ class FederationUtils:
 
     @staticmethod
     def print_participants(participants: List[Tuple[RaspberryPi, Dict[Behavior, int], Dict[Behavior, int]]]):
-        headers = ['Participant ID', 'Device ID'] + [beh.value for beh in Behavior]
+        all_behaviors = set().union(*[set(list(p[1].keys()) + list(p[2].keys())) for p in participants])
+        headers = ['Participant ID', 'Device ID'] + [beh.value for beh in list(all_behaviors)]
         values = []
         for idx, (p) in enumerate(participants):
             row = [idx + 1, p[0].value]
-            for beh in Behavior:
+            for beh in all_behaviors:
                 row += [f'{p[1][beh] if beh in p[1] else 0} ({p[2][beh] if beh in p[2] else 0})']
             values.append(row)
-        print(tabulate(values, headers=headers, tablefmt="pretty"))
+        print(tabulate(values, headers=headers, tablefmt="latex"))
 
+    @staticmethod
+    def get_balanced_behavior_mlp_train_devices(device_type: RaspberryPi) -> List[
+        Tuple[RaspberryPi, Dict[Behavior, int], Dict[Behavior, int]]]:
+        return [(device_type, {Behavior.NORMAL: 250},
+                 {Behavior.NORMAL: 25}),
+                (device_type, {Behavior.NORMAL: 250, Behavior.DELAY: 250},
+                 {Behavior.NORMAL: 25, Behavior.DELAY: 25}),
+                (device_type, {Behavior.NORMAL: 250, Behavior.FREEZE: 250},
+                 {Behavior.NORMAL: 25, Behavior.FREEZE: 25}),
+                (device_type, {Behavior.NORMAL: 250, Behavior.NOISE: 250},
+                 {Behavior.NORMAL: 25, Behavior.NOISE: 25})]
 
 # Assumption we test at most on what we train (attack types)
 def select_federation_composition(participants_per_arch: List, normals: List[Tuple[Behavior, int]],
@@ -205,53 +217,52 @@ def select_federation_composition(participants_per_arch: List, normals: List[Tup
     for i, num_p in enumerate(participants_per_arch):
         for p in range(num_p):
 
-            # add all normal monitorings for the training + validation + testing per participant
-            train_d, val_d = {}, {}
-            for normal in normals:
-                train_d[normal[0]] = normal[1]
-                val_d[normal[0]] = floor(normal[1] * val_percentage)
+                # add all normal monitorings for the training + validation + testing per participant
+                train_d, val_d = {}, {}
+                for normal in normals:
+                    train_d[normal[0]] = normal[1]
+                    val_d[normal[0]] = floor(normal[1] * val_percentage)
 
-            # add all attacks for training + validation per participant in case of binary classification training
-            if not is_anomaly:
-                for attack in attacks:
-                    train_d[attack] = floor(normals[0][1] * attack_frac)
-                    val_d[attack] = floor(normals[0][1] * attack_frac * val_percentage)
-            train_devices.append((list(RaspberryPi)[i], train_d, val_d))
+                # add all attacks for training + validation per participant in case of binary classification training
+                if not is_anomaly:
+                    for attack in attacks:
+                        train_d[attack] = floor(normals[0][1] * attack_frac)
+                        val_d[attack] = floor(normals[0][1] * attack_frac * val_percentage)
+                train_devices.append((list(RaspberryPi)[i], train_d, val_d))
 
-            # populate test dictionary with all behaviors (only once per device type)
-            if p == 0:
-                for b in list(Behavior):
-                    test_d = {}
-                    test_d[b] = num_behavior_test_samples
-                    test_devices.append((list(RaspberryPi)[i], test_d))
+                # populate test dictionary with all behaviors (only once per device type)
+                if p == 0:
+                    for b in list(Behavior):
+                        test_d = {}
+                        test_d[b] = num_behavior_test_samples
+                        test_devices.append((list(RaspberryPi)[i], test_d))
 
-    return train_devices, test_devices
+        return train_devices, test_devices
 
-
-# helper function independent of how test or train_devices are created
-# can be used to plot exactly how many samples of each device are being used for training to estimate the oversampling
-def get_sampling_per_device(train_devices, test_devices, include_train=True, incl_val=True, include_test=False):
-    devices_sample_reqs = []  # header
-    for d in RaspberryPi:
-        device_samples = [d.value]
-        for b in Behavior:
-            bcount = 0
-            for dev, train_d, val_d in train_devices:
-                if dev == d:
-                    if include_train:
-                        if b in train_d:
-                            bcount += train_d[b]
-                    if incl_val:
-                        if b in val_d:
-                            bcount += val_d[b]
-            if include_test:
-                for dev, test_d in test_devices:
+    # helper function independent of how test or train_devices are created
+    # can be used to plot exactly how many samples of each device are being used for training to estimate the oversampling
+    def get_sampling_per_device(train_devices, test_devices, include_train=True, incl_val=True, include_test=False):
+        devices_sample_reqs = []  # header
+        for d in RaspberryPi:
+            device_samples = [d.value]
+            for b in Behavior:
+                bcount = 0
+                for dev, train_d, val_d in train_devices:
                     if dev == d:
-                        if b in test_d:
-                            bcount += test_d[b]
-            device_samples.append(bcount)
-        normals = sum(device_samples[1:3])
-        attacks = sum(device_samples[3:])
-        device_samples.append(normals / attacks if attacks != 0 else None)
-        devices_sample_reqs.append(device_samples)
-    return devices_sample_reqs
+                        if include_train:
+                            if b in train_d:
+                                bcount += train_d[b]
+                        if incl_val:
+                            if b in val_d:
+                                bcount += val_d[b]
+                if include_test:
+                    for dev, test_d in test_devices:
+                        if dev == d:
+                            if b in test_d:
+                                bcount += test_d[b]
+                device_samples.append(bcount)
+            normals = sum(device_samples[1:3])
+            attacks = sum(device_samples[3:])
+            device_samples.append(normals / attacks if attacks != 0 else None)
+            devices_sample_reqs.append(device_samples)
+        return devices_sample_reqs
