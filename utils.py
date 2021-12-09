@@ -87,11 +87,11 @@ class FederationUtils:
     def visualize_adversaries_data_poisoning(df: pd.DataFrame, injected_pis: List[RaspberryPi],
                                              title: str, row_title: Callable[[RaspberryPi], str],
                                              save_dir: str):
+        sns.set_theme(font_scale=1.75, style='whitegrid')
         # see https://stackoverflow.com/questions/27426668/row-titles-for-matplotlib-subplot
         fig = plt.figure(figsize=(19.2, 19.2))
         grid = plt.GridSpec(len(injected_pis), 1)
 
-        sns.set(font_scale=1.75)
         for pi_to_inject in injected_pis:
             # create fake subplot just to title set of subplots
             fake = fig.add_subplot(grid[injected_pis.index(pi_to_inject)])
@@ -117,7 +117,7 @@ class FederationUtils:
                     if (j % 2) != (i % 2):
                         tick.set_visible(False)
                 ax.set_ylim(0, 100)
-                ax.set_title(f'{agg.value}')
+                ax.set_title(f'{agg.value}', size=25)
                 ax.get_legend().remove()
 
                 ax.set_xlabel('Device')
@@ -138,36 +138,38 @@ class FederationUtils:
     @staticmethod
     def visualize_adversaries_model_poisoning(df: pd.DataFrame,
                                               title: str, save_dir: str):
+        sns.set_theme(font_scale=1.75, style='whitegrid')
         fig, axs = plt.subplots(nrows=1, ncols=len(list(AggregationMechanism)), figsize=(19.2, 6.4))
         axs = axs.ravel().tolist()
-        agg_idx = 0
 
-        for agg in AggregationMechanism:
+        for i, (agg) in enumerate(AggregationMechanism):
             df_loop = df[(df.aggregation == agg.value)].drop(
                 ['aggregation'], axis=1)
             sns.barplot(
                 data=df_loop, ci=None,
                 x="device", y="f1", hue="num_adversaries",
-                alpha=.6, ax=axs[agg_idx]
+                alpha=.6, ax=axs[i]
             )
-            axs[agg_idx].set_ylim(0, 100)
-            axs[agg_idx].set_title(f'{agg.value}')
-            axs[agg_idx].get_legend().remove()
+            for j, (tick) in enumerate(axs[i].xaxis.get_major_ticks()):
+                if (j % 2) != (i % 2):
+                    tick.set_visible(False)
+            axs[i].set_ylim(0, 100)
+            axs[i].set_title(f'{agg.value}')
+            axs[i].get_legend().remove()
 
-            axs[agg_idx].set_ylabel('Device')
-            if agg_idx == 0:
-                axs[agg_idx].set_ylabel('F1 Score (%)')
+            axs[i].set_xlabel('Device')
+            if i == 0:
+                axs[i].set_ylabel('F1 Score (%)')
             else:
-                axs[agg_idx].set_ylabel(None)
-            agg_idx += 1
+                axs[i].set_ylabel(None)
 
         # add legend
         handles, labels = axs[
             len(list(
                 [AggregationMechanism.FED_AVG, AggregationMechanism.TRIMMED_MEAN])) - 1].get_legend_handles_labels()
         fig.legend(handles, labels, bbox_to_anchor=(1, 0.95), title="# of Adversaries")
-        fig.suptitle(title, fontweight='bold', size=16)
-        plt.tight_layout()
+        #fig.suptitle(title, fontweight='bold', size=16)
+        fig.tight_layout()
         plt.show()
         fig.savefig(save_dir, dpi=100)
 
