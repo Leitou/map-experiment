@@ -15,11 +15,6 @@ from aggregation import Server
 from custom_types import RaspberryPi, Behavior, AggregationMechanism
 
 
-# TODO: add some Reporting Utils. Like
-#   a) print accuracies as table
-#   b) show accuracies as heatmap
-#   c) show thresholds (as heatmap or table, tbd)
-#       could then remove the print_experiment_scores thing
 class FederationUtils:
     @staticmethod
     def calculate_metrics(y_test: np.ndarray, y_pred: np.ndarray) -> Tuple[float, float, Any]:
@@ -96,11 +91,12 @@ class FederationUtils:
         fig = plt.figure(figsize=(19.2, 19.2))
         grid = plt.GridSpec(len(injected_pis), 1)
 
+        sns.set(font_scale=1.75)
         for pi_to_inject in injected_pis:
             # create fake subplot just to title set of subplots
             fake = fig.add_subplot(grid[injected_pis.index(pi_to_inject)])
             # '\n' is important
-            fake.set_title(row_title(pi_to_inject), fontweight='semibold', size=14)
+            fake.set_title(row_title(pi_to_inject), fontweight='semibold', size=28)
             fake.set_axis_off()
 
             # create subgrid for two subplots without space between them
@@ -109,7 +105,7 @@ class FederationUtils:
                                          subplot_spec=grid[injected_pis.index(pi_to_inject)])
 
             agg_idx = 0
-            for agg in AggregationMechanism:
+            for i, agg in enumerate(AggregationMechanism):
                 ax = fig.add_subplot(gs[agg_idx])
                 df_loop = df[(df.injected == pi_to_inject.value) & (df.aggregation == agg.value)]
                 sns.barplot(
@@ -117,11 +113,14 @@ class FederationUtils:
                     x="device", y="f1", hue="num_adversaries",
                     alpha=.6, ax=ax
                 )
+                for j, (tick) in enumerate(ax.xaxis.get_major_ticks()):
+                    if (j % 2) != (i % 2):
+                        tick.set_visible(False)
                 ax.set_ylim(0, 100)
                 ax.set_title(f'{agg.value}')
                 ax.get_legend().remove()
 
-                ax.set_ylabel('Device')
+                ax.set_xlabel('Device')
                 if agg_idx == 0:
                     ax.set_ylabel('F1 Score (%)')
                 else:
@@ -130,7 +129,7 @@ class FederationUtils:
 
         # add legend
         handles, labels = fig.axes[len(fig.axes) - 1].get_legend_handles_labels()
-        fig.legend(handles, labels, bbox_to_anchor=(1, 0.94), title="# of Adversaries")
+        fig.legend(handles, labels, bbox_to_anchor=(1, 1), title="# of Adversaries")
         fig.tight_layout()
         fig.suptitle(title, fontweight='bold', size=16)
         plt.show()
