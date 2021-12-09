@@ -113,5 +113,5 @@ if __name__ == "__main__":
     FederationUtils.visualize_adversaries_data_poisoning(df, pis_to_inject,
                                                          #title='Attack Injection in Anomaly Detection\n',
                                                          title='',
-                                                         row_title=lambda x: f'Inecting Attack to Device {x.value}\n',
+                                                         row_title=lambda x: f'Injecting Attack to Device {x.value}\n',
                                                          save_dir='result_plot_homogeneous_anomaly_detection_inj_all.pdf')
