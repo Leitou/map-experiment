@@ -89,7 +89,7 @@ class FederationUtils:
                                              save_dir: str):
         sns.set_theme(font_scale=1.75, style='whitegrid')
         # see https://stackoverflow.com/questions/27426668/row-titles-for-matplotlib-subplot
-        fig = plt.figure(figsize=(19.2, 19.2))
+        fig = plt.figure(figsize=(21., 19.2))
         grid = plt.GridSpec(len(injected_pis), 1)
 
         for pi_to_inject in injected_pis:
@@ -128,8 +128,8 @@ class FederationUtils:
                 agg_idx += 1
 
         # add legend
-        handles, labels = fig.axes[len(fig.axes) - 1].get_legend_handles_labels()
-        fig.legend(handles, labels, bbox_to_anchor=(1, 1), title="# of Adversaries")
+        handles, labels = fig.axes[4].get_legend_handles_labels()
+        fig.axes[4].legend(handles, labels, bbox_to_anchor=(1, 1.03), title="# of Adversaries")
         fig.tight_layout()
         fig.suptitle(title, fontweight='bold', size=16)
         plt.show()
@@ -164,11 +164,10 @@ class FederationUtils:
                 axs[i].set_ylabel(None)
 
         # add legend
-        handles, labels = axs[
-            len(list(
-                [AggregationMechanism.FED_AVG, AggregationMechanism.TRIMMED_MEAN])) - 1].get_legend_handles_labels()
-        fig.legend(handles, labels, bbox_to_anchor=(1, 0.95), title="# of Adversaries")
-        #fig.suptitle(title, fontweight='bold', size=16)
+        handles, labels = fig.axes[len(fig.axes) - 1].get_legend_handles_labels()
+        fig.axes[len(fig.axes) - 1].legend(handles, labels, bbox_to_anchor=(1, 1.03),
+                                           title="# of Adversaries")
+        # fig.suptitle(title, fontweight='bold', size=16)
         fig.tight_layout()
         plt.show()
         fig.savefig(save_dir, dpi=100)
