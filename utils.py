@@ -139,7 +139,7 @@ class FederationUtils:
     def visualize_adversaries_model_poisoning(df: pd.DataFrame,
                                               title: str, save_dir: str):
         sns.set_theme(font_scale=1.75, style='whitegrid')
-        fig, axs = plt.subplots(nrows=1, ncols=len(list(AggregationMechanism)), figsize=(19.2, 6.4))
+        fig, axs = plt.subplots(nrows=1, ncols=len(list(AggregationMechanism)), figsize=(21., 6.4))
         axs = axs.ravel().tolist()
 
         for i, (agg) in enumerate(AggregationMechanism):
