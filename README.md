@@ -26,6 +26,8 @@ CUDA must be setup properly and all the variables and models must be put on the 
 * /federated_binary_classification/: Runnables for the experiments from Section 5.4
 * /federated_binary_classification_adversarial/: Runnables for the experiments from Section 6.3
 * /standalone/: Runnables for the experiments from Chapter 4
+* /various/: configurable experiments used for testing and validation, not included in report.
+
 * aggregation.py: Implements the different Aggregation Functions as well as Threshold Selection for a Federation on top of a list of Participants: Specifically those are:
   * FedAvg
   * Trimmed Mean 1 and 2

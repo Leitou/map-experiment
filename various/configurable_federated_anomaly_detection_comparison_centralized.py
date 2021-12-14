@@ -7,19 +7,15 @@ from custom_types import Behavior, ModelArchitecture, Scaler
 from data_handler import DataHandler
 from aggregation import Server
 from participants import AutoEncoderParticipant
-from utils import select_federation_composition, get_sampling_per_device, FederationUtils
+from utils import FederationUtils
 
 if __name__ == "__main__":
-    torch.random.manual_seed(42)
-    np.random.seed(42)
+    FederationUtils.seed_random()
 
-    print(f'GPU available: {torch.cuda.is_available()}')
     print("Starting demo experiment: Federated vs Centralized Anomaly Detection\n"
           "Training on a range of attacks and testing for each attack how well the joint model performs.\n")
 
     # define collective experiment config:
-    # TODO: for report looping over different nrs of participants / Attack Behaviors to train with /
-    #  behaviors to test on etc. while taking care to avoid too extensive upsampling
     participants_per_arch = [1, 1, 0, 1]
     normals = [(Behavior.NORMAL, 6000)]
     attacks = [val for val in Behavior if val not in [Behavior.NORMAL, Behavior.NORMAL_V2]]
@@ -28,7 +24,7 @@ if __name__ == "__main__":
     train_attack_frac = 1 / len(attacks) if len(normals) == 1 else 2 / len(attacks)  # enforce balancing per device
     num_behavior_test_samples = 200
 
-    train_devices, test_devices = select_federation_composition(participants_per_arch, normals, attacks, val_percentage,
+    train_devices, test_devices = FederationUtils.select_federation_composition(participants_per_arch, normals, attacks, val_percentage,
                                                                 train_attack_frac,
                                                                 num_behavior_test_samples, is_anomaly=True)
     print("Training devices:", len(train_devices))
@@ -36,12 +32,13 @@ if __name__ == "__main__":
     print("Testing devices:", len(test_devices))
     print(test_devices)
 
+    # modify below to print data usage
     incl_test = False
     incl_train = True
     incl_val = False
     print("Number of samples used per device type:", "\nincl. test samples - ", incl_test, "\nincl. val samples -",
           incl_val, "\nincl. train samples -", incl_train)
-    sample_requirements = get_sampling_per_device(train_devices, test_devices, incl_train, incl_val, incl_test)
+    sample_requirements = FederationUtils.get_sampling_per_device(train_devices, test_devices, incl_train, incl_val, incl_test)
     print(tabulate(sample_requirements, headers=["device"] + [val.value for val in Behavior] + ["Normal/Attack"],
                    tablefmt="pretty"))
 
