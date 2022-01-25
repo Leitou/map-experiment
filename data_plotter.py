@@ -12,7 +12,8 @@ class DataPlotter:
     @staticmethod
     def plot_behaviors(behaviors: List[Tuple[RaspberryPi, Behavior, str]], plot_name: Union[str, None] = None):
         # first find max number of samples
-        all_data_parsed = DataHandler.parse_all_files_to_df(filter_outliers=False, filter_suspected_external_events=False)
+        all_data_parsed = DataHandler.parse_all_files_to_df(filter_outliers=False,
+                                                            filter_suspected_external_events=False)
         max_number_of_samples = 0
         for behavior in behaviors:
             df_behavior = all_data_parsed.loc[
@@ -40,6 +41,44 @@ class DataPlotter:
 
         if plot_name is not None:
             fig.savefig(f'data_plot_{plot_name}.png', dpi=100)
+            print(f'Saved {plot_name}')
+
+    @staticmethod
+    def plot_behaviors_pub(behaviors: List[Tuple[RaspberryPi, Behavior, str]], plot_name: Union[str, None] = None):
+        # first find max number of samples
+        all_data_parsed = DataHandler.parse_all_files_to_df(filter_outliers=False,
+                                                            filter_suspected_external_events=False)
+        max_number_of_samples = 0
+        for behavior in behaviors:
+            df_behavior = all_data_parsed.loc[
+                (all_data_parsed['attack'] == behavior[1].value) & (all_data_parsed['device'] == behavior[0].value)]
+            if len(df_behavior) > max_number_of_samples:
+                max_number_of_samples = len(df_behavior)
+        cols_to_plot = [col for col in all_data_parsed if col not in ['device', 'attack']]
+
+        fig, axs = plt.subplots(nrows=ceil(len(cols_to_plot) / 4), ncols=4)
+        axs = axs.ravel().tolist()
+        fig.suptitle(plot_name)
+        fig.set_figheight(len(cols_to_plot))
+        fig.set_figwidth(50)
+        for i in range(len(cols_to_plot)):
+            for device, behavior, line_color in behaviors:
+                df_b = all_data_parsed.loc[
+                    (all_data_parsed['attack'] == behavior.value) & (all_data_parsed['device'] == device.value)]
+                xes_b = [i for i in range(max_number_of_samples)]
+                ys_actual_b = df_b[cols_to_plot[i]].tolist()
+                ys_upsampled_b = [ys_actual_b[i % len(ys_actual_b)] for i in range(max_number_of_samples)]
+                axs[i].set_yscale('log')
+                label = "RP3" if device == RaspberryPi.PI3_1GB else "RP4_1" if device == RaspberryPi.PI4_2GB_WC else\
+                    "RP4_2" if device == RaspberryPi.PI4_2GB_BC else "RP_4"
+                axs[i].plot(xes_b, ys_upsampled_b, color=line_color, label=(label + " " + behavior.value))
+            # axs[i].set_title(cols_to_plot[i], fontsize='xx-large') # remove title
+            axs[i].set_ylabel("log features")
+            axs[i].set_xlabel("time steps")
+            axs[i].legend(title='Devices')
+
+        if plot_name is not None:
+            fig.savefig(f'data_plot_{plot_name}.pdf', dpi=100)
             print(f'Saved {plot_name}')
 
     @staticmethod
@@ -149,4 +188,3 @@ class DataPlotter:
 
         if plot_name is not None:
             fig.savefig(f'data_plot_{plot_name}.png', dpi=100)
-
