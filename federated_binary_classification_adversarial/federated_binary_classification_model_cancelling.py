@@ -99,7 +99,7 @@ if __name__ == "__main__":
         df = pd.DataFrame.from_dict(test_set_result_dict)
         df.to_csv(csv_result_path, index=False)
 
-    FederationUtils.visualize_adversaries_model_poisoning(df,
+    FederationUtils.visualize_adversaries_model_poisoning_pub(df,
                                                           #title="Model Cancelling Attack on MLP",
                                                           title="",
                                                           save_dir='result_plot_binary_classification_model_cancelling.pdf')

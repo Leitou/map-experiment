@@ -227,7 +227,43 @@ class FederationUtils:
         fig.tight_layout()
         plt.show()
         fig.savefig(save_dir, dpi=100)
-        
+
+
+    @staticmethod
+    def visualize_adversaries_model_poisoning_pub(df: pd.DataFrame,
+                                              title: str, save_dir: str):
+        sns.set_theme(font_scale=1.75, style='whitegrid')
+        fig, axs = plt.subplots(nrows=1, ncols=len(list(AggregationMechanism)), figsize=(21., 6.4))
+        axs = axs.ravel().tolist()
+
+        for i, (agg) in enumerate(AggregationMechanism):
+            df_loop = df[(df.device != RaspberryPi.PI4_2GB_BC.value) & (df.device != RaspberryPi.PI4_2GB_WC.value)
+                          & (df.aggregation == agg.value)]
+            sns.barplot(
+                data=df_loop, ci=None,
+                x="device", y="f1", hue="num_adversaries",
+                alpha=.6, ax=axs[i]
+            )
+            labels = ["PI3", "PI4", "ALL"]
+            axs[i].set_xticklabels(labels)
+            axs[i].set_ylim(0, 100)
+            axs[i].set_title(f'{agg.value}')
+            axs[i].get_legend().remove()
+
+            axs[i].set_xlabel('Device')
+            if i == 0:
+                axs[i].set_ylabel('F1 Score (%)')
+            else:
+                axs[i].set_ylabel(None)
+
+        # add legend
+        handles, labels = fig.axes[len(fig.axes) - 1].get_legend_handles_labels()
+        fig.axes[len(fig.axes) - 1].legend(handles, labels, bbox_to_anchor=(1, 1.03),
+                                           title="# of Adversaries")
+        # fig.suptitle(title, fontweight='bold', size=16)
+        fig.tight_layout()
+        plt.show()
+        fig.savefig(save_dir, dpi=100)
 
     @staticmethod
     def seed_random():
