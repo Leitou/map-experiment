@@ -3,15 +3,15 @@ import os
 from custom_types import Behavior, RaspberryPi
 from data_plotter import DataPlotter
 
-plot_kde = False
+plot_kde = True
 plot_timeline = True
 
 if __name__ == "__main__":
     os.chdir("..")
     if plot_kde:
-        DataPlotter.plot_delay_and_normal_as_kde()
-        DataPlotter.plot_behaviors_as_kde()
-        DataPlotter.plot_devices_as_kde()
+        #DataPlotter.plot_delay_and_normal_as_kde()
+        #DataPlotter.plot_behaviors_as_kde()
+        DataPlotter.plot_devices_as_kde_pub()
     if plot_timeline:
         DataPlotter.plot_behaviors_pub(
             [(RaspberryPi.PI3_1GB, Behavior.NORMAL, "red"),
