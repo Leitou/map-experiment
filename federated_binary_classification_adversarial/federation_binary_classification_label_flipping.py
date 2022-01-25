@@ -101,8 +101,9 @@ if __name__ == "__main__":
         df = pd.DataFrame.from_dict(test_set_result_dict)
         df.to_csv(csv_result_path, index=False)
 
-    FederationUtils.visualize_adversaries_data_poisoning(df, pis_to_inject,
-                                                         # title='Label Flipping Binary MLP\n',
-                                                         title="",
-                                                         row_title=lambda x: f'Flipping Labels of Device {x.value}\n',
-                                                         save_dir='result_plot_binary_classification_label_flipping_all.pdf')
+    FederationUtils.visualize_adversaries_data_poisoning_pub(df, pis_to_inject,
+                                                             # title='Label Flipping Binary MLP\n',
+                                                             title="",
+                                                             row_title=lambda x: f'Flipping Labels of Device'
+                                                                                 f'{"PI4" if x == RaspberryPi.PI4_4GB else "PI3" if x == RaspberryPi.PI3_1GB else "PI4_2"}\n',
+                                                             save_dir='result_plot_binary_classification_label_flipping_all.pdf')

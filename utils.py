@@ -135,6 +135,62 @@ class FederationUtils:
         plt.show()
         fig.savefig(save_dir, dpi=100)
 
+    # modify to remove different devices from the plotting
+    @staticmethod
+    def visualize_adversaries_data_poisoning_pub(df: pd.DataFrame, injected_pis_to_plot: List[RaspberryPi],
+                                                 title: str, row_title: Callable[[RaspberryPi], str],
+                                                 save_dir: str):
+        sns.set_theme(font_scale=1.75, style='whitegrid')
+        # see https://stackoverflow.com/questions/27426668/row-titles-for-matplotlib-subplot
+        fig = plt.figure(figsize=(21., 19.2))
+
+        injected_pis_to_plot.remove(RaspberryPi.PI4_2GB_BC)
+        grid = plt.GridSpec(len(injected_pis_to_plot), 1)
+
+        for pi_to_inject in injected_pis_to_plot:
+            # create fake subplot just to title set of subplots
+            fake = fig.add_subplot(grid[injected_pis_to_plot.index(pi_to_inject)])
+            # '\n' is important
+            fake.set_title(row_title(pi_to_inject), fontweight='semibold', size=28)
+            fake.set_axis_off()
+
+            # create subgrid for two subplots without space between them
+            # <https://matplotlib.org/2.0.2/users/gridspec.html>
+            gs = GridSpecFromSubplotSpec(1, len(list(AggregationMechanism)),
+                                         subplot_spec=grid[injected_pis_to_plot.index(pi_to_inject)])
+
+            agg_idx = 0
+            for i, agg in enumerate(AggregationMechanism):
+                ax = fig.add_subplot(gs[agg_idx])
+                # leave out 2 of 5 possible groupings
+                df_loop = df[(df.device != RaspberryPi.PI4_2GB_BC.value) & (df.device != RaspberryPi.PI4_2GB_WC.value)
+                            & (df.injected == pi_to_inject.value) & (df.aggregation == agg.value)]
+                sns.barplot(
+                    data=df_loop, ci=None,
+                    x="device", y="f1", hue="num_adversaries",
+                    alpha=.6, ax=ax
+                )
+                labels = ["PI3", "PI4", "ALL"]
+                ax.set_xticklabels(labels)
+                ax.set_ylim(0, 100)
+                ax.set_title(f'{agg.value}', size=25)
+                ax.get_legend().remove()
+
+                ax.set_xlabel('Device')
+                if agg_idx == 0:
+                    ax.set_ylabel('F1 Score (%)')
+                else:
+                    ax.set_ylabel(None)
+                agg_idx += 1
+
+        # add legend
+        handles, labels = fig.axes[4].get_legend_handles_labels()
+        fig.axes[4].legend(handles, labels, bbox_to_anchor=(1, 1.03), title="# of Adversaries")
+        fig.tight_layout()
+        fig.suptitle(title, fontweight='bold', size=16)
+        plt.show()
+        fig.savefig(save_dir, dpi=100)
+
     @staticmethod
     def visualize_adversaries_model_poisoning(df: pd.DataFrame,
                                               title: str, save_dir: str):
@@ -171,6 +227,7 @@ class FederationUtils:
         fig.tight_layout()
         plt.show()
         fig.savefig(save_dir, dpi=100)
+        
 
     @staticmethod
     def seed_random():
