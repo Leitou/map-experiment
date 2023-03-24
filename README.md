@@ -1,8 +1,10 @@
 # Robust and Privacy-preserving AI in Crowdsensing Platforms
 
 ## Content :label:
-This repository contains all the code and data required to run the experiments, respectively recreate the figures of the report. 
+This repository contains all the code and data required to run the experiments, respectively recreate the figures of the report of the corresponding master project. 
 It is implemented using Python 3 and additional libraries. The DL models are built using PyTorch.
+The results of this project have been condensed into a short paper published by the JOURNAL IEEE Transactions on Dependable and Secure Computing.
+The publication can be found in [IEEEExplore](https://ieeexplore.ieee.org/document/9878222)
 
 ## Setup :hammer:
 In order to run the code, Python 3.8+ must be used. Subsequently, all the required libraries (listed in the requirements.txt file) must be installed. 
